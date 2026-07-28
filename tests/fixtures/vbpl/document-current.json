@@ -1,0 +1,681 @@
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "OK",
+  "messageCode": "ok",
+  "debugMessage": "",
+  "data": {
+    "id": "181440",
+    "docType": {
+      "id": "0d08b84c-7de7-4800-8760-2a68265e7890",
+      "name": "Nghị định",
+      "code": "NĐ",
+      "parentCode": "VBQPPL",
+      "parentName": null
+    },
+    "docNum": "234/2025/NĐ-CP",
+    "title": "Nghị định số 234/2025/NĐ-CP Quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam và tàu quân sự nước Cộng hòa xã hội chủ nghĩa Việt Nam đi nước ngoài",
+    "issueDate": "2025-08-27T00:00:00",
+    "effFrom": "2025-10-12T00:00:00",
+    "effTo": null,
+    "publicDate": null,
+    "effStatus": {
+      "id": "1419f6be-4a15-44a7-97ac-ea042770a514",
+      "name": "Còn hiệu lực",
+      "code": "CHL",
+      "parentCode": null,
+      "parentName": null
+    },
+    "status": "Publish",
+    "lang": "vi",
+    "defaultLanguage": "VN",
+    "updatedBy": "dungdvm_II.4",
+    "updatedDate": "2026-04-16T13:34:22",
+    "agencyName": "Chính phủ",
+    "organization": {
+      "id": "93724a75-0d15-4e7b-a4df-4282a2bea6a0",
+      "code": "44",
+      "name": "Bộ Quốc phòng",
+      "nameEn": "Bộ Quốc phòng",
+      "shortName": null,
+      "orgType": "0"
+    },
+    "isLw": true,
+    "documentContent": {
+      "id": "181440",
+      "title": null,
+      "content": "<html>\n <head></head>\n <body>\n  <table border=\"0\" style=\"width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 20px; border: none; height: 184px;\">\n   <tbody>\n    <tr style=\"height: 125px;\">\n     <td style=\"vertical-align: top; text-align: center; border: none; padding: 5px; font-family: 'Times New Roman', serif;\">\n      <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong>CHÍNH PHỦ<br>\n          -------</strong></span></p></td>\n     <td style=\"vertical-align: top; text-align: center; border: none; padding: 5px; font-family: 'Times New Roman', serif;\">\n      <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br>\n          Độc lập - Tự do - Hạnh phúc <br>\n          ---------------</strong></span></p></td>\n    </tr>\n    <tr style=\"height: 59px;\">\n     <td style=\"vertical-align: top; text-align: center; border: none; padding: 5px; font-family: 'Times New Roman', serif;\">\n      <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Số: 234/2025/NĐ-CP</span></p></td>\n     <td style=\"vertical-align: top; text-align: center; border: none; padding: 5px; font-family: 'Times New Roman', serif;\">\n      <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Hà Nội, ngày 27 tháng 8 năm 2025</em></span></p></td>\n    </tr>\n   </tbody>\n  </table>\n  <p style=\"font-family: 'Times New Roman', serif; font-size: 14px; text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>NGHỊ ĐỊNH</b></span></p>\n  <div id=\"demuc3173255\" class=\"docitem-13\">\n   <p class=\"MsoNormal\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong>Quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội </strong></span></p>\n   <p class=\"MsoNormal\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong>chủ nghĩa Việt Nam và tàu quân sự nước Cộng hòa xã hội chủ nghĩa </strong></span></p>\n   <p class=\"MsoNormal\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong>Việt Nam đi nước ngoài</strong></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Tổ chức Chính phủ số 63/2025/QH15;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Bộ Luật Hàng hải Việt Nam số 95/2015/QH13;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Biển Việt Nam số 18/2012/QH13;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật An ninh quốc gia số 32/2004/QH11;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Biên giới quốc gia số 06/2003/QH11;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Hải quan số 54/2014/QH11;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ Luật Quốc phòng số 22/2018/QH14;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Cảnh sát biển Việt Nam số 33/2018/QH14;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Biên phòng Việt Nam số 66/2020/QH14;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 47/2014/QH13;&nbsp;Luật sửa đổi, bổ sung một số điều của Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 51/2019/QH14;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Xuất cảnh, nhập cảnh của công dân Việt Nam số 49/2019/QH14;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật sửa đổi, bổ sung một số điều của Luật Xuất cảnh, nhập cảnh của công dân Việt Nam và Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 23/2023/QH15;</em></span></p>\n   <p><span style=\"color: #000000; font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Căn cứ&nbsp;Luật Quản lý, sử dụng vũ khí, vật liệu nổ và công cụ hỗ trợ số 42/2024/QH15;</em></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><em>Theo đề nghị của Bộ trưởng Bộ Quốc phòng;</em></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><i>Chính phủ ban hành Nghị định quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam và tàu quân sự nước Cộng hòa xã hội chủ nghĩa Việt Nam đi nước ngoài.</i></span></p>\n   <p id=\"29c64520-2e7f-11f1-96dc-9566a994080c\" class=\"prov-chapter\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>Chương I </b></span></p>\n   <p id=\"29c64520-2e7f-11f1-96dc-9566a994080c\" class=\"prov-chapter\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>NHỮNG QUY ĐỊNH CHUNG</b></strong></span></p>\n   <p id=\"b7b5dbb0-2d6d-11f1-af99-e7eaeac95793\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 1. Phạm vi điều chỉnh</b></strong></span></p>\n   <p class=\"prov-content\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Nghị định này quy định về thẩm quyền, trình tự, thủ tục cấp phép; thủ tục nhập cảnh, xuất cảnh, chuyển cảng; kiểm tra, giám sát; đảm bảo an ninh, an toàn, công tác lễ tân và trách nhiệm quản lý nhà nước đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam (sau đây gọi tắt là tàu quân sự nước ngoài đến Việt Nam) và tàu quân sự nước Cộng hòa xã hội chủ nghĩa Việt Nam đi nước ngoài (sau đây gọi tắt là tàu quân sự Việt Nam đi nước ngoài).</span></p>\n   <p id=\"b7b69f00-2d6d-11f1-a141-8db28956dd0e\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 2. Đối tượng áp dụng</b></strong></span></p>\n   <p id=\"b7b73b40-2d6d-11f1-88cf-c110949d30c3\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Tàu quân sự nước ngoài đến Việt Nam; tàu quân sự Việt Nam đi nước ngoài và thành viên trên tàu; các cơ quan quản lý nhà nước Việt Nam, tổ chức, cá nhân có liên quan đến hoạt động của tàu quân sự nước ngoài đến Việt Nam và tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7b7d78a-2d6d-11f1-a050-639dfdc20be4\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu thuyền công vụ được trang bị vũ khí quân dụng của một quốc gia, vùng lãnh thổ; tàu thuyền của một tổ chức quân sự quốc tế đến Việt Nam thực hiện các chuyến thăm, thực hiện các hoạt động hợp tác khác hoặc sửa chữa.</span></p>\n   <p id=\"b7b873c0-2d6d-11f1-b4a9-3d6c33be4978\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 3. Giải thích từ ngữ</b></strong></span></p>\n   <p class=\"prov-content\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Trong Nghị định này, các từ ngữ dưới đây được hiểu như sau:</span></p>\n   <p id=\"b7b8e8f0-2d6d-11f1-a936-65d4c580bb59\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Tàu quân sự nước ngoài là tàu thuyền thuộc lực lượng vũ trang của một quốc gia và mang dấu hiệu bên ngoài thể hiện rõ quốc tịch của quốc gia đó, do sĩ quan hải quân phục vụ quốc gia đó chỉ huy, người chỉ huy này có tên trong danh sách sĩ quan hay trong một tài liệu tương đương được cấp có thẩm quyền quốc gia đó xác nhận; hoạt động của thủy thủ đoàn phải tuân theo các điều lệnh kỷ luật quân sự.</span></p>\n   <p id=\"b7b98530-2d6d-11f1-adec-fb800a91f04b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu quân sự Việt Nam là tàu thuyền thuộc phạm vi quản lý của Bộ Quốc phòng, mang dấu hiệu bên ngoài thể hiện quốc tịch Việt Nam, do sĩ quan Quân đội nhân dân Việt Nam chỉ huy, người chỉ huy tàu có tên trong danh sách sĩ quan hay trong một tài liệu tương đương, hoạt động của thủy thủ đoàn phải tuân theo các điều lệnh kỷ luật quân đội.</span></p>\n   <p id=\"b7ba2170-2d6d-11f1-a8de-c9afcb0a63c3\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Tàu quân sự nước ngoài đến Việt Nam là các tàu quân sự nước ngoài đến lãnh hải, nội thủy và cảng biển của nước Cộng hòa xã hội chủ nghĩa Việt Nam thực hiện các chuyến thăm, thực hiện các hoạt động hợp tác khác và sửa chữa.</span></p>\n   <p id=\"b7babdb0-2d6d-11f1-b618-3b968f981df0\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Tàu quân sự Việt Nam đi nước ngoài là các tàu quân sự của Việt Nam đến lãnh hải, nội thủy và cảng biển của nước ngoài thực hiện các chuyến thăm, thực hiện các hoạt động hợp tác khác hoặc sửa chữa.</span></p>\n   <p id=\"b7bb59fa-2d6d-11f1-965f-23338c1529dd\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">5. Tàu quân sự thực hiện các chuyến thăm là tàu quân sự của một nước đến nước kia để giao lưu, hợp tác với mục đích tăng cường quan hệ hữu nghị giữa nhân dân và lực lượng quân đội hai quốc gia.</span></p>\n   <p id=\"b7bb8100-2d6d-11f1-aa57-5b4d6e837919\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">6. Tàu quân sự thực hiện các hoạt động hợp tác khác là các tàu quân sự của một nước đến nước kia thực hiện các hoạt động: Tuần tra chung; nhân đạo; tìm kiếm, cứu hộ, cứu nạn; đo đạc, khảo sát và nghiên cứu biển; tìm kiếm hài cốt; chống cướp biển (bao gồm cả hoạt động ghé đậu, thực hiện các dịch vụ bảo đảm cho các hoạt động trên); cho thuỷ thủ đoàn nghỉ ngơi và một số hoạt động chuyên ngành khác theo thỏa thuận giữa nước nơi tàu đến và nước có tàu.</span></p>\n   <p id=\"b7bbcf2a-2d6d-11f1-a15a-9baea1528455\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">7. Tàu quân sự của một nước đến nước kia để sửa chữa là các tàu quân sự đến bảo quản, bảo dưỡng, sửa chữa theo hợp đồng với các doanh nghiệp của nước nơi tàu đến.</span></p>\n   <p id=\"b7bbf630-2d6d-11f1-9d69-efdaa6fa27e6\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">8. Thành viên trên tàu quân sự nước ngoài là Trưởng đoàn (nếu có), Thuyền trưởng, thủy thủ và những người khác cùng đi trên tàu.</span></p>\n   <p id=\"b7bc4450-2d6d-11f1-b0a0-7900bf40449e\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">9. Cảng quân sự là cảng do Bộ Quốc phòng Việt Nam quản lý và hoạt động theo quy chế cảng quân sự.</span></p>\n   <p id=\"b7bc6b6a-2d6d-11f1-b09d-3f3b10003436\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">10. Các cơ quan quản lý nhà nước chuyên ngành tại cảng biển bao gồm: Biên phòng cửa khẩu cảng; Hải quan cửa khẩu cảng; Cảng vụ hàng hải; Kiểm dịch y tế quốc tế; Kiểm dịch động vật, thực vật cửa khẩu cảng.</span></p>\n   <p id=\"b7bc9270-2d6d-11f1-a46f-678a5bbc1adb\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">11. Người làm thủ tục là Trưởng đoàn hoặc Thuyền trưởng hoặc người được ủy quyền.</span></p>\n   <p id=\"b7bcb980-2d6d-11f1-9a88-d9a509830354\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 4. Nguyên tắc áp dụng đối với tàu quân sự nước ngoài đến Việt Nam và tàu quân sự Việt Nam đi nước ngoài</b></strong></span></p>\n   <p id=\"b7bce090-2d6d-11f1-a61d-596a18e2afb2\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Đối với tàu quân sự nước ngoài đến Việt Nam thực hiện theo quy định tại Điều 95 của Bộ luật Hàng hải Việt Nam năm 2015 được sửa đổi, bổ sung năm 2018, 2023 và các quy định sau:</span></p>\n   <p id=\"b7bd07a0-2d6d-11f1-ae81-09db57132a08\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Tàu quân sự nước ngoài đến Việt Nam vi phạm các quy định tại Nghị định này và các quy định khác của pháp luật Việt Nam được giải quyết qua đường ngoại giao trên cơ sở pháp luật Việt Nam hoặc điều ước quốc tế mà Việt Nam là thành viên;</span></p>\n   <p id=\"b7bd55c0-2d6d-11f1-9a97-9fdf3cf425cf\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Trưởng đoàn hoặc Thuyền trưởng tàu quân sự nước ngoài đến Việt Nam chịu trách nhiệm về những hậu quả do hành vi vi phạm pháp luật của các thành viên trên tàu gây ra trong thời gian hoạt động tại Việt Nam;</span></p>\n   <p id=\"b7bd7cd0-2d6d-11f1-9f9e-ef21047220c4\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Thành viên của tàu quân sự nước ngoài đến Việt Nam có hành vi vi phạm pháp luật Việt Nam bị xử lý theo quy định của pháp luật Việt Nam (trừ người được hưởng quyền ưu đãi và miễn trừ về ngoại giao);</span></p>\n   <p id=\"b7bda3e0-2d6d-11f1-a3aa-61864f75edb5\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">d) Khi xảy ra tai nạn hàng hải đối với tàu hay phát hiện tai nạn hoặc vụ việc khác liên quan đến an toàn hàng hải, an ninh hàng hải, Trưởng đoàn hoặc Thuyền trưởng tàu quân sự nước ngoài đến Việt Nam có trách nhiệm thông báo ngay cho Biên phòng cửa khẩu cảng và báo cáo tai nạn hàng hải theo quy định;</span></p>\n   <p id=\"b7bdcaf0-2d6d-11f1-b993-d5be3388dd0d\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">đ) Việc xử lý tai nạn hàng hải có liên quan đến tàu quân sự nước ngoài đến Việt Nam thực hiện theo quy định tại Bộ luật Hàng hải Việt Nam&nbsp;và các điều ước quốc tế có liên quan mà Việt Nam là thành viên.</span></p>\n   <p id=\"b7bdf200-2d6d-11f1-a1d7-83f3389063f6\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Đối với tàu quân sự Việt Nam đi nước ngoài</span></p>\n   <p id=\"b7bdf20a-2d6d-11f1-be9b-4d63b5da66f3\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Tuân thủ đường lối, chủ trương của Đảng, chính sách, pháp luật của Nhà nước, quy định của Bộ Quốc phòng về hội nhập quốc tế và đối ngoại quốc phòng;</span></p>\n   <p id=\"b7be1910-2d6d-11f1-b21b-0be4a5a6ce1c\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Thực hiện đúng kế hoạch hoạt động của tàu, lực lượng, vũ khí trang bị kỹ thuật đã được Bộ trưởng Bộ Quốc phòng phê duyệt;</span></p>\n   <p id=\"b7be6730-2d6d-11f1-a536-9b72b820b4e2\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Chấp hành nghiêm quy định về bảo vệ bí mật nhà nước, bí mật quân sự;</span></p>\n   <p id=\"b7be8e40-2d6d-11f1-8aa4-efb91f0289af\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">d) Tôn trọng và tuân thủ nghiêm các quy định pháp luật của nước sở tại nơi tàu đến và các điều ước quốc tế mà nước sở tại và Việt Nam cùng là thành viên.</span></p>\n   <p id=\"b7bedc60-2d6d-11f1-b780-f345c8840063\" class=\"prov-chapter\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Chương II </b></strong></span></p>\n   <p id=\"b7bedc60-2d6d-11f1-b780-f345c8840063\" class=\"prov-chapter\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>TÀU QUÂN SỰ NƯỚC NGOÀI ĐẾN VIỆT NAM</b></span></p>\n   <p id=\"a23daf00-2d6e-11f1-87b9-afecb9b6551c\" class=\"prov-section\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Mục 1</b></strong></span></p>\n   <p id=\"a23daf00-2d6e-11f1-87b9-afecb9b6551c\" class=\"prov-section\" style=\"font-family: 'Times New Roman', Times, serif; text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>THẨM QUYỀN, TRÌNH TỰ, THỦ TỤC CẤP PHÉP, THỦ TỤC </b></span></p>\n   <p id=\"a23daf00-2d6e-11f1-87b9-afecb9b6551c\" class=\"prov-section\" style=\"font-family: 'Times New Roman', Times, serif; text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>NHẬP CẢNH, XUẤT CẢNH, CHUYỂN CẢNG</b></span></p>\n   <p id=\"b7bf0370-2d6d-11f1-877d-6b74c77089e1\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 5. Thẩm quyền quyết định</b></strong></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Bộ trưởng Bộ Quốc phòng quyết định cho các tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm, hoạt động hợp tác khác hoặc sửa chữa.</span></p>\n   <p id=\"b7bf2a80-2d6d-11f1-bbd0-bbccc85ca482\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 6. Trình tự, thủ tục cấp phép</b></strong></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Bộ trưởng Bộ Quốc phòng quy định trình tự, thủ tục cấp phép cho tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm, hoạt động hợp tác khác hoặc sửa chữa.</span></p>\n   <p id=\"b7bf5190-2d6d-11f1-8197-61ac44e8800c\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 7. Thông báo tàu quân sự nước ngoài đến, rời cảng biển và sử dụng hoa tiêu hàng hải Việt Nam</b></strong></span></p>\n   <p id=\"b7bf78a0-2d6d-11f1-920c-d118ccd47731\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Chậm nhất 24 giờ trước khi tàu quân sự nước ngoài dự kiến đến cảng biển Việt Nam, người làm thủ tục phải thông báo trực tiếp hoặc qua các phương tiện thông tin liên lạc khác cho Cảng vụ hàng hải và Biên phòng cửa khẩu cảng nơi tàu đến Thông báo tàu đến cảng.</span></p>\n   <p id=\"b7bf9fb0-2d6d-11f1-a976-9d8eb5e18dac\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Chậm nhất 02 giờ trước khi tàu quân sự nước ngoài rời cảng, người làm thủ tục phải thông báo trực tiếp hoặc qua các phương tiện thông tin liên lạc khác cho Cảng vụ hàng hải và Biên phòng cửa khẩu cảng biết nội dung Thông báo tàu rời cảng.</span></p>\n   <p id=\"b7bfc6c0-2d6d-11f1-8e6a-c3498dff090d\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Khi vào, rời cảng biển hoặc di chuyển trong vùng nước cảng biển Việt Nam, tàu quân sự nước ngoài phải sử dụng hoa tiêu hàng hải Việt Nam dẫn tàu và trả phí hoa tiêu theo quy định của pháp luật Việt Nam.</span></p>\n   <p id=\"b7bfedd0-2d6d-11f1-bdcd-ab5cfa9db529\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 8. Thủ tục nhập cảnh, xuất cảnh, chuyển cảng đối với tàu quân sự nước ngoài tại cảng biển</b></strong></span></p>\n   <p id=\"b7c014e0-2d6d-11f1-96b4-2d1d94ce96ba\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Thủ tục nhập cảnh, xuất cảnh, chuyển cảng cho tàu, thành viên trên tàu quân sự nước ngoài được thực hiện trực tiếp tại tàu. Thủ tục nhập cảnh, chuyển cảng đến được thực hiện ngay sau khi tàu đến khu vực, vùng đón, trả hoa tiêu và kết thúc trước khi tàu vào vị trí neo đậu, cập cảng; thủ tục xuất cảnh, chuyển cảng đi được kết thúc chậm nhất là ngay trước khi tàu rời cảng.</span></p>\n   <p id=\"b7c03bf0-2d6d-11f1-a329-afe7df49309b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Thành viên tàu quân sự nước ngoài được sử dụng Thẻ quân nhân hoặc Giấy chứng minh quân nhân hoặc Danh sách thành viên để xuất nhập cảnh, đi bờ trong phạm vi tỉnh, thành phố trực thuộc trung ương nơi tàu neo đậu, nhưng không được sử dụng để xuất cảnh qua cửa khẩu khác.</span></p>\n   <p id=\"b7c08a10-2d6d-11f1-885b-d3bd48f86045\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Bộ trưởng Bộ Quốc phòng quy định các loại giấy tờ người làm thủ tục phải nộp khi nhập cảnh, xuất cảnh, chuyển cảng đối với tàu quân sự nước ngoài tại cảng biển.</span></p>\n   <p id=\"b7c0b120-2d6d-11f1-bc07-f72bd914ef64\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Đoàn kiểm tra làm thủ tục nhập cảnh, xuất cảnh, chuyển cảng bao gồm:</span></p>\n   <p id=\"b7c0ff40-2d6d-11f1-ad25-59af7fbb7c8f\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Trưởng đoàn: Đại diện Biên phòng cửa khẩu cảng;</span></p>\n   <p id=\"b7c12650-2d6d-11f1-a2a8-07fbef012465\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Thành viên đoàn làm thủ tục nhập cảnh gồm đại diện: Cảng vụ hàng hải, Hải quan cửa khẩu cảng, Kiểm dịch y tế quốc tế và Kiểm dịch động vật, thực vật cửa khẩu cảng (nếu tàu phải thực hiện kiểm dịch động vật, thực vật);</span></p>\n   <p id=\"b7c14d60-2d6d-11f1-bc2c-63d18ed7c862\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Thành viên đoàn làm thủ tục xuất cảnh, chuyển cảng gồm đại diện: Cảng vụ hàng hải, Hải quan cửa khẩu cảng.</span></p>\n   <p id=\"b7c17470-2d6d-11f1-b302-13ab3428ca43\" class=\"prov-article\" style=\"font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 9. Thủ tục nhập cảnh, xuất cảnh, chuyển cảng đối với tàu quân sự nước ngoài đến lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển</b></strong></span></p>\n   <p id=\"b7c19b80-2d6d-11f1-94ab-ff79fa3bde09\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Thủ tục nhập cảnh, xuất cảnh, chuyển cảng đối với tàu quân sự nước ngoài đến lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển được thực hiện tại trụ sở Cảng vụ hàng hải thuộc cấp tỉnh nơi tàu đến.</span></p>\n   <p id=\"b7c1c290-2d6d-11f1-b755-757b25391773\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Bộ trưởng Bộ Quốc phòng quy định các loại giấy tờ người làm thủ tục phải nộp khi nhập cảnh, xuất cảnh, chuyển cảng đối với tàu quân sự nước ngoài đến lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển.</span></p>\n   <p id=\"b7c1e9a0-2d6d-11f1-ad56-ddac8e0f01e5\" class=\"prov-section\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Mục 2</b></strong></span></p>\n   <p id=\"b7c1e9a0-2d6d-11f1-ad56-ddac8e0f01e5\" class=\"prov-section\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>HOẠT ĐỘNG CỦA TÀU QUÂN SỰ NƯỚC NGOÀI </b></span></p>\n   <p id=\"b7c1e9a0-2d6d-11f1-ad56-ddac8e0f01e5\" class=\"prov-section\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>ĐẾN VIỆT NAM VÀ ĐI BỜ CỦA THÀNH VIÊN TRÊN TÀU</b></span></p>\n   <p id=\"b7c237c0-2d6d-11f1-a42e-bb809288d363\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 10. Hoạt động của tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm</b></strong></span></p>\n   <p id=\"b7c285e0-2d6d-11f1-8575-2d44e2dae1cc\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm được neo đậu, hoạt động tại cảng biển, cảng quân sự đã được cấp phép; phải tuân thủ các quy định của Nghị định này, quy định khác của pháp luật Việt Nam có liên quan và sự hướng dẫn của cơ quan quản lý nhà nước chuyên ngành tại cảng.</span></p>\n   <p id=\"b7c2acf0-2d6d-11f1-bc59-75829e31324f\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu quân sự của cùng một quốc gia đến Việt Nam thực hiện các chuyến thăm:</span></p>\n   <p id=\"b7c2d400-2d6d-11f1-b58d-4b0f67e3bf6e\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Không quá 03 lần trong 01 năm;</span></p>\n   <p id=\"b7c2fb10-2d6d-11f1-b984-3b4ac7c22e73\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Không được trú đậu quá 03 tàu tại cùng một cảng trong cùng một thời điểm, thời gian trú đậu không quá 07 ngày;</span></p>\n   <p id=\"b7c32220-2d6d-11f1-89f5-e387dbe9eec6\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Trường hợp đặc biệt, Bộ trưởng Bộ Quốc phòng báo cáo Thủ tướng Chính phủ xem xét, quyết định.</span></p>\n   <p id=\"b7c34930-2d6d-11f1-92f8-79ef67774be6\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 11. Hoạt động của tàu quân sự nước ngoài đến Việt Nam thực hiện các hoạt động hợp tác khác</b></strong></span></p>\n   <p id=\"b7c37040-2d6d-11f1-9111-71bd331ce443\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Tàu quân sự nước ngoài đến lãnh hải, nội thủy và cảng biển của Việt Nam chỉ được thực hiện các hoạt động đã thỏa thuận, thống nhất giữa các bộ, ngành, địa phương liên quan của Việt Nam và quốc gia có tàu, trong phạm vi hoạt động đã được Bộ Quốc phòng cấp phép.</span></p>\n   <p id=\"b7c39750-2d6d-11f1-93a0-ed67108c1880\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu quân sự nước ngoài đến Việt Nam thực hiện các hoạt động khác tại lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển cần di chuyển ra ngoài phạm vi hoạt động đã được cấp phép phải xin phép và chỉ thực hiện khi được Bộ Quốc phòng Việt Nam chấp thuận.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Trường hợp phải di chuyển khẩn cấp vì lý do bất khả kháng hoặc vì mục đích phải cứu giúp người, tàu thuyền hay tàu bay đang gặp nạn, ngay sau khi đến vị trí neo đậu an toàn phải thông báo cho Bộ Quốc phòng Việt Nam, bộ ngành chủ quản và Ủy ban nhân dân cấp tỉnh liên quan.</span></p>\n   <p id=\"b7c3be60-2d6d-11f1-8d48-c9a3180da04b\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 12. Hoạt động của tàu quân sự nước ngoài đến Việt Nam để sửa chữa</b></strong></span></p>\n   <p id=\"b7c3e570-2d6d-11f1-aeea-593b468b87ce\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Sau khi được cấp phép đến Việt Nam để sửa chữa, 48 giờ trước khi tàu vào lãnh hải Việt Nam, Thuyền trưởng tàu quân sự nước ngoài phải thông báo và giữ liên lạc với Cảng vụ hàng hải nơi tàu đến.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Trường hợp trên tàu có sự thay đổi so với nội dung đã được cấp phép thì Thuyền trưởng phải thông báo cho doanh nghiệp Việt Nam tiếp nhận sửa chữa tàu để phối hợp với các cơ quan chức năng liên quan giải quyết trước khi tàu vào sửa chữa.</span></p>\n   <p id=\"b7c40c80-2d6d-11f1-9f68-4f149be21c8c\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu quân sự nước ngoài đến Việt Nam để sửa chữa chỉ được neo đậu sửa chữa tại các cơ sở sửa chữa tàu biển đã được cấp phép.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Bộ trưởng Bộ Quốc phòng quy định số lượng tàu quân sự của cùng một quốc gia đến Việt Nam để sửa chữa trong cùng một thời điểm tại cùng một cơ sở sửa chữa.</span></p>\n   <p id=\"b7c43390-2d6d-11f1-acce-21d34db376b5\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Trong thời gian ra vào, neo đậu, sửa chữa, tàu quân sự nước ngoài, thành viên trên tàu, doanh nghiệp sửa chữa tàu phải tuân thủ các quy định của pháp luật Việt Nam, nội quy cảng biển, chịu sự hướng dẫn, kiểm tra, giám sát của các cơ quan quản lý nhà nước chuyên ngành tại cảng.</span></p>\n   <p id=\"b7c45aa0-2d6d-11f1-ab2f-7f5a16502c5e\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Khi neo đậu sửa chữa, việc sử dụng các phương tiện khác trên tàu để đi lại, bảo dưỡng phương tiện phải được sự chấp thuận và chịu sự kiểm tra, giám sát của Biên phòng cửa khẩu cảng và Cảng vụ hàng hải Việt Nam.</span></p>\n   <p id=\"b7c481b0-2d6d-11f1-b4bb-4550ff714afd\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">5. Các hoạt động giao lưu, thăm tàu phải xin phép và chỉ thực hiện khi được Bộ Quốc phòng Việt Nam chấp thuận.</span></p>\n   <p id=\"b7c4a8c0-2d6d-11f1-b932-09e09789b497\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">6. Bộ trưởng Bộ Quốc phòng quy định cụ thể nội dung và phạm vi bảo vệ của doanh nghiệp bảo vệ đối với các tàu quân sự nước ngoài đến Việt Nam để sửa chữa có nhu cầu thuê dịch vụ bảo vệ trong thời gian tàu neo đậu sửa chữa.</span></p>\n   <p id=\"b7c4cfd0-2d6d-11f1-81f8-ff71e4f182e8\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 13. Đi bờ đối với các thành viên trên tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm, thực hiện các hoạt động hợp tác khác và sửa chữa</b></strong></span></p>\n   <p id=\"b7c51df0-2d6d-11f1-96a5-a5c6db24f85b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Thành viên của tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm chỉ được phép rời tàu đi bờ sau khi đã hoàn thành thủ tục nhập cảnh, thủ tục chuyển cảng đến và phải trở lại tàu trước khi các cơ quan quản lý nhà nước chuyên ngành tại cảng biển thực hiện thủ tục xuất cảnh, thủ tục chuyển cảng đi cho tàu. Khi đi bờ, các thành viên trên tàu phải chấp hành các quy định của pháp luật Việt Nam, hướng dẫn và chịu sự kiểm tra, giám sát của Biên phòng cửa khẩu cảng và lực lượng Công an địa phương nơi tàu neo đậu, tôn trọng truyền thống văn hóa, phong tục, tập quán của Việt Nam. Trường hợp mang theo hàng hóa, phải tuân thủ các quy định của pháp luật Việt Nam về hải quan, y tế, kiểm dịch.</span></p>\n   <p id=\"b7c54500-2d6d-11f1-b51e-b52e8e8eeca8\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Khi đi bờ theo chương trình hoạt động chính thức của chuyến thăm, các thành viên trên tàu phải đi theo đoàn, nhóm, phải có trưởng đoàn (nhóm); không mang vũ khí, vật liệu nổ, công cụ hỗ trợ; quân nhân phải mang mặc quân phục; người thuộc các tổ chức hoặc chuyên ngành khác, phải mang mặc đồng phục của tổ chức, chuyên ngành mình. Trưởng đoàn (nhóm) có trách nhiệm theo dõi, quản lý thành viên đoàn trong quá trình thực hiện các chương trình hoạt động chính thức của chuyến thăm. Trường hợp có thành viên trong đoàn vắng mặt, không tham gia chương trình hoạt động theo quy định, trưởng đoàn (nhóm) phải thông báo ngay cho cơ quan chủ trì tiếp đón.</span></p>\n   <p id=\"b7c59320-2d6d-11f1-9d6c-adb79240d4c3\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Khi đi bờ với mục đích cá nhân, các thành viên trên tàu có thể đi theo đoàn (nhóm) hoặc cá nhân; không mang vũ khí, vật liệu nổ, công cụ hỗ trợ; được phép mang mặc thường phục.</span></p>\n   <p id=\"b7c5ba30-2d6d-11f1-b9cd-0fb0578ea29f\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Trường hợp tàu neo đậu tại lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển, doanh nghiệp đưa đón thành viên trên tàu đi bờ phải có giấy phép hoạt động trong lĩnh vực chở người trên biển và có hợp đồng với phía tàu. Phương tiện, người điều khiển phương tiện đưa đón phải được cấp giấy phép theo quy định tại khoản 3 Điều 15 Nghị định này.</span></p>\n   <p id=\"b7c5e140-2d6d-11f1-be60-5dad738a6702\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">5. Thành viên trên tàu đi bờ trong phạm vi tỉnh, thành phố trực thuộc trung ương nơi tàu neo đậu:</span></p>\n   <p id=\"29c90440-2e7f-11f1-971d-a751570f2e88\" class=\"prov-item\" style=\"font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-size: 14px; font-family: 'times new roman', times, serif;\">a) Không phải đề nghị cấp thị thực Việt Nam;</span></p>\n   <p id=\"29c9a080-2e7f-11f1-8e86-633972170bb4\" class=\"prov-item\" style=\"font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Khi thành viên trên tàu có nhu cầu đi bờ, Trưởng đoàn hoặc Thuyền trưởng phải có đơn xin phép cho thành viên của tàu đi bờ và được Biên phòng cửa khẩu cảng nơi tàu neo đậu chấp thuận, cấp Giấy phép đi bờ của thành viên tàu quân sự nước ngoài. Thời gian đi bờ từ 01h00 - 24h00 hàng ngày;</span></p>\n   <p id=\"29ca63d0-2e7f-11f1-9eb9-f7ea2293aeb8\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-size: 14px; font-family: 'times new roman', times, serif;\">c) Trường hợp thành viên trên tàu có nhu cầu nghỉ qua đêm trên bờ, Trưởng đoàn hoặc Thuyền trưởng phải có đơn xin phép và được Biên phòng cửa </span><span style=\"font-size: 14px; font-family: 'times new roman', times, serif;\">khẩu cảng chấp thuận, cấp giấy phép;</span></p>\n   <p id=\"b7c60850-2d6d-11f1-8e3e-35b3c106de09\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-size: 14px; font-family: 'times new roman', times, serif;\">d) Thủ tục, lệ phí cấp Giấy phép đi bờ của thành viên tàu quân sự nước ngoài, thực hiện theo quy định tại Điều 23, Điều 25 Nghị định số 77/2017/NĐ-CP ngày 03 tháng 7 năm 2017 của Chính phủ quy định về quản lý, bảo vệ an ninh trật tự tại cửa khẩu cảng.</span></p>\n   <p id=\"b7c65670-2d6d-11f1-864c-f52dde6902a6\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">6. Thành viên trên tàu đi ra ngoài phạm vi tỉnh, thành phố trực thuộc Trung ương nơi tàu neo đậu:</span></p>\n   <p id=\"b7c67d80-2d6d-11f1-896f-eb8b61612ad0\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Thành viên trên tàu có nhu cầu đi ra ngoài phạm vi tỉnh, thành phố trực thuộc Trung ương nơi tàu neo đậu phải có thị thực Việt Nam (trừ trường hợp mang hộ chiếu thuộc diện được miễn thị thực Việt Nam) và tuân thủ các quy định của pháp luật Việt Nam về nhập cảnh, xuất cảnh;</span></p>\n   <p id=\"b7c6a490-2d6d-11f1-95f9-67417ae9a135\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Trường hợp đi theo chương trình hoạt động chính thức của chuyến thăm, các thành viên trên tàu được miễn phí thị thực (đối với những trường hợp không thuộc diện miễn thị thực Việt Nam);</span></p>\n   <p id=\"b7c6cba0-2d6d-11f1-998f-3bf28b4a2782\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Trường hợp đi với mục đích cá nhân, thành viên trên tàu phải nộp phí thị thực (đối với những trường hợp không thuộc diện miễn thị thực Việt Nam) theo quy định của Bộ Tài chính.</span></p>\n   <p id=\"b7c6f2b0-2d6d-11f1-be74-8957ebc9c2dd\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 14. Các hoạt động tàu quân sự nước ngoài không được thực hiện khi đến Việt Nam</b></strong></span></p>\n   <p id=\"b7c719c0-2d6d-11f1-9979-2b6a87a74b55\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Xâm phạm độc lập, chủ quyền và toàn vẹn lãnh thổ của nước Cộng hòa xã hội chủ nghĩa Việt Nam.</span></p>\n   <p id=\"b7c767e0-2d6d-11f1-9d62-9dcbfec89759\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Thu thập tình báo, quay phim, chụp ảnh, vẽ cảnh đồ ở khu vực cấm và những hành vi khác, gây phương hại đến an ninh quốc gia và trật tự an toàn xã hội của nước Cộng hòa xã hội chủ nghĩa Việt Nam.</span></p>\n   <p id=\"b7c7b600-2d6d-11f1-9d0c-714e6f77f0b7\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Tuyên truyền, phát tán tài liệu, sách báo, phim ảnh, văn hóa phẩm mà chưa được phép của cơ quan có thẩm quyền của Bộ Quốc phòng Việt Nam.</span></p>\n   <p id=\"b7c7dd10-2d6d-11f1-86b7-0767be8d4e68\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Vận chuyển vũ khí giết người hàng loạt, các chất phóng xạ, chất độc hóa học, chất độc sinh học, chất ma túy.</span></p>\n   <p id=\"b7c80420-2d6d-11f1-8c2e-758e345809bb\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">5. Đưa người, hàng hóa và phương tiện xuống hoặc rời tàu trái với quy định của pháp luật Việt Nam về nhập cảnh, xuất cảnh, xuất nhập khẩu trừ trường hợp cứu người bị nạn nhưng sau đó phải thông báo ngay cho cơ quan quản lý nhà nước chuyên ngành Việt Nam có thẩm quyền tại cảng biển.</span></p>\n   <p id=\"b7c85240-2d6d-11f1-9819-f7944c9b1f5e\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">6. Phóng đi, tiếp nhận hay xếp lên tàu bất kỳ phương tiện bay hay khí tài quân sự mà chưa được phép của cơ quan quản lý nhà nước có thẩm quyền của Bộ Quốc phòng Việt Nam.</span></p>\n   <p id=\"b7c87950-2d6d-11f1-a9d7-b382d565ee35\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">7. Các hoạt động nghiên cứu, đo đạc, đánh bắt hải sản, trao đổi mua bán hoặc gây nhiễu hệ thống thông tin liên lạc, rađa, cản trở giao thông vận tải mà chưa được phép của cơ quan quản lý nhà nước có thẩm quyền của Việt Nam.</span></p>\n   <p id=\"b7c8a060-2d6d-11f1-b3c7-c184b35d840d\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">8. Gây ô nhiễm môi trường, làm hư hại các thiết bị, công trình trên biển và ở cảng biển.</span></p>\n   <p id=\"b7c8c770-2d6d-11f1-a8b6-aff806e5980e\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">9. Sử dụng thợ lặn hoặc các thiết bị lặn ngầm khác dưới nước khi chưa được cơ quan có thẩm quyền của Bộ Quốc phòng Việt Nam cho phép.</span></p>\n   <p id=\"b7c8ee80-2d6d-11f1-8d50-df734c1359d2\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">10. Tự động di chuyển cập mạn tàu khác, đi vào khu vực cấm.</span></p>\n   <p id=\"b7c91590-2d6d-11f1-82f4-1561752d298c\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">11. Gây mất trật tự công cộng, cản trở hoặc chống lại việc thực thi nhiệm vụ của nhà chức trách Việt Nam.</span></p>\n   <p id=\"b7c93ca0-2d6d-11f1-97cf-7b351387524f\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">12. Huấn luyện, diễn tập, thao diễn và trình diễn với các loại vũ khí, phương tiện bay, khí tài quân sự mà chưa được phép của Bộ Quốc phòng Việt Nam.</span></p>\n   <p id=\"b7c963b0-2d6d-11f1-9f6a-2fb9f756e105\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">13. Các hoạt động ngoài kế hoạch hai bên thống nhất và các hoạt động khác mà pháp luật Việt Nam cấm.</span></p>\n   <p id=\"29cb9c50-2e7f-11f1-9dc3-135dfaac69c0\" class=\"prov-section\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>Mục 3 </b></span></p>\n   <p id=\"29cb9c50-2e7f-11f1-9dc3-135dfaac69c0\" class=\"prov-section\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>CẤP GIẤY PHÉP; KIỂM TRA, GIÁM SÁT; ĐẢM BẢO AN NINH, </b></strong></span></p>\n   <p id=\"29cb9c50-2e7f-11f1-9dc3-135dfaac69c0\" class=\"prov-section\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>AN TOÀN; NGHI LỄ ĐỐI NGOẠI ĐỐI VỚI CÁC HOẠT ĐỘNG LIÊN </b></strong></span></p>\n   <p id=\"29cb9c50-2e7f-11f1-9dc3-135dfaac69c0\" class=\"prov-section\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>QUAN ĐẾN TÀU QUÂN SỰ NƯỚC NGOÀI NƠI TÀU NEO ĐẬU</b></strong></span></p>\n   <p id=\"b7c9b1d0-2d6d-11f1-a21f-439ff7222089\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 15. Cấp phép cho tổ chức, cá nhân, phương tiện Việt Nam, nước ngoài thực hiện các hoạt động liên quan đến tàu quân sự nước ngoài</b></strong></span></p>\n   <p id=\"b7c9fff0-2d6d-11f1-b2dd-29b1361a099b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Bộ Quốc phòng Việt Nam cấp phép cho tàu quân sự nước ngoài đến Việt Nam sử dụng vũ khí bộ binh hoặc các loại súng mô hình để phục vụ cho mục đích nghi lễ, tổ chức nghi thức lễ chào thượng cờ hoặc đón tiếp khi tàu cập cảng và rời cảng và sử dụng phương tiện bay.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Các tàu quân sự nước ngoài đến Việt Nam sử dụng vũ khí bộ binh cho mục đích nghi lễ khi tàu neo đậu tại cảng, sử dụng các loại súng mô hình phục vụ tổ chức các nghi thức, sử dụng phương tiện bay phải đưa vào chương trình hoạt động chính thức, gửi cùng thông báo chính thức đề nghị cấp phép thăm Việt Nam và được sự chấp thuận của Bộ Quốc phòng Việt Nam; đảm bảo khi thực hiện nghi lễ vũ khí bộ binh không có đạn.</span></p>\n   <p id=\"b7ca2700-2d6d-11f1-b07d-912a02108d50\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tàu quân sự nước ngoài đến Việt Nam có nhu cầu lặn, thả xuồng, rô bốt, phương tiện, thiết bị lặn khác để kiểm tra kỹ thuật, bảo dưỡng định kỳ tàu phải đưa vào chương trình hoạt động chính thức gửi theo thông báo chính thức đề nghị cấp phép đến Việt Nam; khi thực hiện lặn, thả xuồng, rô bốt, phương tiện, thiết bị lặn khác phải chịu sự kiểm tra, giám sát của Biên phòng cửa khẩu cảng và Cảng vụ hàng hải nơi tàu neo đậu. Trường hợp khẩn cấp ngoài chương trình hoạt động chính thức liên quan đến an toàn của tàu phải được chấp thuận và giám sát của Biên phòng cửa khẩu cảng và Cảng vụ hàng hải nơi tàu neo đậu.</span></p>\n   <p id=\"b7ca4e10-2d6d-11f1-ac86-73edc454c1e0\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Mọi tổ chức, cá nhân, phương tiện của Việt Nam, nước ngoài (trừ cán bộ, nhân viên, phương tiện của các cơ quan quản lý nhà nước chuyên ngành tại cảng biển, cảng quân sự đang thực hiện nhiệm vụ) ra vào, hoạt động trong khu vực tàu quân sự nước ngoài neo đậu; xuống tàu quân sự nước ngoài để làm việc, thực hiện các hoạt động khác trong thời gian tàu neo đậu tại cảng biển, cảng quân sự, nội thủy, lãnh hải phải có giấy phép do Biên phòng cửa khẩu cảng nơi tàu quân sự nước ngoài neo đậu cấp theo quy định tại Điều 24, Điều 25 Nghị định số 77/2017/NĐ-CP&nbsp;ngày 03 tháng 7 năm 2017 của Chính phủ quy định về quản lý, bảo vệ an ninh trật tự tại cửa khẩu cảng.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Phương tiện Việt Nam, nước ngoài cập mạn tàu quân sự nước ngoài phải được sự chấp thuận của Cảng vụ hàng hải nơi tàu neo đậu; người điều khiển phương tiện cập mạn phải có giấy phép do Biên phòng cửa khẩu cảng nơi tàu quân sự nước ngoài neo đậu cấp.</span></p>\n   <p id=\"b7ca7520-2d6d-11f1-9fe1-bf250cce6fe1\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Tổ chức, cá nhân, phương tiện quy định tại khoản 3 Điều này:</span></p>\n   <p id=\"b7ca9c30-2d6d-11f1-90e3-fb1d7d408f19\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Chỉ được cấp giấy phép khi thực hiện các hoạt động nằm trong chương trình hoạt động chính thức của tàu quân sự nước ngoài hoặc được Trưởng đoàn hoặc Thuyền trưởng tàu quân sự nước ngoài đề nghị, chấp thuận bằng văn bản;</span></p>\n   <p id=\"b7caea50-2d6d-11f1-82d0-7d190e879aa8\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Phải tuân thủ sự kiểm tra, giám sát của các cơ quan quản lý nhà nước chuyên ngành tại cảng biển, cảng quân sự và các lực lượng chức năng liên quan.</span></p>\n   <p id=\"b7cb1160-2d6d-11f1-a786-d5f05929cdf9\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 16. Kiểm tra, giám sát; đảm bảo an ninh, an toàn đối với tàu quân sự nước ngoài đến Việt Nam</b></strong></span></p>\n   <p id=\"b7cb3870-2d6d-11f1-b7b2-394b69a3c661\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Biên phòng cửa khẩu cảng là lực lượng chủ trì, phối hợp với các lực lượng chức năng đảm bảo an ninh, an toàn cho tàu quân sự nước ngoài đến Việt Nam; kiểm tra, giám sát hoạt động của tàu quân sự nước ngoài, thành viên trên tàu đi bờ, người, phương tiện ra vào, hoạt động tại khu vực tàu quân sự nước ngoài neo đậu, người xuống tàu, phương tiện cập mạn tàu quân sự nước ngoài.</span></p>\n   <p id=\"b7cb5f80-2d6d-11f1-adb4-b1f2f9c9b7d3\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Khi thực hiện kiểm tra, giám sát, Biên phòng cửa khẩu cảng được áp dụng các biện pháp nghiệp vụ sau:</span></p>\n   <p id=\"b7cbada0-2d6d-11f1-8f49-b5d23404842c\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Giám sát trực tiếp hành trình của tàu quân sự nước ngoài đến Việt Nam thực hiện các chuyến thăm từ khi tàu neo đậu tại vùng đón, trả hoa tiêu cho đến khi tàu cập cảng;</span></p>\n   <p id=\"b7cbd4b0-2d6d-11f1-9e48-59a56888cd58\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Kiểm tra giấy tờ đối với các thành viên trên tàu đi bờ; người Việt Nam, người nước ngoài xuống tàu, rời tàu; phương tiện cập mạn tàu;</span></p>\n   <p id=\"b7cbfbc0-2d6d-11f1-b0a0-3b82cb6ac279\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">c) Giám sát khu vực, vùng nước cảng, giám sát trực tiếp tại cổng cảng, trạm kiểm soát nơi tàu quân sự nước ngoài neo đậu;</span></p>\n   <p id=\"b7cc22d0-2d6d-11f1-8076-7b1f18213345\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">d) Giám sát bằng phương tiện kỹ thuật;</span></p>\n   <p id=\"b7cc70f0-2d6d-11f1-a3b8-254293248d13\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">đ) Tuần tra, kiểm soát cơ động;</span></p>\n   <p id=\"b7cc9800-2d6d-11f1-a386-0759d990c744\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">e) Các biện pháp nghiệp vụ khác theo quy định của pháp luật.</span></p>\n   <p id=\"b7ccbf10-2d6d-11f1-9fac-1920686a5dae\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Tại lãnh hải, khu vực nội thủy ngoài vùng nước cảng biển:</span></p>\n   <p id=\"b7cce620-2d6d-11f1-9194-e38b7059df41\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">a) Bộ Quốc phòng quy định lực lượng chủ trì, phối hợp với các lực lượng chức năng đảm bảo an ninh, an toàn khu vực nơi tàu quân sự nước ngoài neo đậu; kiểm tra, giám sát hoạt động của tàu quân sự nước ngoài, thành viên trên tàu, người, phương tiện có hoạt động liên quan;</span></p>\n   <p id=\"b7cd0d30-2d6d-11f1-996c-eda201869976\" class=\"prov-item\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">b) Lực lượng kiểm tra, giám sát được áp dụng các biện pháp kiểm tra, giám sát quy định tại khoản 2 Điều này.</span></p>\n   <p id=\"b7cd5b50-2d6d-11f1-bf93-731c65290835\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 17. Nghi lễ đối ngoại</b></strong></span></p>\n   <p id=\"b7cd8260-2d6d-11f1-b4c7-118eaac1badc\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Bộ Quốc phòng chủ trì, phối hợp với địa phương nơi tàu đến và các bộ, ngành có liên quan thực hiện nghi thức đón, tiếp và các hoạt động lễ tân.</span></p>\n   <p id=\"b7cda970-2d6d-11f1-9f14-296df7f15e4b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Thực hiện theo quy định chung về nghi lễ đối ngoại của Việt Nam và các quy định hiện hành về nghi lễ đối ngoại quốc phòng.</span></p>\n   <p id=\"b7cdf790-2d6d-11f1-bb74-5f981c08903b\" class=\"prov-chapter\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Chương III</b></strong></span></p>\n   <p id=\"b7cdf790-2d6d-11f1-bb74-5f981c08903b\" class=\"prov-chapter\" style=\"text-align: center; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>TÀU QUÂN SỰ VIỆT NAM ĐI NƯỚC NGOÀI</b></span></p>\n   <p id=\"b7ce1ea0-2d6d-11f1-8886-3bcff0b35dd9\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 18. Thẩm quyền, trình tự, thủ tục cấp phép</b></strong></span></p>\n   <p id=\"b7ce45b0-2d6d-11f1-b93a-476152cf2c05\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Bộ trưởng Bộ Quốc phòng quyết định tàu quân sự Việt Nam đi nước ngoài thực hiện các chuyến thăm, hoạt động hợp tác khác hoặc sửa chữa.</span></p>\n   <p id=\"b7ce6cc0-2d6d-11f1-a1af-17f4f2a7100d\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Bộ trưởng Bộ Quốc phòng quy định trình tự, thủ tục cấp phép cho tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7cebae0-2d6d-11f1-971d-ebd2a6ea8688\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 19. Xuất cảnh, nhập cảnh</b></strong></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Thủ tục xuất cảnh, nhập cảnh của tàu quân sự Việt Nam đi nước ngoài thực hiện theo quy định tại Nghị định số <span>73/2020/NĐ-CP</span> ngày 30 tháng 6 năm 2020 của Chính phủ quy định việc kiểm soát xuất nhập cảnh đối với người đi trên phương tiện quốc phòng, an ninh ra, vào lãnh thổ Việt Nam để thực hiện nhiệm vụ quốc phòng, an ninh.</span></p>\n   <p id=\"b7cee1f0-2d6d-11f1-92f8-65743d21ca5b\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 20. Đảm bảo an ninh, an toàn</b></strong></span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">Đơn vị cử tàu chủ trì, phối hợp triển khai công tác kiểm tra, giám sát, bảo đảm an ninh, an toàn trước khi thực hiện đưa tàu đi nước ngoài và bảo đảm an ninh, an toàn cho tàu, lực lượng, vũ khí trang bị trong suốt hành trình đi và về.</span></p>\n   <p id=\"29cd22f0-2e7f-11f1-a379-2f85c0696ab5\" class=\"prov-chapter\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>Chương IV</b></span></p>\n   <p id=\"29cd22f0-2e7f-11f1-a379-2f85c0696ab5\" class=\"prov-chapter\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>TRÁCH NHIỆM QUẢN LÝ NHÀ NƯỚC </b></strong></span></p>\n   <p id=\"29cd22f0-2e7f-11f1-a379-2f85c0696ab5\" class=\"prov-chapter\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>ĐỐI VỚI TÀU QUÂN SỰ NƯỚC NGOÀI ĐẾN VIỆT NAM </b></strong></span></p>\n   <p id=\"29cd22f0-2e7f-11f1-a379-2f85c0696ab5\" class=\"prov-chapter\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>VÀ TÀU QUÂN SỰ VIỆT NAM ĐI NƯỚC NGOÀI</b></strong></span></p>\n   <p id=\"b7cf3010-2d6d-11f1-8055-4991806cdaa7\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 21. Trách nhiệm của Bộ Quốc phòng</b></strong></span></p>\n   <p id=\"b7cf5720-2d6d-11f1-a90e-2b459cdea4a8\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Bộ Quốc phòng là cơ quan giúp Chính phủ thực hiện quản lý nhà nước đối với tàu quân sự nước ngoài đến Việt Nam và tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7cf7e30-2d6d-11f1-8fec-d37cc787ceb2\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Ban hành theo thẩm quyền hoặc chủ trì, phối hợp với các bộ, ngành liên quan trình cấp có thẩm quyền ban hành các văn bản quy phạm pháp luật về tàu quân sự nước ngoài đến Việt Nam và tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7cfa540-2d6d-11f1-9b38-eb1a2989da42\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Tiếp nhận thông tin, thống nhất nội dung, chương trình hoạt động của tàu quân sự nước ngoài đến Việt Nam với quốc gia có tàu quân sự.</span></p>\n   <p id=\"b7cfcc50-2d6d-11f1-b19c-d3739611cee0\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">4. Chủ trì, phối hợp với các bộ, ngành, Ủy ban nhân dân cấp tỉnh có liên quan tổ chức đón tiếp theo nghi thức lễ tân đối với tàu quân sự nước ngoài thực hiện các chuyến thăm.</span></p>\n   <p id=\"b7cff360-2d6d-11f1-8151-8124098fe3b9\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">5. Chủ trì, phối hợp với các bộ, ngành, Ủy ban nhân dân cấp tỉnh có liên quan quản lý tàu quân sự nước ngoài và thành viên trên tàu trong thời gian đến Việt Nam.</span></p>\n   <p id=\"b7d01a70-2d6d-11f1-a49d-8b9fa468e84d\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">6. Chủ trì, phối hợp với các bộ, ngành có liên quan quản lý tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7d06890-2d6d-11f1-a140-fba3b9438103\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">7. Chỉ đạo các cơ quan, đơn vị trực thuộc chủ trì, phối hợp với các lực lượng chức năng trong công tác đảm bảo an ninh, an toàn cho tàu quân sự nước ngoài đến Việt Nam; kiểm tra, giám sát hoạt động của tàu quân sự nước ngoài, thành viên trên tàu và các hoạt động có liên quan đến tàu quân sự nước ngoài; kiểm tra, giám sát hoạt động của tàu quân sự Việt Nam đi nước ngoài, thành viên trên tàu và các hoạt động có liên quan đến tàu quân sự Việt Nam đi nước ngoài.</span></p>\n   <p id=\"b7d0b6b0-2d6d-11f1-aec7-5d7b8cc6b012\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">8. Chủ trì, phối hợp với các bộ, ngành liên quan xử lý vi phạm của tàu quân sự nước ngoài theo quy định của pháp luật Việt Nam và Điều ước quốc tế mà Việt Nam là thành viên.</span></p>\n   <p id=\"b7d0ddc0-2d6d-11f1-bbc7-e96774c3db75\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 22. Trách nhiệm của Bộ Ngoại giao</b></strong></span></p>\n   <p id=\"b7d104d0-2d6d-11f1-85a1-3b4570542355\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Chỉ đạo cơ quan ngoại giao Việt Nam tại quốc gia tàu quân sự Việt Nam đến thăm giải quyết thủ tục đề nghị cấp phép ngoại giao cho tàu và phối hợp triển khai các hoạt động trong khuôn khổ chuyến thăm.</span></p>\n   <p id=\"b7d12be0-2d6d-11f1-a043-c149a4a9a953\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tham gia ý kiến đối với tàu quân sự nước ngoài đến Việt Nam và tàu quân sự Việt Nam đi nước ngoài theo đề nghị của Bộ Quốc phòng.</span></p>\n   <p id=\"b7d152f0-2d6d-11f1-a283-f306ee625367\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 23. Trách nhiệm của Bộ Công an</b></strong></span></p>\n   <p id=\"b7d17a00-2d6d-11f1-84a4-6b8d7838cf8b\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Chỉ đạo các cơ quan, đơn vị trực thuộc, Công an cấp tỉnh phối hợp với các lực lượng chức năng trong công tác đảm bảo an ninh, trật tự tại địa phương nơi có tàu quân sự nước ngoài neo đậu; xét, duyệt cấp thị thực theo quy định của pháp luật và kiểm tra giám sát hoạt động của các thành viên trên tàu quân sự nước ngoài đến Việt Nam đi ra ngoài phạm vi tỉnh, thành phố trực thuộc Trung ương nơi tàu neo đậu.</span></p>\n   <p id=\"b7d1a110-2d6d-11f1-9da3-b94f91f33e02\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tham gia ý kiến về việc cấp phép cho tàu quân sự nước ngoài đến Việt Nam theo đề nghị của Bộ Quốc phòng.</span></p>\n   <p id=\"b7d1c820-2d6d-11f1-bee2-efb0e1e31952\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 24. Trách nhiệm của các bộ, ngành, Ủy ban nhân dân cấp tỉnh liên quan</b></strong></span></p>\n   <p id=\"b7d1ef30-2d6d-11f1-8744-eb7e70cadf16\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Phối hợp với Bộ Quốc phòng trong đón tàu quân sự nước ngoài thăm Việt Nam mà mục đích chuyến thăm có liên quan đến ngành, lĩnh vực do bộ, ngành, Ủy ban nhân dân cấp tỉnh phụ trách.</span></p>\n   <p id=\"b7d21640-2d6d-11f1-bccd-5702a55eae0f\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Tham gia ý kiến về việc cấp phép cho tàu quân sự nước ngoài đến Việt Nam và triển khai các hoạt động của tàu quân sự nước ngoài đến Việt Nam theo đề nghị của Bộ Quốc phòng.</span></p>\n   <p id=\"29ce5b70-2e7f-11f1-8868-d9f5bf5ae3f0\" class=\"prov-chapter\" style=\"text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>Chương V</b></span></p>\n   <p id=\"29ce5b70-2e7f-11f1-8868-d9f5bf5ae3f0\" class=\"prov-chapter\" style=\"text-align: center; font-size: 14px; font-family: 'Times New Roman', Times, serif;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>ĐIỀU KHOẢN THI HÀNH</b></strong></span></p>\n   <p id=\"b7d26460-2d6d-11f1-805e-b99d4ea26732\" class=\"prov-article\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><strong><b>Điều 25. Hiệu lực thi hành</b></strong></span></p>\n   <p id=\"b7d28b70-2d6d-11f1-a513-3f6362eb55ed\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">1. Nghị định này có hiệu lực thi hành từ ngày 12 tháng 10 năm 2025.</span></p>\n   <p id=\"b7d2b280-2d6d-11f1-ae4e-53277f6d5630\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">2. Nghị định số <span>104/2012/NĐ-CP n</span>gày 05 tháng 12 năm 2012 của Chính phủ quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam hết hiệu lực kể từ ngày Nghị định này có hiệu lực thi hành.</span></p>\n   <p id=\"b7d2d990-2d6d-11f1-87ba-e9fc20530bf5\" class=\"prov-clause\" style=\"font-size: 14px;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">3. Trường hợp các văn bản quy phạm pháp luật được dẫn chiếu để áp dụng tại Nghị định này được sửa đổi bổ sung hoặc thay thế bằng văn bản quy phạm pháp luật mới thì áp dụng theo các văn bản mới.</span></p>\n   <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">&nbsp;</span></p>\n   <table border=\"0\" cellspacing=\"0\" cellpadding=\"0\" width=\"100%\" style=\"border-collapse: collapse; width: 100%; border-spacing: 0px; background-color: #ffffff; border-color: #ffffff;\">\n    <tbody>\n     <tr>\n      <td width=\"51%\" valign=\"top\" style=\"border-color: #ffffff;\">\n       <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">&nbsp;</span></p>\n       <p><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b><i>Nơi nhận:<br></i></b>- Ban Bí thư Trung ương Đảng;<br>\n          - Thủ tướng, các Phó Thủ tướng Chính phủ;<br>\n          - Các bộ, cơ quan ngang bộ, cơ quan thuộc Chính phủ;<br>\n          - HĐND, UBND các tỉnh, thành phố trực thuộc trung ương;<br>\n          - Văn phòng Trung ương và các Ban của Đảng;<br>\n          - Văn phòng Tổng Bí thư;<br>\n          - Văn phòng Chủ tịch nước;<br>\n          - Hội đồng Dân tộc và các Ủy ban của Quốc hội;<br>\n          - Văn phòng Quốc hội;<br>\n          - Tòa án nhân dân tối cao;<br>\n          - Viện kiểm sát nhân dân tối cao;<br>\n          - Kiểm toán nhà nước;<br>\n          - Ủy ban Trung ương Mặt trận Tổ quốc Việt Nam;<br>\n          - Cơ quan trung ương của các tổ chức chính trị - xã hội;<br>\n          - VPCP: BTCN, các PCN, Trợ lý TTg, TGĐ Cổng TTĐT,<br>\n          các Vụ, Cục, đơn vị trực thuộc, Công báo;<br>\n          - Lưu: VT, NC (2).</span></p></td>\n      <td width=\"48%\" valign=\"top\" style=\"border-color: #ffffff;\">\n       <p align=\"center\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>TM. CHÍNH PHỦ</b></span><br><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>KT. THỦ TƯỚNG</b></span><br><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>PHÓ THỦ TƯỚNG</b></span><br><em><strong>(Đã ký)</strong></em><br><br><br><br><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\"><b>Bùi Thanh Sơn</b></span></p></td>\n     </tr>\n    </tbody>\n   </table>\n  </div>\n  <p align=\"center\" style=\"font-family: 'Times New Roman', serif; font-size: 14px; text-align: center;\"><span style=\"font-family: 'times new roman', times, serif; font-size: 14px;\">&nbsp;</span></p>\n </body>\n</html>"
+    },
+    "documentContentEn": null,
+    "documentContentFileName": "VanBanGoc_234.2025.ND-CP.pdf",
+    "documentContentFileDocName": "234.2025.ND-CP.doc",
+    "documentIssues": [
+      {
+        "id": "0b2e5b43-b36e-48f4-90ce-7e34498f43fc",
+        "agencyId": "1",
+        "agencyName": "Chính phủ",
+        "agencyNameEn": "The Government",
+        "personId": "1330",
+        "personName": "Bùi Thanh Sơn",
+        "jobTitleId": null,
+        "jobTitleCode": "PTT",
+        "jobTitleName": "Phó Thủ tướng",
+        "orderIndex": 1
+      }
+    ],
+    "documentMajors": [
+      { "id": "70", "name": "Quốc phòng", "code": null, "parentCode": null, "parentName": null }
+    ],
+    "documentFields": [
+      {
+        "id": "6723",
+        "name": "Quản lý biên giới",
+        "code": null,
+        "parentCode": null,
+        "parentName": null
+      }
+    ],
+    "documentRelatedList": [
+      {
+        "id": "c0f11a3b-52ad-47f1-ba7e-2afba2a0537b",
+        "fileName": "181440_body_content.html",
+        "relatedType": "APPENDIX",
+        "fileTitle": "181440_body_content.html",
+        "fileOrder": 1
+      }
+    ],
+    "provisionTree": null,
+    "references": [
+      {
+        "id": "345ceb74-cd3e-488d-b44e-8300e65120ac",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "18562",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "32/2004/QH11",
+          "title": "Luật An ninh Quốc gia số 32/2004/QH11",
+          "docAbs": null,
+          "issueDate": "2004-12-03T00:00:00",
+          "effFrom": "2005-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "20324759-b588-4c19-938b-6a1f07610a16",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "27694",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "18/2012/QH13",
+          "title": "Luật Biển Việt Nam số 18/2012/QH13",
+          "docAbs": null,
+          "issueDate": "2012-06-21T00:00:00",
+          "effFrom": "2013-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "bdcb4f2e-546f-48e0-8001-35e2adeafe93",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "36823",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "47/2014/QH13",
+          "title": "Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 47/2014/QH13",
+          "docAbs": null,
+          "issueDate": "2014-06-16T00:00:00",
+          "effFrom": "2015-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "a7f85264-b906-4747-9fb3-71dc27747927",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "132955",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "22/2018/QH14",
+          "title": "Luật Quốc phòng số 22/2018/QH14",
+          "docAbs": null,
+          "issueDate": "2018-06-08T00:00:00",
+          "effFrom": "2019-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "235317c3-7e65-4f4b-98dc-608c7249bcbe",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "139880",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "49/2019/QH14",
+          "title": "Luật xuất cảnh, nhập cảnh của công dân Việt Nam số 49/2019/QH14",
+          "docAbs": null,
+          "issueDate": "2019-11-22T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "31332183-8227-40be-9702-02b79ac3eb03",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "139883",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "51/2019/QH14",
+          "title": "Luật sửa đổi, bổ sung một số điều của Luật nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 51/2019/QH14",
+          "docAbs": null,
+          "issueDate": "2019-11-25T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "0d982973-0fe9-4d30-91f1-98614a92cfc3",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "146652",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "66/2020/QH14",
+          "title": "Luật Biên phòng Việt Nam số 66/2020/QH14",
+          "docAbs": null,
+          "issueDate": "2020-11-11T00:00:00",
+          "effFrom": "2022-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "86eb1844-dbf4-4f03-b134-d9657a0bf7e6",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "175258",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "63/2025/QH15",
+          "title": "Luật Tổ chức chính phủ số 63/2025/QH15",
+          "docAbs": null,
+          "issueDate": "2025-02-18T00:00:00",
+          "effFrom": "2025-03-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "5e223012-e504-4af0-8b26-4c5cb53a5f93",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "18562",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "32/2004/QH11",
+          "title": "Luật An ninh Quốc gia số 32/2004/QH11",
+          "docAbs": null,
+          "issueDate": "2004-12-03T00:00:00",
+          "effFrom": "2005-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "5639a1f8-5ea6-4933-a093-7a06e77f112c",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "36823",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "47/2014/QH13",
+          "title": "Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 47/2014/QH13",
+          "docAbs": null,
+          "issueDate": "2014-06-16T00:00:00",
+          "effFrom": "2015-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "910aa016-c657-498e-a6b3-67dfcd0de51b",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "132955",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "22/2018/QH14",
+          "title": "Luật Quốc phòng số 22/2018/QH14",
+          "docAbs": null,
+          "issueDate": "2018-06-08T00:00:00",
+          "effFrom": "2019-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "23f5743b-1e4a-4905-b794-d46fe647ce34",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "139880",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "49/2019/QH14",
+          "title": "Luật xuất cảnh, nhập cảnh của công dân Việt Nam số 49/2019/QH14",
+          "docAbs": null,
+          "issueDate": "2019-11-22T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "a366985e-4fb6-4387-b465-24c95159843f",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "146652",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "66/2020/QH14",
+          "title": "Luật Biên phòng Việt Nam số 66/2020/QH14",
+          "docAbs": null,
+          "issueDate": "2020-11-11T00:00:00",
+          "effFrom": "2022-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "b24a655d-8f4f-46e0-957d-47671d628e6e",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "175258",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "63/2025/QH15",
+          "title": "Luật Tổ chức chính phủ số 63/2025/QH15",
+          "docAbs": null,
+          "issueDate": "2025-02-18T00:00:00",
+          "effFrom": "2025-03-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "48dbba80-2e7f-11f1-876c-a1ea10bcda3e",
+        "isRootDocument": null,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "28001",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "104/2012/NĐ-CP",
+          "title": "Nghị định số 104/2012/NĐ-CP Quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam",
+          "docAbs": null,
+          "issueDate": "2012-12-05T00:00:00",
+          "effFrom": "2013-01-20T00:00:00",
+          "effTo": "2025-10-12T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 12
+      },
+      {
+        "id": "a04b9916-c860-49df-9094-206f1696f045",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "19423",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "06/2003/QH11",
+          "title": "Luật Biên giới quốc gia số 06/2003/QH11",
+          "docAbs": null,
+          "issueDate": "2003-06-17T00:00:00",
+          "effFrom": "2004-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "542580f6-aded-412d-8894-846313bea1fc",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "142831",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "73/2020/NĐ-CP",
+          "title": "Nghị định số 73/2020/NĐ-CP Quy định việc kiểm soát xuất nhập cảnh đối với người đi trên phương tiện quốc phòng, an ninh ra, vào lãnh thổ Việt Nam để thực hiện nhiệm vụ quốc phòng, an ninh",
+          "docAbs": null,
+          "issueDate": "2020-06-30T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "0208a797-a598-482b-bb9b-1e6c9ba39137",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "162469",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "23/2023/QH15",
+          "title": "Luật Sửa đổi, bổ sung một số điều của Luật Xuất cảnh, nhập cảnh của công dân Việt Nam và Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 23/2023/QH15",
+          "docAbs": null,
+          "issueDate": "2023-06-24T00:00:00",
+          "effFrom": "2023-08-15T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "105bf86a-47cf-448e-a7ad-8ba8fe0f19d7",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "170609",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "42/2024/QH15",
+          "title": "Luật Quản lý, sử dụng vũ khí, vật liệu nổ và công cụ hỗ trợ số 42/2024/QH15",
+          "docAbs": null,
+          "issueDate": "2024-06-29T00:00:00",
+          "effFrom": "2025-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "11605724-0399-4865-ad90-e1584d77de98",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "96117",
+          "docType": "404b68a7-8e71-4ee5-a6c0-07e59f35f824",
+          "docNum": "95/2015/QH13",
+          "title": "Bộ luật Hàng hải số 95/2015/QH13",
+          "docAbs": null,
+          "issueDate": "2015-11-25T00:00:00",
+          "effFrom": "2017-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "1ba75991-6aea-44c6-9046-f08a65131e2b",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "170609",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "42/2024/QH15",
+          "title": "Luật Quản lý, sử dụng vũ khí, vật liệu nổ và công cụ hỗ trợ số 42/2024/QH15",
+          "docAbs": null,
+          "issueDate": "2024-06-29T00:00:00",
+          "effFrom": "2025-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "29ea31ad-ae39-4c14-867a-b18f2c2c7551",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "28001",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "104/2012/NĐ-CP",
+          "title": "Nghị định số 104/2012/NĐ-CP Quy định đối với tàu quân sự nước ngoài đến nước Cộng hòa xã hội chủ nghĩa Việt Nam",
+          "docAbs": null,
+          "issueDate": "2012-12-05T00:00:00",
+          "effFrom": "2013-01-20T00:00:00",
+          "effTo": "2025-10-12T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "2b967c1f-3abb-47c6-9b4f-726c39815150",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "36878",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "54/2014/QH13",
+          "title": "LUẬT HẢI QUAN SỐ 54/2014/QH13",
+          "docAbs": null,
+          "issueDate": "2014-06-23T00:00:00",
+          "effFrom": "2015-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "4bf6f737-8228-4510-945b-81a6da74c060",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "139883",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "51/2019/QH14",
+          "title": "Luật sửa đổi, bổ sung một số điều của Luật nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 51/2019/QH14",
+          "docAbs": null,
+          "issueDate": "2019-11-25T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "df08353e-d064-4614-bee3-36b9621fe7ad",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "136051",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "33/2018/QH14",
+          "title": "Luật Cảnh sát biển Việt Nam số 33/2018/QH14",
+          "docAbs": null,
+          "issueDate": "2018-11-19T00:00:00",
+          "effFrom": "2019-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "62ce90ca-d80d-4798-a3b2-5fcfcf64eed1",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "19423",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "06/2003/QH11",
+          "title": "Luật Biên giới quốc gia số 06/2003/QH11",
+          "docAbs": null,
+          "issueDate": "2003-06-17T00:00:00",
+          "effFrom": "2004-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "6da60dbb-a548-4e8b-a202-f375b4abe289",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "27694",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "18/2012/QH13",
+          "title": "Luật Biển Việt Nam số 18/2012/QH13",
+          "docAbs": null,
+          "issueDate": "2012-06-21T00:00:00",
+          "effFrom": "2013-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "6eaa96e4-b376-4f51-8ea2-358ac3a2e0d2",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "36878",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "54/2014/QH13",
+          "title": "LUẬT HẢI QUAN SỐ 54/2014/QH13",
+          "docAbs": null,
+          "issueDate": "2014-06-23T00:00:00",
+          "effFrom": "2015-01-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "7dd6e48d-b8ab-4082-90a8-cefa515eeec1",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "136051",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "33/2018/QH14",
+          "title": "Luật Cảnh sát biển Việt Nam số 33/2018/QH14",
+          "docAbs": null,
+          "issueDate": "2018-11-19T00:00:00",
+          "effFrom": "2019-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "821001b3-e540-4aec-99ae-b2e61ec4cebf",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "162469",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "23/2023/QH15",
+          "title": "Luật Sửa đổi, bổ sung một số điều của Luật Xuất cảnh, nhập cảnh của công dân Việt Nam và Luật Nhập cảnh, xuất cảnh, quá cảnh, cư trú của người nước ngoài tại Việt Nam số 23/2023/QH15",
+          "docAbs": null,
+          "issueDate": "2023-06-24T00:00:00",
+          "effFrom": "2023-08-15T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 4
+      },
+      {
+        "id": "8afe1066-f74f-4394-a5a0-c959d5fc93ef",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "96117",
+          "docType": "404b68a7-8e71-4ee5-a6c0-07e59f35f824",
+          "docNum": "95/2015/QH13",
+          "title": "Bộ luật Hàng hải số 95/2015/QH13",
+          "docAbs": null,
+          "issueDate": "2015-11-25T00:00:00",
+          "effFrom": "2017-07-01T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "40c81220-4924-11f1-a1a7-676651fc55d0",
+        "isRootDocument": null,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "138844",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "77/2017/NĐ-CP",
+          "title": "Nghị định số 77/2017/NĐ-CP Quy định về quản lý, bảo vệ an ninh, trật tự tại cửa khẩu cảng",
+          "docAbs": null,
+          "issueDate": "2017-07-03T00:00:00",
+          "effFrom": "2017-08-20T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 9
+      }
+    ],
+    "isEffectAllDocument": false,
+    "isOld": true,
+    "reviewStatus": "RV_DONE",
+    "reviewed": true,
+    "isTranslationDoc": false,
+    "isConsolidatedDocument": false,
+    "isConstitutionDocument": false,
+    "isAdministrativeDocument": false,
+    "viewCount": 185,
+    "hasContent": true,
+    "hasOriginalPdf": true,
+    "hasAIProcessed": false,
+    "hasClauseRelation": null
+  },
+  "total": 1
+}
