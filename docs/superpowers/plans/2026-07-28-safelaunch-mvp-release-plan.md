@@ -301,48 +301,62 @@ rtk git commit -m "feat: bootstrap Cloudflare Worker API"
 
 ## Phase 1 — Legal Corpus
 
-### Task 5: Capture vbpl.vn fixtures and parse documents
+### Task 5: Capture vbpl.vn fixtures and parse DOCX documents
 
 **Files:**
-- Create: `tests/fixtures/vbpl/document-current.html`
-- Create: `tests/fixtures/vbpl/document-upcoming.html`
-- Create: `tests/fixtures/vbpl/document-replaced.html`
-- Create: `apps/workers/src/queues/vbpl-parser.ts`
-- Test: `apps/workers/src/queues/vbpl-parser.test.ts`
+- Create: `tests/fixtures/vbpl/sample-current.docx`
+- Create: `tests/fixtures/vbpl/sample-current.html`
+- Create: `tests/fixtures/vbpl/sample-upcoming.docx`
+- Create: `tests/fixtures/vbpl/sample-replaced.docx`
+- Create: `apps/workers/src/queues/vbpl-docx.ts`
+- Test: `apps/workers/src/queues/vbpl-docx.test.ts`
 
-- [ ] **Step 1: Save three reviewed source snapshots with source URLs in fixture headers**
+- [ ] **Step 1: Save real DOCX fixtures from vbpl.vn**
 
-Run: `rtk curl -L --fail --max-time 30 "https://vbpl.vn" -o tests/fixtures/vbpl/home.html`  
-Expected: HTML contains `CSDL quốc gia về pháp luật`. Use the public search UI to select one current, one upcoming, and one replaced document relevant to the three MVP categories; save their HTML verbatim and record URL/retrieval timestamp in adjacent `.json` manifests.
+Pick one in-force and one upcoming document for each of online game, electronic press, and digital entertainment from vbpl.vn. For each, record the `van-ban/chi-tiet/{slug}` URL and the file reference `{bucketName, folderName, objectName, preview}` from the `?tabs=tai-ve` POST response. Download each DOCX from `https://vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/{folderName}/{objectName}/download` and save it under `tests/fixtures/vbpl/`. Save the matching detail-page HTML for fallback metadata. Each fixture `manifest.json` records source URL, retrievedAt, and file reference.
 
-- [ ] **Step 2: Write parser tests against the fixed snapshots**
+- [ ] **Step 2: Write failing parser tests against the DOCX fixtures**
 
 ```ts
-it.each(["current", "upcoming", "replaced"])("extracts auditable %s metadata", async (kind) => {
-  const parsed = parseVbplHtml(await fixture(kind));
-  expect(parsed.sourceUrl).toMatch(/^https:\/\/vbpl\.vn\//);
-  expect(parsed.retrievedAt).toMatch(/^2026-/);
-  expect(parsed.title).not.toBe("");
-  expect(parsed.provisions.every((p) => p.article && p.text)).toBe(true);
+it("extracts Điều-level provisions with article labels and merged body text", async () => {
+  const parsed = await parseVbplDocx(sampleDocxBytes, sampleMetadata);
+  expect(parsed.provisions.length).toBeGreaterThan(0);
+  expect(parsed.provisions[0]?.article).toMatch(/^Điều \d+/);
+  expect(parsed.provisions[0]?.text.length).toBeGreaterThan(50);
+  expect(parsed.effectiveFrom).toMatch(/^2026-/);
 });
 ```
 
-- [ ] **Step 3: Implement a DOM-based parser with explicit parse errors**
+- [ ] **Step 3: Implement DOCX parser using `word/document.xml`**
 
 ```ts
-export function parseVbplHtml(input: VbplSnapshot): ParsedLegalDocument {
-  const root = parse(input.html);
-  const title = root.querySelector("h1")?.text.trim();
-  const provisions = root.querySelectorAll("[data-article], article").map(parseProvision).filter(Boolean);
-  if (!title || provisions.length === 0) throw new LegalParseError(input.sourceUrl, "missing title or provisions");
-  return { ...input, title, provisions };
-}
+import { gunzipSync } from "node:zlib";
+import { parse as parseXml } from "fast-xml-parser";
+
+export const parseVbplDocx = async (bytes: Uint8Array, input: { sourceUrl: string; retrievedAt: string; metadata: VbplMetadata }): Promise<ParsedVbplDocument> => {
+  const entries = unzipOpenXml(bytes);
+  const xml = new TextDecoder("utf-8").decode(entries["word/document.xml"]);
+  const root = parseXml(xml, { ignoreAttributes: false });
+  const provisions = walkProvisions(root);
+  if (provisions.length === 0) throw new LegalParseError(input.sourceUrl, "no provisions found");
+  return { ...input, provisions };
+};
 ```
 
-- [ ] **Step 4: Test and commit fixtures plus parser**
+Implementation notes:
+- Open the DOCX as a ZIP container; fail explicitly if `word/document.xml` is missing.
+- Walk `w:p` paragraphs. Capture every `w:t` text node, preserve paragraph breaks, and ignore inline formatting.
+- Group paragraphs under headings whose text begins with `Điều <number>`; each heading starts a new provision whose text is the concatenation of the heading paragraph and subsequent paragraphs until the next `Điều` heading or end of document.
+- Never apply AI rewrite; the displayed legal text must match the DOCX byte-for-byte except for whitespace and paragraph join characters.
 
-Run: `rtk pnpm --filter @safelaunch/workers test -- vbpl-parser`  
-Expected: PASS for all three lifecycle fixtures.
+- [ ] **Step 4: Add a small-zip fallback for browsers**
+
+Workers runtime cannot use Node `zlib.inflateRaw` directly on every browser, so implement DOCX parsing with the `fflate` package (small, MIT, ~10 KB) to keep the parser pure Workers code. Test runs in Node and Workers are equivalent.
+
+- [ ] **Step 5: Test and commit fixtures plus parser**
+
+Run: `rtk pnpm --filter @safelaunch/workers test -- vbpl-docx`  
+Expected: PASS for current, upcoming, and replaced DOCX fixtures; `fast-xml-parser` and `fflate` are added to the worker package.json.
 
 ```bash
 rtk git add tests/fixtures/vbpl apps/workers/src/queues/vbpl-parser*
