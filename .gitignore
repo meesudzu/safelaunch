@@ -7,3 +7,6 @@ node_modules/
 dist/
 coverage/
 .wrangler/
+
+# Wrangler generated bindings
+apps/workers/worker-configuration.d.ts

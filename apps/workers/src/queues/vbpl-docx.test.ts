@@ -62,4 +62,9 @@ describe("vbpl docx parser", () => {
       /not a valid zip archive/,
     );
   });
+
+  it("rejects a document with no Điều articles", () => {
+    const blank = buildDocx(["Không có điều khoản nào ở đây."]);
+    expect(() => parseVbplDocx(blank, sampleMetadata)).toThrow(/no provisions/);
+  });
 });

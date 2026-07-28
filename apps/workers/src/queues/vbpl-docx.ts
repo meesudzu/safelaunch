@@ -166,6 +166,8 @@ export const parseVbplDocx = (
     throw new LegalParseError(metadata.sourceUrl, "no provisions found");
   const effectiveFrom = readDate(metadata.effectiveFrom);
   const effectiveTo = readDate(metadata.effectiveTo);
+  if (!rawProvisions || rawProvisions.length === 0)
+    throw new LegalParseError(metadata.sourceUrl, "no provisions matched any Điều article");
   return {
     id: metadata.docNum,
     sourceUrl: metadata.sourceUrl,
