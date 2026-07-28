@@ -1,7 +1,7 @@
 # SafeLaunch MVP Design
 
 **Date:** 2026-07-28  
-**Status:** Draft for written-spec review  
+**Status:** Approved for implementation planning  
 **Market:** Vietnam  
 **Primary audience:** Founders and product teams without specialist legal knowledge
 
