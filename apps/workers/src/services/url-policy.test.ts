@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { UnsafeUrlError, validatePublicUrl } from "./url-policy";
 
-const makeDns = (records: Record<string, readonly string[]> = {}) => {
+interface DnsRecords {
+  [hostname: string]: readonly string[];
+}
+
+const makeDns = (records: DnsRecords = {}) => {
+  // eslint-disable-next-line @typescript-eslint/require-await
   return async (hostname: string) => {
     const match = records[hostname];
     if (!match) {
