@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "safelaunch-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "safelaunch",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "safelaunch-artifacts" }],
+  "vectorize": [{ "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal" }],
+  "ai": { "binding": "AI" },
+  "queues": {
+    "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
+  },
+  "vars": { "WEB_ORIGIN": "http://localhost:3000" },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+}
