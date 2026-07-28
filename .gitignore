@@ -1,2 +1,12 @@
 .superpowers/
 .worktrees/
+
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+.wrangler/
+
+# Wrangler generated bindings
+apps/workers/worker-configuration.d.ts

@@ -23,6 +23,7 @@ The MVP will:
 - return a Vietnamese-English report through an unguessable private link;
 - complete eligible scans within a P95 latency target of 60 seconds;
 - show scan coverage, limitations, confidence, citations, and recommended actions;
+- capture DOCX archives of approved provisions to enable structured text and article parsing;
 - retain scan data and reports for seven days.
 
 ## 3. Non-Goals
@@ -107,9 +108,9 @@ SafeLaunch uses two independent pipelines.
 
 `vbpl.vn -> crawler -> normalizer -> admin review -> legal index`
 
-A scheduled crawler discovers relevant legal documents on vbpl.vn. The normalizer extracts document metadata, article/clause structure, applicability dates, and amendment/replacement relationships. New or uncertain records enter a review queue. Only approved provisions that are currently effective or have a future effective date are eligible for production retrieval.
+A scheduled crawler discovers relevant legal documents on vbpl.vn by walking listing pages and the public search index, then fetches each public document detail page to obtain the stable slug and the DOCX object reference. The ingestion queue downloads the DOCX from `vbpl-bientap-gateway.moj.gov.vn/api/qtdc/public/doc/minio/buckets/vbpl/{folderId}/{objectName}/download`, then the normalizer extracts metadata, applicability dates, and a per-Điều article tree from the `word/document.xml` inside the DOCX. The detail-page HTML is fetched for fallback metadata. New or uncertain records enter a review queue. Only approved provisions that are currently effective or have a future effective date are eligible for production retrieval.
 
-- **R2:** original documents, parsed artifacts, and versioned source snapshots.
+- **R2:** original DOCX and HTML source files, parsed provision JSON, and versioned source snapshots.
 - **D1:** document metadata, provisions, relations, review state, audit history, and index references.
 - **Vectorize:** embeddings for approved provisions.
 - **Cloudflare Access:** protection for the internal admin console.

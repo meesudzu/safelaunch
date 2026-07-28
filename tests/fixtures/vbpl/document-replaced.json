@@ -1,0 +1,273 @@
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "OK",
+  "messageCode": "ok",
+  "debugMessage": "",
+  "data": {
+    "id": "175000",
+    "docType": {
+      "id": "044d941c-40de-45b9-ae84-51f5a730bfe0",
+      "name": "Nghị quyết",
+      "code": "NQ",
+      "parentCode": "VBQPPL",
+      "parentName": null
+    },
+    "docNum": "15/2024/NQ-HĐND",
+    "title": "Nghị quyết số 15/2024/NQ-HĐND Ban hành Quy định nội dung chi, mức chi hỗ trợ cho các hoạt động khuyến công trên địa bàn tỉnh Bình Phước",
+    "issueDate": "2024-12-06T00:00:00",
+    "effFrom": "2024-12-17T00:00:00",
+    "effTo": "2025-07-08T00:00:00",
+    "publicDate": null,
+    "effStatus": {
+      "id": "f55c1469-4341-4274-93ef-32b283db4dbd",
+      "name": "Hết hiệu lực toàn bộ",
+      "code": "HHL",
+      "parentCode": null,
+      "parentName": null
+    },
+    "status": "Publish",
+    "lang": "vi",
+    "defaultLanguage": "VN",
+    "updatedBy": "dungdvm_II.4",
+    "updatedDate": "2026-01-09T09:40:42",
+    "agencyName": "HĐND tỉnh Bình Phước",
+    "organization": {
+      "id": "a69aa605-f438-49f5-88a4-fa4fc6182a5c",
+      "code": "9",
+      "name": "Đồng Nai",
+      "nameEn": "Đồng Nai",
+      "shortName": null,
+      "orgType": "1"
+    },
+    "isLw": false,
+    "documentContent": {
+      "id": "175000",
+      "title": null,
+      "content": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Document Content</title>\n    <style>\n        body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }\n        p { margin: 10px 0; }\n    </style>\n</head>\n<body>\n<p align=\"center\"><strong>NGHỊ QUYẾT</strong></p>\n<p align=\"center\">BAN HÀNH QUY ĐỊNH NỘI DUNG CHỈ, MỨC CHI HỖ TRỢ CHO CÁC HOẠT ĐỘNG KHUYẾN CÔNG TRÊN ĐỊA BÀN TỈNH BÌNH PHƯỚC</p>\n<p align=\"center\"><strong>HỘI ĐỒNG NHÂN DÂN TỈNH BÌNH PHƯỚC<br>\n   KHÓA X, KỲ HỌP THỨ 18</strong></p>\n<p><em>Căn cứ Luật Tổ chức chính quyền địa phương ngày 19 tháng 6 năm 2015;</em></p>\n<p><em>Căn cứ Luật Sửa đổi, bổ sung một số điều của Luật Tổ chức Chính phủ và Luật Tổ chức chính quyền địa phương ngày 22 tháng 11 năm 2019;</em></p>\n<p><em>Căn cứ Luật Ban hành văn bản quy phạm pháp luật ngày 22 tháng 6 năm 2015;</em></p>\n<p><em>Căn cứ Luật Sửa đổi, bổ sung một số điều của Luật Ban hành văn bản quy phạm pháp luật ngày 18 tháng 6 năm 2020;</em></p>\n<p><em>Căn cứ Luật Ngân sách nhà nước ngày 25 tháng 6 năm 2015;</em></p>\n<p><em>Căn cứ Nghị định số 163/2016/NĐ-CP ngày 21 tháng 12 năm 2016 của Chính phủ về quy định chi tiết thi hành một số điều của Luật Ngân sách nhà nước;</em></p>\n<p><em>Căn cứ Nghị định số 45/2012/NĐ-CP ngày 21 tháng 5 năm 2012 của Chính phủ về khuyến công;</em></p>\n<p><em>Căn cứ Thông tư số 46/2012/TT-BCT ngày 28 tháng 12 năm 2012 của Bộ trưởng Bộ Công Thương về quy định chi tiết một số nội dung của Nghị định số 45/2012/NĐ-CP ngày 21 tháng 5 năm 2012 của Chính phủ về khuyến công;</em></p>\n<p><em>Căn cứ Thông tư số 20/2017/TT-BCT ngày 29 tháng 9 năm 2017 của Bộ trưởng Bộ Công Thương về sửa đổi, bổ sung một số điều của Thông tư số 46/2012/TT-BCT ngày 28 tháng 12 năm 2012 của Bộ trưởng Bộ Công Thương về quy định chi tiết một số nội dung của Nghị định số 45/2012/NĐ-CP ngày 21 tháng 5 năm 2012 của Chính phủ về khuyến công;</em></p>\n<p><em>Căn cứ Thông tư số 28/2018/TT-BTC ngày 28 tháng 3 năm 2018 của Bộ trưởng Bộ Tài chính về hướng dẫn lập, quản lý, sử dụng kinh phí khuyến công;</em></p>\n<p><em>Căn cứ Thông tư số 64/2024/TT-BTC ngày 28 tháng 8 năm 2024 của Bộ trưởng Bộ Tài chính về sửa đổi, bổ sung một số điều của Thông tư số 28/2018/TT-BTC ngày 28 tháng 3 năm 2018 của Bộ trưởng Bộ Tài chính về hướng dẫn lập, quản lý, sử dụng kinh phí khuyến công;</em></p>\n<p><em>Xét Tờ trình số 141/TTr-UBND ngày 11 tháng 11 năm 2024 của Ủy ban nhân dân tỉnh; Báo cáo thẩm tra số 82/BC-HĐND-KTNS ngày 21 tháng 11 năm 2024 của Ban kinh tế - ngân sách Hội đồng nhân dân tỉnh; ý kiến thảo luận của đại biểu Hội đồng nhân dân tỉnh tại kỳ họp.</em></p>\n<p align=\"center\"><strong>QUYẾT NGHỊ:</strong></p>\n<p><strong>Điều 1.</strong> Ban hành kèm theo Nghị quyết này Quy định nội dung chi, mức chi hỗ trợ cho các hoạt động khuyến công trên địa bàn tỉnh Bình Phước.</p>\n<p><strong>Điều 2.</strong> Giao Ủy ban nhân dân tỉnh tổ chức thực hiện; giao Thường trực Hội đồng nhân dân tỉnh, các Ban của Hội đồng nhân dân tỉnh, các Tổ đại biểu Hội đồng nhân dân tỉnh và các đại biểu Hội đồng nhân dân tỉnh giám sát việc thực hiện.</p>\n<p>Nghị quyết này đã được Hội đồng nhân dân tỉnh Bình Phước khóa X, kỳ họp thứ 18 thông qua ngày 06 tháng 12 năm 2024 và có hiệu lực từ ngày 17 tháng 12 năm 2024./.</p>\n<p align=\"center\"><strong>QUY ĐỊNH</strong></p>\n<p align=\"center\"><strong>NỘI DUNG CHI, MỨC CHI HỖ TRỢ CHO CÁC HOẠT ĐỘNG KHUYẾN CÔNG TRÊN ĐỊA BÀN TỈNH BÌNH PHƯỚC</strong><br><em>(Kèm theo Nghị quyết số 15/2024/NQ-HĐND ngày 06 tháng 12 năm 2024 của Hội đồng nhân dân tỉnh Bình Phước)</em></p>\n<p align=\"center\"><strong>Chương I</strong></p>\n<p align=\"center\"><strong>QUY ĐỊNH CHUNG</strong></p>\n<p><strong>Điều 1. Phạm vi điều chỉnh</strong></p>\n<p>Nghị quyết này quy định về nội dung chi, mức chi hỗ trợ cho các hoạt động khuyến công tỉnh Bình Phước.</p>\n<p><strong>Điều 2. Đối tượng áp dụng</strong></p>\n<p>1. Tổ chức, cá nhân trực tiếp đầu tư sản xuất công nghiệp - tiểu thủ công nghiệp trên địa bàn tỉnh, bao gồm: Doanh nghiệp nhỏ và vừa, hợp tác xã, tổ hợp tác, hộ kinh doanh thành lập và hoạt động theo quy định của pháp luật (gọi chung là cơ sở công nghiệp nông thôn).</p>\n<p>2. Các cơ sở sản xuất công nghiệp áp dụng sản xuất sạch hơn.</p>\n<p>3. Tổ chức, cá nhân trong nước và nước ngoài tham gia công tác quản lý, thực hiện các hoạt động dịch vụ khuyến công.</p>\n<p><strong>Điều 3. Nguồn kinh phí thực hiện</strong></p>\n<p>1. Ngân sách tỉnh đảm bảo kinh phí cho các hoạt động khuyến công cấp tỉnh do Ủy ban nhân dân tỉnh quản lý, tổ chức thực hiện.</p>\n<p>2. Ngân sách cấp huyện (bao gồm các huyện, thị xã, thành phố) đảm bảo kinh phí cho các hoạt động khuyến công cấp huyện do Ủy ban nhân dân cấp huyện quản lý, tổ chức thực hiện.</p>\n<p>3. Ngoài các nguồn kinh phí nêu trên, khuyến khích huy động các nguồn tài chính hợp pháp khác, lông ghép các dự án thuộc chương trình mục tiêu quốc gia, chương trình mục tiêu và các chương trình phát triển kinh tế - xã hội khác để thực hiện tốt mục tiêu của hoạt động khuyến công.</p>\n<p align=\"center\"><strong>Chương II</strong></p>\n<p align=\"center\"><strong>QUY ĐỊNH CỤ THỂ</strong></p>\n<p><strong>Điều 4. Nội dung và mức chi chung cho hoạt động khuyến công</strong></p>\n<p>Mức chi chung của hoạt động khuyến công thực hiện theo quy định tại Điều 7 Thông tư số 28/2018/TT-BTC ngày 28 tháng 3 năm 2018 của Bộ trưởng Bộ Tài chính về hướng dẫn lập, quản lý, sử dụng kinh phí khuyến công và các quy định của tỉnh.</p>\n<p><strong>Điều 5. Nội dung và mức chi cụ thể cho hoạt động khuyến công địa phương</strong></p>\n<p>1. Chi hỗ trợ thành lập doanh nghiệp sản xuất công nghiệp nông thôn tại các địa bàn có điều kiện kinh tế - xã hội khó khăn và đặc biệt khó khăn theo quy định của pháp luật, bao gồm: Hoàn thiện kế hoạch kinh doanh; dự án thành lập doanh nghiệp và chi phí liên quan đến đăng ký thành lập doanh nghiệp. Mức hỗ trợ không quá 07 triệu đồng/doanh nghiệp.</p>\n<p>2. Chi hỗ trợ xây dựng mô hình trình diễn kỹ thuật</p>\n<p>a) Chi hỗ trợ xây dựng mô hình trình diễn kỹ thuật để phổ biến công nghệ mới, sản xuất sản phẩm mới: Xây dựng, mua máy móc thiết bị; hoàn chỉnh tài liệu về quy trình công nghệ, quy trình sản xuất, phục vụ cho việc trình diễn kỹ thuật. Mức hỗ trợ tối đa 30% nhưng không quá 700 triệu đồng/mô hình.</p>\n<p>b) Mô hình của các cơ sở công nghiệp nông thôn đang hoạt động có hiệu quả cần phổ biến tuyên truyền, nhân rộng để các tổ chức, cá nhân khác học tập, bao gồm các chi phí: Hoàn chỉnh tài liệu về quy trình công nghệ; hoàn thiện quy trình sản xuất, phục vụ cho việc trình diễn kỹ thuật. Mức hỗ trợ không quá 70 triệu đồng/mô hình.</p>\n<p>3. Chi hỗ trợ xây dựng mô hình thí điểm về áp dụng sản xuất sạch hơn trong công nghiệp cho các cơ sở sản xuất công nghiệp, bao gồm các chi phí: Thay thế nguyên, nhiên, vật liệu; đổi mới máy móc thiết bị, dây chuyền công nghệ; đào tạo nâng cao năng lực quản lý; đào tạo nâng cao trình độ tay nghề công nhân; tiêu thụ sản phẩm; hoàn chỉnh tài liệu về quy trình công nghệ, quy trình sản xuất phục vụ cho việc trình diễn kỹ thuật. Mức hỗ trợ tối đa 30% chi phí nhưng không quá 350 triệu đồng/mô hình.</p>\n<p>4. Chi hỗ trợ ứng dụng máy móc thiết bị tiên tiến, chuyển giao công nghệ, tiến bộ khoa học kỹ thuật vào sản xuất công nghiệp - tiểu thủ công nghiệp. Mức hỗ trợ tối đa 50% chi phí nhưng không quá 210 triệu đồng/cơ sở. Trường hợp chi hỗ trợ dây chuyền công nghệ thì mức hỗ trợ tối đa không quá 1,5 lần mức hỗ trợ ứng dụng máy móc thiết bị tiên tiến, chuyển giao công nghệ, tiến bộ khoa học kỹ thuật vào sản xuất công nghiệp - tiểu thủ công nghiệp.</p>\n<p>5. Chi hỗ trợ tổ chức, tham gia hội chợ triển lãm hàng công nghiệp nông thôn, hàng thủ công mỹ nghệ</p>\n<p>a) Chi tổ chức hội chợ triển lãm trong tỉnh: Hỗ trợ 100% chi phí thuê gian hàng, chi thông tin tuyên truyền và chi hoạt động của Ban tổ chức hội chợ triển lãm trên cơ sở giá đấu thầu hoặc trường hợp không đủ điều kiện đấu thầu thì theo giá được cấp có thẩm quyền phê duyệt.</p>\n<p>b) Chi tham gia hội chợ triển lãm trong nước</p>\n<p>- Đối với đơn vị chủ trì là cơ quan nhà nước: Hỗ trợ 100% kinh phí thuê gian hàng triển lãm chung, chi phí trang trí, chi phí vận chuyển, chi phí trực gian hàng, chi phí bốc xếp hàng hóa; công tác phí cho cán bộ của đoàn chủ trì tham gia.</p>\n<p>- Đối với cơ sở công nghiệp nông thôn: Hỗ trợ 50% kinh phí thuê gian hàng.</p>\n<p>c) Các hoạt động xúc tiến thương mại khác thực hiện theo Quy chế xây dựng, quản lý và thực hiện Chương trình xúc tiến thương mại tỉnh Bình Phước.</p>\n<p>6. Chi tổ chức, tham gia hội chợ triển lãm cho các cơ sở công nghiệp nông thôn tại nước ngoài. Hỗ trợ 70% các khoản chi phí, bao gồm: Thuê mặt bằng, thiết kế, dàn dựng, trang trí gian hàng; chi phí cho cán bộ tổ chức chương trình. Các khoản chi phí được xác định trên cơ sở giá đấu thầu hoặc trường hợp không đủ điều kiện đấu thầu thì theo giá được cấp có thẩm quyền phê duyệt.</p>\n<p>7. Chi hỗ trợ 70% chi phí vé máy bay cho các cơ sở công nghiệp nông thôn đi tham quan, khảo sát, học tập kinh nghiệm tại nước ngoài, số người được hỗ trợ theo quyết định của cơ quan có thẩm quyền.</p>\n<p>8. Chi tổ chức bình chọn sản phẩm công nghiệp nông thôn tiêu biểu cấp huyện, cấp tỉnh</p>\n<p>a) Chi tổ chức bình chọn, trao giấy chứng nhận sản phẩm công nghiệp nông thôn tiêu biểu cấp huyện, cấp tỉnh. Mức hỗ trợ không quá 70 triệu đồng/lần đối với cấp huyện và không quá 140 triệu đồng/lần đối với cấp tỉnh.</p>\n<p>b) Chi thưởng cho sản phẩm công nghiệp nông thôn tiêu biểu được bình chọn bao gồm: Giấy chứng nhận, khung, kỉ niệm chương và tiền thưởng. Đạt giải cấp huyện không quá 02 triệu đồng/sản phẩm; đạt giải cấp tỉnh không quá 3,5 triệu đồng/sản phẩm.</p>\n<p>9. Chi hỗ trợ xây dựng, đăng ký nhãn hiệu sản phẩm công nghiệp nông thôn. Mức hỗ trợ tối đa không quá 25 triệu đồng/nhãn hiệu.</p>\n<p>10. Chi hỗ trợ thuê tư vấn, trợ giúp các cơ sở công nghiệp nông thôn trong các lĩnh vực: Lập dự án đầu tư; marketing; quản lý sản xuất, tài chính, kế toán, nhân lực; thiết kế mẫu mã, bao bì đóng gói; ứng dụng công nghệ, thiết bị mới. Mức hỗ trợ tối đa 50% chi phí, nhưng không quá 25 triệu đồng/cơ sở.</p>\n<p>11. Chi xây dựng các chương trình truyền hình, truyền thanh; xuất bản các bản tin, ấn phẩm; tờ rơi, tờ gấp và các hình thức thông tin đại chúng khác. Mức chi: Thực hiện theo hình thức hợp đồng với cơ quan tuyên truyền và cơ quan thông tin đại chúng theo phương thức đấu thầu, trường hợp đặt hàng giao nhiệm vụ thực hiện theo đơn giá của Quy định chế độ nhuận bút trong lĩnh vực báo chí; Cổng/Trang thông tin điện tử; Đài Truyền thanh - Truyền hình cấp huyện; bản tin của các cơ quan, đơn vị trên địa bàn tỉnh Bình Phước.</p>\n<p>12. Chi hỗ trợ để thành lập hội, hiệp hội ngành nghề cấp tỉnh. Mức hỗ trợ tối đa 30% chi phí thành lập, nhưng không quá 50 triệu đồng/hội, hiệp hội.</p>\n<p>13. Chi hỗ trợ để hình thành cụm liên kết doanh nghiệp công nghiệp. Mức hỗ trợ tối đa 50% chi phí nhưng không quá 100 triệu đồng/cụm liên kết.</p>\n<p>14. Chi hỗ trợ lãi suất vốn vay cho các cơ sở công nghiệp nông thôn gây ô nhiễm môi trường di dời vào các khu, cụm công nghiệp (hỗ trợ sau khi cơ sở công nghiệp nông thôn đã hoàn thành việc đầu tư): Mức hỗ trợ tối đa 50% lãi suất cho các khoản vay để đầu tư nhà, xưởng, máy móc thiết bị trong 02 năm đầu nhưng không quá 350 triệu đồng/cơ sở. Việc hỗ trợ lãi suất áp dụng đối với các khoản vay trung hạn và dài hạn bằng đồng Việt Nam trả nợ trước hoặc trong hạn, không áp dụng đối với các khoản vay đã quá thời hạn trả nợ theo hợp đồng tín dụng. Với mức lãi suất cho vay thấp nhất trong khung lãi suất áp dụng cho các khoản vốn đầu tư phục vụ cho hoạt động sản xuất kinh doanh cùng kỳ hạn và cùng thời kỳ của Ngân hàng Đầu tư Việt Nam.</p>\n<p>15. Chi hỗ trợ sửa chữa, nâng cấp hệ thống xử lý ô nhiễm môi trường tại các cơ sở công nghiệp nông thôn. Mức hỗ trợ tối đa 30% chi phí, nhưng không quá 210 triệu đồng/cơ sở.</p>\n<p>16. Chi hỗ trợ sửa chữa, nâng cấp hệ thống xử lý ô nhiễm môi trường tại các cụm công nghiệp. Mức hỗ trợ tối đa 30% chi phí, nhưng không quá 1.000 triệu đồng/cụm công nghiệp.</p>\n<p>17. Chi hỗ trợ lập quy hoạch chi tiết cụm công nghiệp. Mức hỗ trợ tối đa 50% chi phí, nhưng không quá 350 triệu đồng/cụm công nghiệp.</p>\n<p>18. Chi hỗ trợ đầu tư xây dựng kết cấu hạ tầng cụm công nghiệp; bao gồm: san lấp mặt bằng, đường giao thông nội bộ, hệ thống cấp nước, thoát nước, hệ thống xử lý ô nhiễm môi trường tại các cụm công nghiệp. Mức hỗ trợ không quá 4.200 triệu đồng/cụm công nghiệp.</p>\n<p>19. Chi thù lao cho cộng tác viên khuyến công: Mức chi thù lao cho cộng tác viên khuyến công tối đa không quá 01 lần mức lương cơ sở/người/tháng.</p>\n<p>20. Chi hỗ trợ các phòng trưng bày để giới thiệu, quảng bá sản phẩm tại Trung tâm Khuyến công và tư vấn phát triển công nghiệp và cơ sở công nghiệp nông thôn</p>\n<p>a) Trung tâm Khuyến công và tư vấn phát triển công nghiệp: Chi phí mua sắm ban đầu trang thiết bị, dụng cụ quản lý dùng để trưng bày. Mức hỗ trợ tối đa không quá 350 triệu đồng/phòng trưng bày.</p>\n<p>b) Cơ sở công nghiệp nông thôn có sản phẩm công nghiệp nông thôn tiêu biểu cấp tỉnh trở lên: Chi phí mua sắm ban đầu trang thiết bị, dụng cụ quản lý dùng để trưng bày. Mức hỗ trợ tối đa không quá 50 triệu đồng/phòng trưng bày.</p>\n<p>c) Cơ sở công nghiệp nông thôn có sản phẩm công nghiệp nông thôn tiêu biểu cấp huyện: Chi phí mua sắm ban đầu trang thiết bị, dụng cụ quản lý dùng để trưng bày. Mức hỗ trợ tối đa không quá 30 triệu đồng/phòng trưng bày.</p>\n<p>21. Chi quản lý chương trình, đề án khuyến công</p>\n<p>a) Cơ quan quản lý kinh phí khuyến công được sử dụng tối đa 1,5% kinh phí khuyến công do cấp có thẩm quyền giao hàng năm để hỗ trợ xây dựng các chương trình, đề án, kiểm tra, giám sát, nghiệm thu: Thuê chuyên gia, lao động (nếu có); chi làm thêm giờ theo chế độ quy định; văn phòng phẩm, điện thoại, bưu chính, điện nước; chi công tác phí, xăng dầu, thuê xe đi kiểm tra (nếu có); chi thẩm định xét chọn, nghiệm thu chương trình, đề án khuyến công; chi khác (nếu có). Nội dung và kinh phí do cơ quan có thẩm quyền phê duyệt.</p>\n<p>b) Đối với chi phí tổ chức thực hiện hoạt động dịch vụ khuyến công: Đơn vị tổ chức triển khai thực hiện đề án khuyến công được chi tối đa 3% dự toán của đề án khuyến công (riêng đề án ở địa bàn có điều kiện kinh tế - xã hội khó khăn và đặc biệt khó khăn, huyện nghèo theo quy định của Chính phủ được chi không quá 4%) để chi công tác quản lý, chỉ đạo, kiểm tra, giám sát, chi khác (nếu có).</p>\n<p>22. Mức kinh phí ưu tiên hỗ trợ cho các chương trình, đề án, nhiệm vụ quy định tại khoản 1 và khoản 2 Điều 6 Nghị định số 45/2012/NĐ-CP ngày 21 tháng 5 năm 2012 của Chính phủ về khuyến công do Ủy ban nhân dân tỉnh, Ủy ban nhân dân cấp phê duyệt, đảm bảo thu hút được các tổ chức, cá nhân đầu tư phát triển công nghiệp - tiểu thủ công nghiệp vào các địa bàn và ngành nghề cần ưu tiên nhưng không quá 1,5 lần mức hỗ trợ trên đây.</p>\n<p><strong>Điều 6. Điều kiện để được hỗ trợ kinh phí khuyến công</strong></p>\n<p>Các tổ chức, cá nhân được hỗ trợ kinh phí khuyến công phải bảo đảm các điều kiện quy định tại Điều 5 Thông tư số 28/2018/TT-BTC ngày 28 tháng 3 năm 2018 của Bộ trưởng Bộ Tài chính về hướng dẫn lập, quản lý, sử dụng kinh phí khuyến công và Điều 5 Nghị định số 45/2012/NĐ-CP ngày 21 tháng 5 năm 2012 của Chính phủ về khuyến công./.</p>\n</body>\n</html>"
+    },
+    "documentContentEn": null,
+    "documentContentFileName": "VanBanGoc_15.2024.NQ.HDND QD noi dung chi, muc chi ho tro khuyen cong.pdf",
+    "documentContentFileDocName": "15_2024_NQ-HDND.doc",
+    "documentIssues": [
+      {
+        "id": "2ac66556-1932-49e5-9dc1-2d382104f8a9",
+        "agencyId": "525",
+        "agencyName": "HĐND tỉnh Bình Phước",
+        "agencyNameEn": "Hội đồng Nhân dân tỉnh Bình Phước",
+        "personId": "3258",
+        "personName": "Huỳnh Thị Hằng",
+        "jobTitleId": null,
+        "jobTitleCode": "CT",
+        "jobTitleName": "Chủ tịch",
+        "orderIndex": 1
+      }
+    ],
+    "documentMajors": [
+      {
+        "id": "nganh_57",
+        "name": "Công Thương",
+        "code": null,
+        "parentCode": null,
+        "parentName": null
+      }
+    ],
+    "documentFields": [
+      {
+        "id": "6610",
+        "name": "Phát triển công nghiệp và thương mại địa phương",
+        "code": null,
+        "parentCode": null,
+        "parentName": null
+      }
+    ],
+    "documentRelatedList": [
+      {
+        "id": "51a778ba-29cd-408b-8f36-d5cd3e499b20",
+        "fileName": "175000_body_content.html",
+        "relatedType": "MARKDOWN",
+        "fileTitle": "175000_body_content.html",
+        "fileOrder": null
+      }
+    ],
+    "provisionTree": null,
+    "references": [
+      {
+        "id": "d1794e77-966e-4569-917a-c2fdcf98de1c",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "119084",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "163/2016/NĐ-CP",
+          "title": "Nghị định số 163/2016/NĐ-CP Quy định chi tiết thi hành một số điều của Luật ngân sách nhà nước",
+          "docAbs": null,
+          "issueDate": "2016-12-21T00:00:00",
+          "effFrom": "2017-01-01T00:00:00",
+          "effTo": "2026-01-01T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "d53da851-5aa8-4662-85a5-66b54303c530",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "169835",
+          "docType": "178c63a9-73ff-4fd4-9d91-18d690520090",
+          "docNum": "64/2024/TT-BTC",
+          "title": "Thông tư số 64/2024/TT-BTC Sửa đổi, bổ sung một số điều của Thông tư số 28/2018/TT-BTC ngày\n28 tháng 3 năm 2018 của Bộ trưởng Bộ Tài chính hướng dẫn lập, quản lý,\nsử dụng kinh phí khuyến công",
+          "docAbs": null,
+          "issueDate": "2024-08-28T00:00:00",
+          "effFrom": "2024-10-18T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "0d025e8b-a054-4294-83e3-8eb8788d0741",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "70800",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "80/2015/QH13",
+          "title": "Luật Ban hành văn bản quy phạm pháp luật số 80/2015/QH13",
+          "docAbs": null,
+          "issueDate": "2015-06-22T00:00:00",
+          "effFrom": "2016-07-01T00:00:00",
+          "effTo": "2025-04-01T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "0d6e9282-7789-4692-8eeb-70daf37247f6",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "129914",
+          "docType": "178c63a9-73ff-4fd4-9d91-18d690520090",
+          "docNum": "28/28/2018/TT-BTC",
+          "title": "Thông tư số 28/28/2018/TT-BTC Hướng dẫn lập, quản lý, sử dụng kinh phí khuyến công",
+          "docAbs": null,
+          "issueDate": "2018-03-28T00:00:00",
+          "effFrom": "2018-05-11T00:00:00",
+          "effTo": null,
+          "status": "DELETED"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "10a64a85-02ce-43aa-951f-afcdf4bca6bb",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "125141",
+          "docType": "178c63a9-73ff-4fd4-9d91-18d690520090",
+          "docNum": "20/2017/TT-BCT",
+          "title": "Thông tư số 20/2017/TT-BCT Sửa đổi, bổ sung một số điều của Thông tư số 46/2012/TT-BCT ngày 28/12/2012 của Bộ Công Thương quy định chi tiết một số nội dung của Nghị định số 45/2012/NĐ-CP ngày 21/5/2012 của Chính phủ về khuyến công",
+          "docAbs": null,
+          "issueDate": "2017-09-29T00:00:00",
+          "effFrom": "2017-11-16T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "20d6d1e3-3c1f-4da9-b5b9-95f66aba2148",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "70819",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "77/2015/QH13",
+          "title": "Luật Tổ chức chính quyền địa phương số 77/2015/QH13",
+          "docAbs": null,
+          "issueDate": "2015-06-19T00:00:00",
+          "effFrom": "2016-01-01T00:00:00",
+          "effTo": "2025-03-01T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "6549eb9f-9924-4755-8225-a2eeb673f267",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "27601",
+          "docType": "0d08b84c-7de7-4800-8760-2a68265e7890",
+          "docNum": "45/2012/NĐ-CP",
+          "title": "Nghị định số 45/2012/NĐ-CP Về khuyến công",
+          "docAbs": null,
+          "issueDate": "2012-05-21T00:00:00",
+          "effFrom": "2012-07-05T00:00:00",
+          "effTo": null,
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "913dfa74-2105-4b03-b8f3-ca50672ff8b1",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "166391",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "63/2020/QH14",
+          "title": "Luật sửa đổi, bổ sung một số điều của Luật Ban hành văn bản quy phạm pháp luật số 63/2020/QH14",
+          "docAbs": null,
+          "issueDate": "2020-06-18T00:00:00",
+          "effFrom": "2021-01-01T00:00:00",
+          "effTo": "2025-04-01T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      },
+      {
+        "id": "a9caa5ed-e4f1-4073-9b2c-ce6379d33c62",
+        "isRootDocument": false,
+        "isConsolidatedDocument": null,
+        "targetDocument": {
+          "id": "139878",
+          "docType": "11025e19-2dd6-4165-85ad-ab6241186a1a",
+          "docNum": "47/2019/QH14",
+          "title": "Luật sửa đổi, bổ sung một số điều của Luật Tổ chức Chính phủ và Luật Tổ chức chính quyền địa phương số 47/2019/QH14",
+          "docAbs": null,
+          "issueDate": "2019-11-22T00:00:00",
+          "effFrom": "2020-07-01T00:00:00",
+          "effTo": "2025-03-01T00:00:00",
+          "status": "Publish"
+        },
+        "referenceProvisions": null,
+        "referenceType": 3
+      }
+    ],
+    "isEffectAllDocument": false,
+    "isOld": true,
+    "reviewStatus": "INITIAL",
+    "reviewed": false,
+    "isTranslationDoc": false,
+    "isConsolidatedDocument": false,
+    "isConstitutionDocument": false,
+    "isAdministrativeDocument": false,
+    "viewCount": 33,
+    "hasContent": true,
+    "hasOriginalPdf": true,
+    "hasAIProcessed": false,
+    "hasClauseRelation": null
+  },
+  "total": 1
+}
