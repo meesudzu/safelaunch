@@ -63,6 +63,9 @@ importers:
 
   packages/ai:
     dependencies:
+      '@safelaunch/compliance-core':
+        specifier: workspace:*
+        version: link:../compliance-core
       '@safelaunch/contracts':
         specifier: workspace:*
         version: link:../contracts
