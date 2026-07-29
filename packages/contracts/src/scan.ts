@@ -19,5 +19,12 @@ export const ScanState = z.enum([
   "failed",
 ]);
 
+export const ScanCoverage = z.object({
+  fetched: z.array(z.string()),
+  failed: z.array(z.string()),
+  skipped: z.array(z.string()),
+});
+export type ScanCoverage = z.infer<typeof ScanCoverage>;
+
 export type CreateScan = z.infer<typeof CreateScanInput>;
 export type ScanStatus = z.infer<typeof ScanState>;
