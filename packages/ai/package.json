@@ -1,0 +1,25 @@
+{
+  "name": "@safelaunch/ai",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@safelaunch/compliance-core": "workspace:*",
+    "@safelaunch/contracts": "workspace:*",
+    "@safelaunch/db": "workspace:*",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260728.1",
+    "vitest": "4.0.18"
+  }
+}

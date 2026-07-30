@@ -1,0 +1,15 @@
+{
+  "headline": "Đang quét website…",
+  "state.queued": "Đang chờ…",
+  "state.fetching": "Đang tải trang…",
+  "state.extracting": "Đang trích xuất nội dung…",
+  "state.retrieving": "Đang tra cứu văn bản pháp luật…",
+  "state.evaluating": "Đang đánh giá…",
+  "state.reporting": "Đang soạn báo cáo…",
+  "state.completed": "Hoàn tất",
+  "state.partial": "Hoàn tất một phần — cần chuyên gia xem xét",
+  "state.failed": "Quét thất bại — vui lòng thử lại",
+  "view.report": "Xem báo cáo",
+  "view.retrying": "Đang tự động thử lại…",
+  "expiry.label": "Báo cáo hết hạn vào"
+}

@@ -1,0 +1,21 @@
+{
+  "id": "ele-hi-10",
+  "category": "electronic_press",
+  "language": "en",
+  "input": {
+    "url": "https://example.com/ele-hi-10",
+    "evidence": "Dân Trí Electronic Newspaper is published by Dân Trí Communications Joint Stock Company. Điều 1. Quy định về báo chí điện tử. Cấm nội dung xuyên tạc, vu khống, xâm phạm lợi ích quốc gia."
+  },
+  "expected": {
+    "severity": "high",
+    "provisionIds": [
+      "prov-press-2016"
+    ],
+    "citationExcerpts": [
+      "Điều 1. Quy định về báo chí điện tử. Cấm nội dung xuyên tạc, vu khống, xâm phạm lợi ích quốc gia."
+    ]
+  },
+  "reviewer": "reviewer-a@safelaunch.test",
+  "reviewDate": "2025-01-01T00:00:00.000Z",
+  "rationale": "High-risk case 10 for electronic_press: the evidence exposes a regulated pattern that the rubric classifies as a high-severity finding."
+}
