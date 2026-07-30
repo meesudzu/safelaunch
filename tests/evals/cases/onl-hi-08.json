@@ -1,0 +1,21 @@
+{
+  "id": "onl-hi-08",
+  "category": "online_game",
+  "language": "en",
+  "input": {
+    "url": "https://example.com/onl-hi-08",
+    "evidence": "VNG Joint Stock Company registers electronic game publishing license No. 0123/GP-TTDT issued by the Ministry of Information and Communications. Điều 1. Quy định về trò chơi điện tử. Cấm nội dung bạo lực, khiêu dâm, ảnh hưởng đến trẻ em."
+  },
+  "expected": {
+    "severity": "high",
+    "provisionIds": [
+      "prov-72-2013"
+    ],
+    "citationExcerpts": [
+      "Điều 1. Quy định về trò chơi điện tử. Cấm nội dung bạo lực, khiêu dâm, ảnh hưởng đến trẻ em."
+    ]
+  },
+  "reviewer": "reviewer-a@safelaunch.test",
+  "reviewDate": "2025-01-01T00:00:00.000Z",
+  "rationale": "High-risk case 8 for online_game: the evidence exposes a regulated pattern that the rubric classifies as a high-severity finding."
+}
