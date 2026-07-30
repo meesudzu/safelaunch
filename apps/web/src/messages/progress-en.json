@@ -1,0 +1,15 @@
+{
+  "headline": "Scanning website…",
+  "state.queued": "Queued…",
+  "state.fetching": "Fetching pages…",
+  "state.extracting": "Extracting content…",
+  "state.retrieving": "Looking up legal provisions…",
+  "state.evaluating": "Evaluating evidence…",
+  "state.reporting": "Composing report…",
+  "state.completed": "Completed",
+  "state.partial": "Partially completed — needs expert review",
+  "state.failed": "Scan failed — please try again",
+  "view.report": "View report",
+  "view.retrying": "Retrying automatically…",
+  "expiry.label": "Report expires on"
+}
