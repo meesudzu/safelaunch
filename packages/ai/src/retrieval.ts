@@ -1,4 +1,5 @@
 import type { RetrievableProvision } from "@safelaunch/db";
+import type { RetrievalMeta } from "@safelaunch/compliance-core";
 
 /**
  * Bounded hybrid retrieval for legal provisions.
@@ -54,15 +55,7 @@ export interface RetrievalDeps {
   readonly limit?: number;
 }
 
-export interface RetrievalResult {
-  readonly provisionId: string;
-  readonly documentId: string;
-  readonly source: string;
-  readonly title: string;
-  readonly effectiveFrom: string | null;
-  readonly effectiveTo: string | null;
-  readonly score: number;
-}
+export type RetrievalResult = RetrievalMeta;
 
 const DEFAULT_TOP_K = 12;
 const DEFAULT_LIMIT = 6;

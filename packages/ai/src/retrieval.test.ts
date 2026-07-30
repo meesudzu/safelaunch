@@ -67,7 +67,7 @@ const makeDeps = (overrides: {
 }): RetrievalDeps => ({
   legal: overrides.legal,
   vector: overrides.vector,
-  embed: overrides.embed ?? (async (): Promise<readonly number[]> => {
+  embed: overrides.embed ?? (async (): Promise<number[]> => {
     await Promise.resolve();
     return [0.1, 0.2, 0.3];
   }),
@@ -152,11 +152,11 @@ describe("retrieveLegalContext", () => {
   it("passes the embedding through to the vector store", async () => {
     const eligible = [provision({ id: "approved-current" })];
     const vector = new FakeVectorIndex([{ id: "approved-current", score: 0.9 }]);
-    const deps: RetrievalDeps = makeDeps({ vector, legal: new FakeLegalRepository(eligible) });
-    deps.embed = async (): Promise<readonly number[]> => {
+    const embed = async (): Promise<number[]> => {
       await Promise.resolve();
       return [0.4, 0.5, 0.6];
     };
+    const deps: RetrievalDeps = makeDeps({ vector, legal: new FakeLegalRepository(eligible), embed });
     await retrieveLegalContext(baseQuery, deps);
     expect(vector.calls).toHaveLength(1);
     expect(vector.calls[0]?.vector).toEqual([0.4, 0.5, 0.6]);
@@ -195,7 +195,7 @@ describe("retrieveLegalContext", () => {
     const deps: RetrievalDeps = {
       legal: new FakeLegalRepository(eligible),
       vector,
-      embed: async (): Promise<readonly number[]> => {
+      embed: async (): Promise<number[]> => {
         await Promise.resolve();
         return [0.1, 0.2];
       },

@@ -13,6 +13,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@safelaunch/compliance-core": "workspace:*",
     "@safelaunch/contracts": "workspace:*",
     "@safelaunch/db": "workspace:*",
     "zod": "4.3.6"
