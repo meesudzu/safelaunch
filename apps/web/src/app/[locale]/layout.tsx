@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
 import type { ReactNode } from "react";
+import { isLocale, locales } from "../../lib/locale";
 
-const locales = ["vi", "en"] as const;
-export type Locale = (typeof locales)[number];
-const isLocale = (value: string): value is Locale =>
-  (locales as readonly string[]).includes(value);
+export type { Locale } from "../../lib/locale";
 
 export const dynamicParams = false;
 
