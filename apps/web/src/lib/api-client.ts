@@ -68,6 +68,48 @@ export interface ReportPayloadDto {
   rubricVersion: string;
 }
 
+export interface PendingDocumentSummary {
+  id: string;
+  jurisdiction: string;
+  sourceUrl: string;
+  title: string;
+  retrievedAt: string;
+}
+
+export interface PendingLegalDocumentDto {
+  id: string;
+  jurisdiction: string;
+  sourceUrl: string;
+  title: string;
+  retrievedAt: string;
+  sourceHash: string;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  provisions: Array<{
+    id: string;
+    article: string;
+    clause: string | null;
+    text: string;
+    categories: string[];
+  }>;
+  relations: Array<{
+    id: string;
+    type: string;
+    targetDocumentId: string;
+  }>;
+  audit: Array<{
+    actor: string;
+    decision: string;
+    reason: string;
+    createdAt: string;
+  }>;
+}
+
+export interface ReviewSubmissionDto {
+  decision: "approve" | "reject";
+  reason: string;
+}
+
 export interface ApiClientEnv {
   readonly NEXT_PUBLIC_API_ORIGIN?: string | undefined;
 }
@@ -134,6 +176,54 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "GET_REPORT_FAILED");
       }
       return (await response.json()) as ReportPayloadDto;
+    },
+    listPendingDocuments: async (): Promise<PendingDocumentSummary[]> => {
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/legal/pending`,
+        {
+          headers: { accept: "application/json" },
+          credentials: "include",
+        },
+      );
+      if (!response.ok) {
+        throw await toApiClientError(response, "LIST_PENDING_FAILED");
+      }
+      return (await response.json()) as PendingDocumentSummary[];
+    },
+    getPendingDocument: async (
+      documentId: string,
+    ): Promise<PendingLegalDocumentDto | null> => {
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/legal/${encodeURIComponent(documentId)}`,
+        {
+          headers: { accept: "application/json" },
+          credentials: "include",
+        },
+      );
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_PENDING_FAILED");
+      }
+      return (await response.json()) as PendingLegalDocumentDto;
+    },
+    submitReview: async (
+      documentId: string,
+      submission: ReviewSubmissionDto,
+    ): Promise<void> => {
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/legal/${encodeURIComponent(documentId)}/review`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          credentials: "include",
+          body: JSON.stringify(submission),
+        },
+      );
+      if (!response.ok) {
+        throw await toApiClientError(response, "SUBMIT_REVIEW_FAILED");
+      }
     },
   };
 };

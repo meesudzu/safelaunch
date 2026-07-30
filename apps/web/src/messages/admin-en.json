@@ -1,0 +1,14 @@
+{
+  "title": "Legal corpus admin",
+  "list.title": "Review queue",
+  "list.empty": "No documents are pending review.",
+  "list.open": "Open",
+  "list.document": "Document",
+  "list.jurisdiction": "Jurisdiction",
+  "list.retrieved": "Retrieved",
+  "review.title": "Review legal document",
+  "review.not_found": "Document not found or already reviewed.",
+  "review.back": "Back to queue",
+  "review.access_required": "Admin access denied. Please sign in via Cloudflare Access.",
+  "footer.disclosure": "Admin actions are logged for audit."
+}
