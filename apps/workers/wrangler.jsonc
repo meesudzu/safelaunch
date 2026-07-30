@@ -18,6 +18,13 @@
   "queues": {
     "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
   },
+  "workflows": [
+    {
+      "name": "scan-workflow",
+      "binding": "SCAN_WORKFLOW",
+      "class_name": "ScanWorkflowEntrypoint",
+    },
+  ],
   "vars": { "WEB_ORIGIN": "http://localhost:3000" },
   "observability": {
     "enabled": true,
