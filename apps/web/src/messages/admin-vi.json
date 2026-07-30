@@ -1,0 +1,14 @@
+{
+  "title": "Quản lý văn bản pháp luật",
+  "list.title": "Hàng đợi xét duyệt",
+  "list.empty": "Không có văn bản nào đang chờ xét duyệt.",
+  "list.open": "Mở",
+  "list.document": "Văn bản",
+  "list.jurisdiction": "Khu vực pháp lý",
+  "list.retrieved": "Ngày trích dẫn",
+  "review.title": "Xét duyệt văn bản",
+  "review.not_found": "Không tìm thấy văn bản hoặc đã được xét duyệt.",
+  "review.back": "Quay lại hàng đợi",
+  "review.access_required": "Quyền truy cập quản trị bị từ chối. Vui lòng đăng nhập qua Cloudflare Access.",
+  "footer.disclosure": "Hoạt động quản trị được ghi log để phục vụ kiểm toán."
+}
