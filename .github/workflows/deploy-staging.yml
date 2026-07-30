@@ -1,0 +1,65 @@
+name: deploy-staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or SHA to deploy
+        required: false
+        default: main
+
+concurrency:
+  group: deploy-staging-${{ github.event.inputs.ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: test (pre-deploy gate)
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: deploy to staging
+    needs: test
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_R2_BUCKET: safelaunch-staging-artifacts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - run: rtk pnpm install --frozen-lockfile
+      - name: Apply D1 migrations (forward-only)
+        run: rtk pnpm exec wrangler d1 migrations apply DB --remote --env staging
+      - name: Deploy API Worker
+        run: rtk pnpm exec wrangler deploy --env staging
+        env:
+          CLOUDFLARE_ENV: staging
+      - name: Deploy Web Worker (OpenNext)
+        run: rtk pnpm -C apps/web exec opennextjs-cloudflare build && rtk pnpm -C apps/web exec opennextjs-cloudflare deploy --env staging
+        env:
+          CLOUDFLARE_ENV: staging
+      - name: Seed only reviewed fixture provisions
+        run: rtk pnpm exec tsx scripts/seed-staging.ts
+      - name: Smoke
+        run: rtk node scripts/smoke.mjs --base-url "$STAGING_URL"
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+      - name: Eval gate (release blocker)
+        run: rtk pnpm -C packages/ai test -- eval-runner
+      - name: Latency probe (release blocker)
+        run: rtk node scripts/check-latency.mjs --base-url "$STAGING_URL" --samples 25
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+      - name: Upload redacted test + eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-report
+          path: artifacts/staging-report
+          retention-days: 14

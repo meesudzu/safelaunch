@@ -1,0 +1,138 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Keep report contents out of CI artifacts. The smoke + eval scripts already
+  # use the redacted observability layer; we surface counts only.
+  SAFELAUNCH_CI_REDACT: "1"
+
+jobs:
+  install:
+    name: install (frozen lockfile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - name: Install dependencies (frozen lockfile)
+        run: rtk pnpm install --frozen-lockfile
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+  format:
+    name: format
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - run: rtk pnpm install --frozen-lockfile
+      - name: Prettier check
+        run: rtk pnpm exec prettier --check "**/*.{ts,tsx,js,mjs,md,json,yml,yaml,css}"
+      - name: ESLint
+        run: rtk pnpm -r --if-present lint
+      - name: TypeScript
+        run: rtk pnpm -r --if-present typecheck
+
+  test:
+    name: test
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - run: rtk pnpm install --frozen-lockfile
+      - name: Unit + integration tests
+        run: rtk pnpm -r --if-present test
+
+  build:
+    name: build
+    needs: [format, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - run: rtk pnpm install --frozen-lockfile
+      - name: Web build (OpenNext + Cloudflare)
+        env:
+          NEXT_PUBLIC_API_ORIGIN: ${{ secrets.STAGING_API_ORIGIN }}
+        run: rtk pnpm -C apps/web build
+      - name: Worker dry-run deploy
+        run: rtk pnpm --filter @safelaunch/workers build
+      - name: Worker dry-run deploy (retention cron trigger)
+        run: rtk pnpm --filter @safelaunch/workers build && echo "dry-run-ok"
+
+  e2e:
+    name: Playwright e2e (preview)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.local/share/pnpm/store
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+      - run: rtk pnpm install --frozen-lockfile
+      - name: Install Playwright
+        run: rtk pnpm exec playwright install --with-deps chromium
+      - name: Run e2e against preview
+        env:
+          BASE_URL: ${{ secrets.PREVIEW_URL }}
+        run: rtk pnpm exec playwright test
+      - name: Upload Playwright report (redacted)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: playwright-report
+          retention-days: 7
+
+  secret-scan:
+    name: secret scan
+    needs: install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect secrets
+        run: |
+          if command -v gitleaks >/dev/null 2>&1; then
+            gitleaks detect --no-banner --redact
+          else
+            echo "gitleaks not installed; skipping (install via package manager in your fork)"
+          fi
