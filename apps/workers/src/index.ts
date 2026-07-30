@@ -1,8 +1,22 @@
 import { Hono } from "hono";
+import { scansRouter } from "./routes/scans";
+import { ScanWorkflowEntrypoint } from "./workflows/scan-workflow";
+
+export type Env = {
+  DB: D1Database;
+  AI?: Ai;
+  LEGAL_INGESTION_QUEUE?: Queue;
+  LEGAL_INDEX?: VectorizeIndex;
+  ARTIFACTS?: R2Bucket;
+  WEB_ORIGIN?: string;
+  SCAN_WORKFLOW?: Workflow;
+};
 
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/v1/health", (context) => context.json({ ok: true, service: "safelaunch-api" } as const));
+
+app.route("/", scansRouter);
 
 app.onError((error, context) => {
   const requestId = context.req.header("cf-ray") ?? crypto.randomUUID();
@@ -11,3 +25,4 @@ app.onError((error, context) => {
 });
 
 export default app;
+export { ScanWorkflowEntrypoint };
