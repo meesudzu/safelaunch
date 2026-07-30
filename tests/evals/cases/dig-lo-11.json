@@ -1,0 +1,21 @@
+{
+  "id": "dig-lo-11",
+  "category": "digital_entertainment",
+  "language": "vi",
+  "input": {
+    "url": "https://example.com/dig-lo-11",
+    "evidence": "Nightwave Streaming là dịch vụ giải trí số do Lumen Media Pte. Ltd. vận hành. Điều 1. Quy định về an toàn thông tin mạng cho dịch vụ giải trí số."
+  },
+  "expected": {
+    "severity": "pass",
+    "provisionIds": [
+      "prov-attt-2015"
+    ],
+    "citationExcerpts": [
+      "Điều 1. Quy định về an toàn thông tin mạng cho dịch vụ giải trí số."
+    ]
+  },
+  "reviewer": "reviewer-a@safelaunch.test",
+  "reviewDate": "2025-01-01T00:00:00.000Z",
+  "rationale": "Non-high case 11 for digital_entertainment: rubric classifies as pass (compliant with disclosure requirements)."
+}

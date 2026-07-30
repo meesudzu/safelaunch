@@ -1,0 +1,21 @@
+{
+  "id": "ele-lo-15",
+  "category": "electronic_press",
+  "language": "vi",
+  "input": {
+    "url": "https://example.com/ele-lo-15",
+    "evidence": "Báo điện tử Dân Trí do Công ty Cổ phần Truyền thông Dân Trí phát hành. Điều 1. Quy định về báo chí điện tử. Cấm nội dung xuyên tạc, vu khống, xâm phạm lợi ích quốc gia."
+  },
+  "expected": {
+    "severity": "pass",
+    "provisionIds": [
+      "prov-press-2016"
+    ],
+    "citationExcerpts": [
+      "Điều 1. Quy định về báo chí điện tử. Cấm nội dung xuyên tạc, vu khống, xâm phạm lợi ích quốc gia."
+    ]
+  },
+  "reviewer": "reviewer-a@safelaunch.test",
+  "reviewDate": "2025-01-01T00:00:00.000Z",
+  "rationale": "Non-high case 15 for electronic_press: rubric classifies as pass (compliant with disclosure requirements)."
+}

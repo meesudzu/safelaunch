@@ -1,0 +1,21 @@
+{
+  "id": "onl-hi-07",
+  "category": "online_game",
+  "language": "vi",
+  "input": {
+    "url": "https://example.com/onl-hi-07",
+    "evidence": "Công ty Cổ phần VNG đăng ký giấy phép phát hành trò chơi điện tử GCN số 0123/GP-TTĐT. Điều 1. Quy định về trò chơi điện tử. Cấm nội dung bạo lực, khiêu dâm, ảnh hưởng đến trẻ em."
+  },
+  "expected": {
+    "severity": "high",
+    "provisionIds": [
+      "prov-72-2013"
+    ],
+    "citationExcerpts": [
+      "Điều 1. Quy định về trò chơi điện tử. Cấm nội dung bạo lực, khiêu dâm, ảnh hưởng đến trẻ em."
+    ]
+  },
+  "reviewer": "reviewer-a@safelaunch.test",
+  "reviewDate": "2025-01-01T00:00:00.000Z",
+  "rationale": "High-risk case 7 for online_game: the evidence exposes a regulated pattern that the rubric classifies as a high-severity finding."
+}
