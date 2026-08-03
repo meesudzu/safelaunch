@@ -12,13 +12,13 @@ A companion handoff document lives at [`remaining.md`](./remaining.md); items th
 
 ## 1 · Architectural decisions
 
-| Decision | Choice | Rationale |
-| --- | --- | --- |
-| URL shape | `/admin/*` — **no** locale prefix | Admin is internal-only, used by a small VN-based ops team. Locale indirection adds no value and forces every admin page to thread `params.locale` through the layout. |
-| UI language | Vietnamese only (`apps/web/src/messages/admin-vi.json`) | Reviewers are a small VN-based ops team; `admin-en.json` was removed on 2026-08-03 to keep the admin UI single-source. The shared `LegalReviewForm` also dropped its `locale` prop and hardcodes `vi-VN` formatting. |
-| Auth | Cloudflare Access — single shared `safelaunch.app` allow-list | One app, many reviewers; the JWT's `email` claim becomes the audit `actor`. |
-| Hosting | Same Worker + Web pair as the public app, gated at the edge by Access | Reuses `apps/web` + `apps/workers` infrastructure; no separate admin deployment. |
-| Transport | Server-rendered pages + small JSON endpoints | No SPA needed at this scale; admin pages are table-heavy, not interaction-heavy. |
+| Decision    | Choice                                                                | Rationale                                                                                                                                                                                                            |
+| ----------- | --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| URL shape   | `/admin/*` — **no** locale prefix                                     | Admin is internal-only, used by a small VN-based ops team. Locale indirection adds no value and forces every admin page to thread `params.locale` through the layout.                                                |
+| UI language | Vietnamese only (`apps/web/src/messages/admin-vi.json`)               | Reviewers are a small VN-based ops team; `admin-en.json` was removed on 2026-08-03 to keep the admin UI single-source. The shared `LegalReviewForm` also dropped its `locale` prop and hardcodes `vi-VN` formatting. |
+| Auth        | Cloudflare Access — single shared `safelaunch.app` allow-list         | One app, many reviewers; the JWT's `email` claim becomes the audit `actor`.                                                                                                                                          |
+| Hosting     | Same Worker + Web pair as the public app, gated at the edge by Access | Reuses `apps/web` + `apps/workers` infrastructure; no separate admin deployment.                                                                                                                                     |
+| Transport   | Server-rendered pages + small JSON endpoints                          | No SPA needed at this scale; admin pages are table-heavy, not interaction-heavy.                                                                                                                                     |
 
 > **Confirmed on 2026-08-03:** admin pages live at `apps/web/src/app/admin/legal/...` (no locale segment). Both page modules read `admin-vi.json` directly, expose no `params.locale`, and link with absolute `/admin/legal/...` paths. Public `/[locale]/report/...` and `/[locale]/scan/...` remain bilingual.
 
@@ -26,16 +26,16 @@ A companion handoff document lives at [`remaining.md`](./remaining.md); items th
 
 ## 2 · Current admin surface (as of 2026-08-03)
 
-| Surface | Path | Status |
-| --- | --- | --- |
-| Legal queue | `GET /v1/admin/legal/pending` | `[shipped]` |
-| Legal doc detail | `GET /v1/admin/legal/:id` | `[shipped]` |
-| Submit review | `POST /v1/admin/legal/:id/review` | `[shipped]` |
-| Admin landing | `/admin` | `[shipped]` (server-side 307 → `/admin/legal`) |
-| Legal queue UI | `/admin/legal` | `[shipped]` (route mount cleanup applied 2026-08-03) |
-| Review form UI | `/admin/legal/:documentId` | `[shipped]` (same) |
-| Audit log UI | — | **missing** (Tier 1) |
-| Anything else | — | **missing** (this whole doc) |
+| Surface          | Path                              | Status                                               |
+| ---------------- | --------------------------------- | ---------------------------------------------------- |
+| Legal queue      | `GET /v1/admin/legal/pending`     | `[shipped]`                                          |
+| Legal doc detail | `GET /v1/admin/legal/:id`         | `[shipped]`                                          |
+| Submit review    | `POST /v1/admin/legal/:id/review` | `[shipped]`                                          |
+| Admin landing    | `/admin`                          | `[shipped]` (server-side 307 → `/admin/legal`)       |
+| Legal queue UI   | `/admin/legal`                    | `[shipped]` (route mount cleanup applied 2026-08-03) |
+| Review form UI   | `/admin/legal/:documentId`        | `[shipped]` (same)                                   |
+| Audit log UI     | —                                 | **missing** (Tier 1)                                 |
+| Anything else    | —                                 | **missing** (this whole doc)                         |
 
 Worker code: [`apps/workers/src/routes/admin.ts`](../apps/workers/src/routes/admin.ts).
 Web pages: `apps/web/src/app/admin/legal/page.tsx`, `apps/web/src/app/admin/legal/[documentId]/page.tsx`.
@@ -46,15 +46,15 @@ Audit data already exists in the `legal_review_events` table ([`packages/db/migr
 
 ## 3 · Tier 1 — Critical (must ship before any reviewer logs in)
 
-### 1.1 Cloudflare Access for `/admin/*`  `[shipped: doc · build: config]`
+### 1.1 Cloudflare Access for `/admin/*` `[shipped: doc · build: config]`
 
 The Worker already trusts `cf-access-authenticated-user-email`, but no Access application is enforcing the gate at the edge. Without it the admin endpoints are reachable by anyone who can hit the API origin.
 
-- **Effort:** 5 min.  **Owner:** ops.
+- **Effort:** 5 min. **Owner:** ops.
 - **How:** see [`remaining.md` §1.1](./remaining.md#11-enable-cloudflare-access-for-adminlegal).
 - **Verify:** `curl https://safelaunch.runany.dev/admin/legal` → `302` to a Cloudflare Access sign-in page.
 
-### 1.2 Audit log viewer  `[build]`
+### 1.2 Audit log viewer `[build]`
 
 The `legal_review_events` table is the source of truth for "who decided what on which document". Today it is only readable by joining manually in `wrangler d1 execute`.
 
@@ -64,10 +64,10 @@ The `legal_review_events` table is the source of truth for "who decided what on 
 - **Filters:** date range (default last 7 days), actor, decision
 - **Pagination:** cursor on `created_at, id`; default page size 50
 - **Privacy:** `reason` text rendered verbatim — admin-only role, but if PII ever enters the reason field we must redact with `***` for any export path.
-- **Effort:** 0.5 day.  **Owner:** backend + frontend.
+- **Effort:** 0.5 day. **Owner:** backend + frontend.
 - **Reference:** `apps/workers/src/routes/admin.ts` already returns `audit` on the single-document endpoint — extract a list endpoint plus a thin web page.
 
-### 1.3 Admin shell layout  `[build]`
+### 1.3 Admin shell layout `[build]`
 
 Today each admin page rolls its own `<header>` + `<footer>`. We need a shared layout that:
 
@@ -76,7 +76,7 @@ Today each admin page rolls its own `<header>` + `<footer>`. We need a shared la
 - Surfaces the Access logout link.
 - Provides a nav: `Hàng đợi xét duyệt` · `Audit log` · (future) `Metrics` · `Logs`.
 
-- **Effort:** 0.5 day.  **Owner:** frontend.
+- **Effort:** 0.5 day. **Owner:** frontend.
 - **Reference:** `apps/web/src/app/admin/legal/page.tsx` is the canonical minimal admin page — copy its `<main>` skeleton when adding new admin routes.
 
 ---
@@ -85,7 +85,7 @@ Today each admin page rolls its own `<header>` + `<footer>`. We need a shared la
 
 These are the metrics a reviewer or ops engineer actually wants to see when they open `/admin`. Each card on the dashboard has one D1 query behind it; the queries are listed inline so they double as the source of truth for the API contract.
 
-### 2.1 Usage metrics — "how many uses"  `[build]`
+### 2.1 Usage metrics — "how many uses" `[build]`
 
 - **UI surface:** `/admin/metrics` — top row, four KPI tiles
 - **Tiles:**
@@ -110,9 +110,9 @@ WHERE created_at >= ?;
 ```
 
 - **Privacy:** store a salted `url_hash` column on `scans` so the metric survives the 7-day purge without ever writing the raw URL. See [`docs/privacy/data-inventory.md`](./privacy/data-inventory.md).
-- **Effort:** 1 day.  **Owner:** backend.
+- **Effort:** 1 day. **Owner:** backend.
 
-### 2.2 Site scan status table — "what's happening now"  `[build]`
+### 2.2 Site scan status table — "what's happening now" `[build]`
 
 - **UI surface:** `/admin/scans` — paginated, filterable table
 - **Columns:** `created_at`, `scanId`, `jurisdiction`, `category`, `state` (one of `queued|fetching|extracting|retrieving|evaluating|reporting|completed|partial|failed`), `pages_done/total`, `expires_at`, link to `/admin/scans/:id`
@@ -133,9 +133,9 @@ LIMIT 100;
 ```
 
 - **Privacy:** show `id` and timestamps; the `url` field is PII per [`privacy/data-inventory.md`](./privacy/data-inventory.md), so display the truncated `url_hash` instead, with a "copy to clipboard" affordance for incident response only (and even that requires the Access "incident response" role).
-- **Effort:** 1.5 days.  **Owner:** backend + frontend.
+- **Effort:** 1.5 days. **Owner:** backend + frontend.
 
-### 2.3 Redeem code inventory — "codes purchased & redeemed"  `[idea]`
+### 2.3 Redeem code inventory — "codes purchased & redeemed" `[idea]`
 
 There is no redeem-code infrastructure today — no table, no API, no event. This section captures the shape it should take.
 
@@ -169,10 +169,10 @@ CREATE INDEX idx_redeem_redeemed ON redeem_codes(redeemed_at) WHERE redeemed_at 
 - **Bulk actions:** generate N codes for a batch (returns plaintext codes **once**, then they are unrecoverable — admin must copy them)
 
 - **Privacy:** the plaintext `code` exists in the admin's clipboard for ~10 seconds only. Storage is `code_hash`. `issued_to` is a label like "Q3 marketing campaign", never a person's name or email.
-- **Effort:** 2 days (schema + API + UI + tests).  **Owner:** backend.
+- **Effort:** 2 days (schema + API + UI + tests). **Owner:** backend.
 - **Blocked by:** §8 Q1.
 
-### 2.4 System health — capacity & error rates  `[build]`
+### 2.4 System health — capacity & error rates `[build]`
 
 - **UI surface:** `/admin/health` — single page, one section per binding
 - **Sections:**
@@ -199,10 +199,10 @@ FROM scans
 WHERE expires_at > datetime('now');
 ```
 
-- **Effort:** 1 day.  **Owner:** backend.
+- **Effort:** 1 day. **Owner:** backend.
 - **Reference:** [`apps/workers/src/services/retention.ts`](../apps/workers/src/services/retention.ts) already logs `retention.purge` events — health page should reflect the most recent one.
 
-### 2.5 Compliance score distribution  `[build]`
+### 2.5 Compliance score distribution `[build]`
 
 - **UI surface:** `/admin/metrics#compliance` (second tab)
 - **Charts:**
@@ -220,63 +220,63 @@ WHERE s.created_at >= datetime('now','-7 day')
 GROUP BY f.severity;
 ```
 
-- **Effort:** 1 day.  **Owner:** backend + frontend.
+- **Effort:** 1 day. **Owner:** backend + frontend.
 
 ---
 
 ## 5 · Tier 3 — Logs & debugging
 
-### 3.1 Worker log viewer  `[idea]`
+### 3.1 Worker log viewer `[idea]`
 
 The Worker emits structured events via `toLogEvent` ([`apps/workers/src/observability.ts`](../apps/workers/src/observability.ts)). Known event names today:
 
-| Event | Emitted by | Useful for |
-| --- | --- | --- |
-| `request` | every request (default) | Traffic shape, error rate |
-| `scan.created` | `routes/scans.ts` | Submission funnel |
-| `scan.start` | `workflows/scan-workflow.ts` | Latency baseline |
-| `scan.terminal` | `workflows/scan-workflow.ts` | Success count |
-| `scan.failed_terminal` | `workflows/scan-workflow.ts` | Failure count |
-| `scan.homepage_failed` | `workflows/scan-workflow.ts` | Upstream fetch issues |
-| `scan.evaluated` | `workflows/scan-workflow.ts` | AI cost tracking |
-| `evidence.extract_failed` | `workflows/scan-workflow.ts` | Per-page failure drill-down |
-| `scan.workflow_create_failed` | `routes/scans.ts` | Infrastructure issues |
-| `report.not_found` / `token_missing` / `token_mismatch` / `expired` | `routes/reports.ts` | Token UX |
-| `admin.review.submitted` | `routes/admin.ts` | Reviewer activity |
-| `retention.purge` | `services/retention.ts` | TTL health |
+| Event                                                               | Emitted by                   | Useful for                  |
+| ------------------------------------------------------------------- | ---------------------------- | --------------------------- |
+| `request`                                                           | every request (default)      | Traffic shape, error rate   |
+| `scan.created`                                                      | `routes/scans.ts`            | Submission funnel           |
+| `scan.start`                                                        | `workflows/scan-workflow.ts` | Latency baseline            |
+| `scan.terminal`                                                     | `workflows/scan-workflow.ts` | Success count               |
+| `scan.failed_terminal`                                              | `workflows/scan-workflow.ts` | Failure count               |
+| `scan.homepage_failed`                                              | `workflows/scan-workflow.ts` | Upstream fetch issues       |
+| `scan.evaluated`                                                    | `workflows/scan-workflow.ts` | AI cost tracking            |
+| `evidence.extract_failed`                                           | `workflows/scan-workflow.ts` | Per-page failure drill-down |
+| `scan.workflow_create_failed`                                       | `routes/scans.ts`            | Infrastructure issues       |
+| `report.not_found` / `token_missing` / `token_mismatch` / `expired` | `routes/reports.ts`          | Token UX                    |
+| `admin.review.submitted`                                            | `routes/admin.ts`            | Reviewer activity           |
+| `retention.purge`                                                   | `services/retention.ts`      | TTL health                  |
 
 - **Approach:** ship Workers Logpush to R2 / Analytics Engine; build an admin page that queries Logpush directly with the filters above. Do **not** build a new logger — `toLogEvent` already enforces the privacy contract (no path, no IP, no body, no token).
 - **Privacy:** every event in the table above already strips PII by construction. Re-check after each new event is added.
-- **Effort:** 2 days once Logpush is enabled.  **Owner:** ops.
+- **Effort:** 2 days once Logpush is enabled. **Owner:** ops.
 - **Blocked by:** §8 Q3.
 
-### 3.2 Abuse signal feed  `[build]`
+### 3.2 Abuse signal feed `[build]`
 
 - **UI surface:** `/admin/abuse`
 - **Source:** `AbuseRateLimiter` Durable Object (`apps/workers/src/services/abuse-rate-limiter-do.ts`)
 - **Tiles:** blocked requests in last hour (by hashed IP), top blocked host-hashes, Turnstile pass/fail rate
 - **Privacy:** the DO already stores only `ip_hash` and `host_hash`; admin never sees the raw values.
-- **Effort:** 1 day.  **Owner:** backend.
+- **Effort:** 1 day. **Owner:** backend.
 
-### 3.3 Error rates per endpoint  `[build]`
+### 3.3 Error rates per endpoint `[build]`
 
 - **UI surface:** `/admin/metrics#errors` (third tab)
 - **Source:** `toLogEvent` with `level: "error"` — grouped by route template
 - **Drill-down:** click a route to see the last 50 error events (already sanitised — `requestId` is `cf-ray` so it can be matched to the Cloudflare dashboard)
-- **Effort:** 1 day.  **Owner:** backend.
+- **Effort:** 1 day. **Owner:** backend.
 
 ---
 
 ## 6 · Tier 4 — Future
 
-| Feature | Why | Effort |
-| --- | --- | --- |
-| Multi-tenant orgs | Today every reviewer sees the same global queue. Add an `org_id` column on `legal_review_events` and gate rows by JWT claim. | 1 week |
-| Webhook config | Notify external systems when a scan hits `completed`. Store config in D1; emit via Queues. | 3 days |
-| Public status page | Render the `/admin/health` data as `status.safelaunch.runany.dev` for users. | 2 days |
-| Custom rule templates | Let admins create per-tenant compliance rules. Storage in R2, indexed in Vectorize. | 2 weeks |
-| Reviewer SLAs | Track `time-to-decision` per reviewer; surface in the audit log. | 2 days |
-| Bulk legal actions | Approve / reject N docs at once with a templated reason. | 1 day |
+| Feature               | Why                                                                                                                          | Effort  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------- |
+| Multi-tenant orgs     | Today every reviewer sees the same global queue. Add an `org_id` column on `legal_review_events` and gate rows by JWT claim. | 1 week  |
+| Webhook config        | Notify external systems when a scan hits `completed`. Store config in D1; emit via Queues.                                   | 3 days  |
+| Public status page    | Render the `/admin/health` data as `status.safelaunch.runany.dev` for users.                                                 | 2 days  |
+| Custom rule templates | Let admins create per-tenant compliance rules. Storage in R2, indexed in Vectorize.                                          | 2 weeks |
+| Reviewer SLAs         | Track `time-to-decision` per reviewer; surface in the audit log.                                                             | 2 days  |
+| Bulk legal actions    | Approve / reject N docs at once with a templated reason.                                                                     | 1 day   |
 
 ---
 

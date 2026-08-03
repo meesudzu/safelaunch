@@ -105,10 +105,7 @@ export const LegalReviewForm = ({ messages, document, submit }: LegalReviewFormP
       data-document-id={document.id}
       className="bg-bg text-ink font-sans antialiased"
     >
-      <h1
-        id="review-title"
-        className="font-serif text-3xl font-semibold leading-tight md:text-4xl"
-      >
+      <h1 id="review-title" className="font-serif text-3xl font-semibold leading-tight md:text-4xl">
         {document.title}
       </h1>
       <dl className="mt-6 flex flex-col gap-3 text-sm">
@@ -126,7 +123,10 @@ export const LegalReviewForm = ({ messages, document, submit }: LegalReviewFormP
       </dl>
 
       <section className="mt-8" aria-labelledby="provisions-heading">
-        <h2 id="provisions-heading" className="text-sm font-semibold uppercase tracking-wider text-ink-soft">
+        <h2
+          id="provisions-heading"
+          className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+        >
           {messages.provisions}
         </h2>
         <ul className="mt-3 flex flex-col gap-3">
@@ -147,7 +147,10 @@ export const LegalReviewForm = ({ messages, document, submit }: LegalReviewFormP
       </section>
 
       <section className="mt-8" aria-labelledby="relations-heading">
-        <h2 id="relations-heading" className="text-sm font-semibold uppercase tracking-wider text-ink-soft">
+        <h2
+          id="relations-heading"
+          className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+        >
           {messages.relations}
         </h2>
         {document.relations.length === 0 ? (
@@ -164,7 +167,10 @@ export const LegalReviewForm = ({ messages, document, submit }: LegalReviewFormP
       </section>
 
       <section className="mt-8" aria-labelledby="audit-heading">
-        <h2 id="audit-heading" className="text-sm font-semibold uppercase tracking-wider text-ink-soft">
+        <h2
+          id="audit-heading"
+          className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+        >
           {messages.audit}
         </h2>
         <ul className="mt-3 flex flex-col gap-2 text-sm">
