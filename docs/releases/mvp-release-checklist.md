@@ -39,12 +39,6 @@ into the PR description.
 | 3   | Unit + integration tests | `rtk pnpm test`                                                             | ☐ PASS              |
 | 4   | Worker dry-run build     | `rtk pnpm -C apps/workers build`                                            | ☐ PASS              |
 | 5   | Web build                | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS              |
-| 6   | End-to-end (Playwright)  | `rtk pnpm test:e2e`                                                         | ☐ PASS _or_ ☐ N/A * |
-
-`*` The e2e script runs `playwright test`. The MVP ships with the
-script wired in but no Playwright specs in the MVP set; the box is
-"skipped" by default. Once Task 22 lands real Playwright specs, this
-box becomes a hard PASS gate.
 
 ## 4 · Legal evaluation gates
 
