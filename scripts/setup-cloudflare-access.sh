@@ -15,7 +15,7 @@ ACCOUNT="d6d37dd4a65eea30f2600687beb90345"   # New Dawn
 ZONE="36a4f7f0ee36558ac614512c6aa47b32"        # runany.dev
 DOMAIN="safelaunch.runany.dev"
 APP_NAME="SafeLaunch Admin Console"
-APP_PATH="/admin/legal/*"
+APP_PATH="/admin/*"
 
 if [[ -z "${CF_API_TOKEN:-}" ]]; then
   echo "❌ Set CF_API_TOKEN env var first:"

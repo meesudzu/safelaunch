@@ -31,6 +31,7 @@ A companion handoff document lives at [`remaining.md`](./remaining.md); items th
 | Legal queue | `GET /v1/admin/legal/pending` | `[shipped]` |
 | Legal doc detail | `GET /v1/admin/legal/:id` | `[shipped]` |
 | Submit review | `POST /v1/admin/legal/:id/review` | `[shipped]` |
+| Admin landing | `/admin` | `[shipped]` (server-side 307 → `/admin/legal`) |
 | Legal queue UI | `/admin/legal` | `[shipped]` (route mount cleanup applied 2026-08-03) |
 | Review form UI | `/admin/legal/:documentId` | `[shipped]` (same) |
 | Audit log UI | — | **missing** (Tier 1) |
