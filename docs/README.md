@@ -1,39 +1,19 @@
-# SafeLaunch Docs
+# SafeLaunch docs
 
-This directory holds the human-facing documentation for the SafeLaunch project.
+The canonical project README lives at [`/README.md`](../README.md) at the
+top of the repo. It supersedes the early-development stub that used to
+be here.
 
-## Index
+## Doc map
 
-| File / folder                                | What's inside                                                              |
-| -------------------------------------------- | -------------------------------------------------------------------------- |
-| [`skills.md`](./skills.md)                   | The full skill catalog: which skill to invoke when, with examples.         |
-| [`workflow.md`](./workflow.md)               | How the team uses AI day-to-day — the four-phase loop, rituals, and norms. |
-| [`superpowers/specs/`](./superpowers/specs/) | Design docs produced by `superpowers:brainstorming` (one per topic).       |
-| [`superpowers/plans/`](./superpowers/plans/) | Implementation plans produced by `superpowers:writing-plans`.             |
-| [`superpowers/reviews/`](./superpowers/reviews/)| Notes from `superpowers:requesting-code-review` sessions.               |
-
-> **Rule of thumb:** anything an AI agent wrote for a human to review lives here.
-> Anything an AI agent wrote as part of the product lives under `apps/` or `packages/`.
-
-## How to read this as a new team member
-
-1. Start at [`workflow.md`](./workflow.md) — it shows the daily loop.
-2. Skim [`skills.md`](./skills.md) — bookmark it; you'll grep it constantly.
-3. Read the project skills in `.codex/skills/` — these are the project's own rules.
-4. Read [`AGENTS.md`](../AGENTS.md) — this is what AI agents read first.
-
-## How to read this as an AI agent
-
-You should already have `AGENTS.md` loaded. From here:
-
-1. Confirm `safelaunch-overview` is loaded.
-2. Open `skills.md` only if you need to map a task to a specific skill verb.
-3. Open `workflow.md` only if you need the four-phase loop details.
-4. Save your outputs to `superpowers/specs/`, `superpowers/plans/`, or `superpowers/reviews/` per the storage convention in `safelaunch-ai-workflow`.
-
-## Conventions
-
-- Filenames: `YYYY-MM-DD-<topic>-<kind>.md` where `<kind>` is `design` / `plan` / `review`.
-- Markdown flavor: GitHub-flavored, with mermaid for diagrams when useful.
-- Language: English for technical content; Vietnamese acceptable for copy that ships to Vietnamese users (see `safelaunch-overview` brand voice).
-- Tone: confident but careful. No AI filler. No emoji bullets.
+- [`remaining.md`](./remaining.md) — handoff to the team (Tier 1/2/3/4)
+- [`workflow.md`](./workflow.md) — 4-phase AI-assisted dev workflow
+- [`skills.md`](./skills.md) — skill catalog (must-invoke per change type)
+- [`compliance/rubrics/v1.md`](./compliance/rubrics/v1.md) — rule rubric
+- [`compliance/eval-baseline.md`](./compliance/eval-baseline.md) — eval gate
+- [`design/homepage.md`](./design/homepage.md) — homepage design direction
+- [`operations/setup-and-deploy.md`](./operations/setup-and-deploy.md) — deploy rituals
+- [`privacy/data-inventory.md`](./privacy/data-inventory.md) — PII inventory
+- [`releases/mvp-release-checklist.md`](./releases/mvp-release-checklist.md) — release captain checklist
+- [`superpowers/specs/2026-07-28-safelaunch-mvp-design.md`](./superpowers/specs/2026-07-28-safelaunch-mvp-design.md) — design doc
+- [`superpowers/plans/2026-07-28-safelaunch-mvp-release-plan.md`](./superpowers/plans/2026-07-28-safelaunch-mvp-release-plan.md) — release plan
