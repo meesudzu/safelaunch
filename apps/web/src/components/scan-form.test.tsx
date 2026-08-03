@@ -18,7 +18,7 @@ const viMessages = {
   "form.category.electronic_press": "Báo chí điện tử",
   "form.category.digital_entertainment": "Giải trí số",
   "form.jurisdiction.label": "Khu vực pháp lý",
-  "form.jurisdiction.value": "Việt Nam (MVP)",
+  "form.jurisdiction.value": "Việt Nam",
   "form.submit": "Kiểm tra website",
   "form.submitting": "Đang quét…",
   "form.error.url": "Vui lòng nhập URL hợp lệ.",
@@ -62,7 +62,7 @@ describe("ScanForm", () => {
     render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
     const jurisdiction = screen.getByLabelText("Khu vực pháp lý");
     expect(jurisdiction).toBeDisabled();
-    expect(jurisdiction).toHaveValue("Việt Nam (MVP)");
+    expect(jurisdiction).toHaveValue("Việt Nam");
   });
 
   it("shows an inline error when the URL is invalid", async () => {
