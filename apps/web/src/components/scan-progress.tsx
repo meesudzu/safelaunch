@@ -8,7 +8,11 @@ export interface ScanProgressState {
   readonly scanId: string;
   readonly state: string;
   readonly status?: string;
-  readonly coverage: { fetched: readonly string[]; failed: readonly string[]; skipped: readonly string[] };
+  readonly coverage: {
+    fetched: readonly string[];
+    failed: readonly string[];
+    skipped: readonly string[];
+  };
   readonly expiresAt?: string;
   readonly reportUrl?: string;
 }

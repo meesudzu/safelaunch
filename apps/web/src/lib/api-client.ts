@@ -119,17 +119,12 @@ const trimTrailingSlash = (origin: string): string =>
 
 const requireOrigin = (base: string | null): string => {
   if (!base) {
-    throw new Error(
-      "NEXT_PUBLIC_API_ORIGIN is not configured; the web app cannot reach the API",
-    );
+    throw new Error("NEXT_PUBLIC_API_ORIGIN is not configured; the web app cannot reach the API");
   }
   return base;
 };
 
-const toApiClientError = async (
-  response: Response,
-  code: string,
-): Promise<ApiClientError> => {
+const toApiClientError = async (response: Response, code: string): Promise<ApiClientError> => {
   const text = await response.text().catch(() => "");
   return new ApiClientError(
     response.status,
@@ -139,9 +134,7 @@ const toApiClientError = async (
 };
 
 export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
-  const base = env.NEXT_PUBLIC_API_ORIGIN
-    ? trimTrailingSlash(env.NEXT_PUBLIC_API_ORIGIN)
-    : null;
+  const base = env.NEXT_PUBLIC_API_ORIGIN ? trimTrailingSlash(env.NEXT_PUBLIC_API_ORIGIN) : null;
   return {
     createScan: async (input: CreateScanInput): Promise<CreateScanResponse> => {
       const response = await fetch(`${requireOrigin(base)}/v1/scans`, {
@@ -178,21 +171,16 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
       return (await response.json()) as ReportPayloadDto;
     },
     listPendingDocuments: async (): Promise<PendingDocumentSummary[]> => {
-      const response = await fetch(
-        `${requireOrigin(base)}/v1/admin/legal/pending`,
-        {
-          headers: { accept: "application/json" },
-          credentials: "include",
-        },
-      );
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/legal/pending`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
       if (!response.ok) {
         throw await toApiClientError(response, "LIST_PENDING_FAILED");
       }
       return (await response.json()) as PendingDocumentSummary[];
     },
-    getPendingDocument: async (
-      documentId: string,
-    ): Promise<PendingLegalDocumentDto | null> => {
+    getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(
         `${requireOrigin(base)}/v1/admin/legal/${encodeURIComponent(documentId)}`,
         {
@@ -208,10 +196,7 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
       }
       return (await response.json()) as PendingLegalDocumentDto;
     },
-    submitReview: async (
-      documentId: string,
-      submission: ReviewSubmissionDto,
-    ): Promise<void> => {
+    submitReview: async (documentId: string, submission: ReviewSubmissionDto): Promise<void> => {
       const response = await fetch(
         `${requireOrigin(base)}/v1/admin/legal/${encodeURIComponent(documentId)}/review`,
         {

@@ -25,10 +25,8 @@ export interface RetentionSummary {
   readonly r2ObjectsDeleted: number;
 }
 
-const SCANS_BY_EXPIRY_SQL =
-  "DELETE FROM scans WHERE expires_at < ?";
-const REPORTS_BY_EXPIRY_SQL =
-  "DELETE FROM reports WHERE expires_at < ?";
+const SCANS_BY_EXPIRY_SQL = "DELETE FROM scans WHERE expires_at < ?";
+const REPORTS_BY_EXPIRY_SQL = "DELETE FROM reports WHERE expires_at < ?";
 const SCAN_PAGES_BY_EXPIRY_SQL =
   "DELETE FROM scan_pages WHERE scan_id IN (SELECT id FROM scans WHERE expires_at < ?)";
 const EVIDENCE_BY_EXPIRY_SQL =

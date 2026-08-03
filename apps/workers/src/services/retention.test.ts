@@ -77,8 +77,7 @@ class FakeR2 {
   }> {
     const filtered = this.listResult.objects.filter(
       (obj) =>
-        !this.deleted.includes(obj.key) &&
-        (!options?.prefix || obj.key.startsWith(options.prefix)),
+        !this.deleted.includes(obj.key) && (!options?.prefix || obj.key.startsWith(options.prefix)),
     );
     return Promise.resolve({ objects: filtered, truncated: false });
   }
@@ -88,7 +87,9 @@ class FakeR2 {
   }
 }
 
-const makeDeps = (overrides: Partial<RetentionDeps> = {}): {
+const makeDeps = (
+  overrides: Partial<RetentionDeps> = {},
+): {
   deps: RetentionDeps;
   db: FakeD1;
   r2: FakeR2;
@@ -128,10 +129,7 @@ describe("purgeExpired", () => {
   it("deletes reports and their R2 artifacts past expiry", async () => {
     const { deps, r2 } = makeDeps();
     r2.listResult = {
-      objects: [
-        { key: "scans/expired/home.html" },
-        { key: "scans/expired/contact.html" },
-      ],
+      objects: [{ key: "scans/expired/home.html" }, { key: "scans/expired/contact.html" }],
     };
     const summary = await purgeExpired("2026-07-29T12:00:00.000Z", deps);
     expect(summary.r2ObjectsDeleted).toBe(2);

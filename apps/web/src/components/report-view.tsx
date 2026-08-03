@@ -187,9 +187,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 ? formatDate(upcomingFindings[0].upcomingEffectiveAt, locale)
                 : ""}
             </h2>
-            <p className="mt-2 text-sm text-ink">
-              {upcomingFindings[0]?.rationale}
-            </p>
+            <p className="mt-2 text-sm text-ink">{upcomingFindings[0]?.rationale}</p>
           </section>
         ) : null}
 
@@ -209,7 +207,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
           {currentFindings.length > 0 ? (
             <div data-testid="findings-current" className="flex flex-col gap-4">
-              <h3 data-testid="findings-current-heading" className="text-xs uppercase tracking-wider text-ink-soft">
+              <h3
+                data-testid="findings-current-heading"
+                className="text-xs uppercase tracking-wider text-ink-soft"
+              >
                 {messages["finding.applicability.current"]}
               </h3>
               {currentFindings.map((finding) => (
@@ -225,7 +226,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
           {upcomingFindings.length > 0 ? (
             <div data-testid="findings-upcoming" className="flex flex-col gap-4">
-              <h3 data-testid="findings-upcoming-heading" className="text-xs uppercase tracking-wider text-ink-soft">
+              <h3
+                data-testid="findings-upcoming-heading"
+                className="text-xs uppercase tracking-wider text-ink-soft"
+              >
                 {messages["finding.applicability.upcoming"]}
               </h3>
               {upcomingFindings.map((finding) => (
@@ -240,7 +244,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           ) : null}
         </section>
 
-        <p data-testid="report-disclaimer" className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft">
+        <p
+          data-testid="report-disclaimer"
+          className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft"
+        >
           {messages.disclaimer}
         </p>
 
@@ -279,9 +286,7 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
             ? messages["finding.applicability.current"]
             : messages["finding.applicability.upcoming"]}
         </p>
-        <p className="font-serif text-lg font-semibold leading-snug">
-          {finding.rationale}
-        </p>
+        <p className="font-serif text-lg font-semibold leading-snug">{finding.rationale}</p>
       </header>
 
       <dl className="mt-4 flex flex-col gap-3 text-sm">
@@ -290,10 +295,7 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
             {messages["finding.confidence"]}
           </dt>
           <dd>
-            <span
-              data-testid={`confidence-${finding.id}`}
-              className="font-mono text-sm"
-            >
+            <span data-testid={`confidence-${finding.id}`} className="font-mono text-sm">
               {(finding.confidence * 100).toFixed(0)}%
             </span>
           </dd>

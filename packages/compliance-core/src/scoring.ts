@@ -9,4 +9,3 @@ export const severityFor = (outcome: RuleOutcome): RuleSeverity => {
   if (outcome === "unknown") return "review";
   return "pass";
 };
-

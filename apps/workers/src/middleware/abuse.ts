@@ -71,11 +71,7 @@ export interface RateLimiterStub {
   fetch(input: Request | string, init?: RequestInit): Promise<Response>;
 }
 
-const buildCheckRequest = (
-  key: string,
-  config: AbuseConfig,
-  now: number,
-): Request => {
+const buildCheckRequest = (key: string, config: AbuseConfig, now: number): Request => {
   const url = new URL("https://abuse-rate-limiter.local/check");
   url.searchParams.set("key", key);
   url.searchParams.set("windowMs", `${config.rateLimit.windowMs}`);
@@ -86,9 +82,7 @@ const buildCheckRequest = (
 
 const SALT = "safelaunch-rate-limit-v1";
 
-export const buildRateLimitKey = async (
-  context: RequestContext,
-): Promise<string> => {
+export const buildRateLimitKey = async (context: RequestContext): Promise<string> => {
   const ipHash = await hashOpaque(context.ip, SALT);
   const hostHash = await hashOpaque(context.hostname, SALT);
   return `${ipHash}::${hostHash}`;
@@ -168,12 +162,7 @@ export const enforceAbuseControls = async (
 ): Promise<void> => {
   const config = deps.config ?? DEFAULT_CONFIG;
   const now = deps.now ? deps.now() : Date.now();
-  await enforceRateLimit(
-    context,
-    deps.rateLimiter,
-    config,
-    now,
-  );
+  await enforceRateLimit(context, deps.rateLimiter, config, now);
   const turnstile = await verifyTurnstile(context, config, deps.fetchImpl ?? fetch);
   if (!turnstile.success) {
     throw new AbuseError(

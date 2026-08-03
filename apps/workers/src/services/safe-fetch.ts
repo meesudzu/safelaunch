@@ -101,13 +101,17 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
     }
     const contentType = response.headers.get("content-type");
     if (!isHtmlContentType(contentType)) {
-      throw new FetchLimitError(`unsupported content type ${contentType ?? "<none>"} from ${currentUrl}`);
+      throw new FetchLimitError(
+        `unsupported content type ${contentType ?? "<none>"} from ${currentUrl}`,
+      );
     }
     const contentLength = response.headers.get("content-length");
     if (contentLength) {
       const total = Number.parseInt(contentLength, 10);
       if (Number.isFinite(total) && total > limits.compressedBytes) {
-        throw new FetchLimitError(`response body ${total} bytes exceeds compressed limit ${limits.compressedBytes}`);
+        throw new FetchLimitError(
+          `response body ${total} bytes exceeds compressed limit ${limits.compressedBytes}`,
+        );
       }
     }
     const reader = response.body?.getReader();

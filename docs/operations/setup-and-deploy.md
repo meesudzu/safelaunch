@@ -14,13 +14,13 @@
 
 ### 1.1 · Prerequisites
 
-| Tool | Version | Why |
-| --- | --- | --- |
-| Node.js | 20.x or 22.x (see `.nvmrc`) | Runtime for both Workers tooling and Next.js |
-| pnpm | 10.13.1 (matches `packageManager` in `package.json`) | Workspace package manager |
-| Wrangler | 4.114.0 (matches `apps/workers`) | Deploy + D1 + R2 + Vectorize + AI + Queues + Workflows |
-| Git | any | Standard |
-| Cloudflare account | free tier is enough for `wrangler dev` | Required for the deploy steps in Part 3 |
+| Tool               | Version                                              | Why                                                    |
+| ------------------ | ---------------------------------------------------- | ------------------------------------------------------ |
+| Node.js            | 20.x or 22.x (see `.nvmrc`)                          | Runtime for both Workers tooling and Next.js           |
+| pnpm               | 10.13.1 (matches `packageManager` in `package.json`) | Workspace package manager                              |
+| Wrangler           | 4.114.0 (matches `apps/workers`)                     | Deploy + D1 + R2 + Vectorize + AI + Queues + Workflows |
+| Git                | any                                                  | Standard                                               |
+| Cloudflare account | free tier is enough for `wrangler dev`               | Required for the deploy steps in Part 3                |
 
 > **Tip:** the repo pins `packageManager` in `package.json`. Run
 > `corepack enable` once so pnpm auto-installs at the right version.
@@ -135,13 +135,13 @@ runs without one — it invokes the system under test directly.
 
 ### 1.10 · Common local-dev recipes
 
-| Goal | Command |
-| --- | --- |
-| Run a single package's tests in watch mode | `pnpm -C packages/compliance-core test -- --watch` |
-| Open the D1 Studio | `cd apps/workers && pnpm exec wrangler d1 execute DB --local --command "select * from scans limit 5"` |
-| Tail the Worker's local logs | `cd apps/workers && pnpm exec wrangler dev --local --log-level debug` |
-| Regenerate types after editing `wrangler.jsonc` | `cd apps/workers && pnpm exec wrangler types` |
-| Inspect the bundled Worker size | `cd apps/workers && pnpm build && du -sh dist/` |
+| Goal                                            | Command                                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Run a single package's tests in watch mode      | `pnpm -C packages/compliance-core test -- --watch`                                                    |
+| Open the D1 Studio                              | `cd apps/workers && pnpm exec wrangler d1 execute DB --local --command "select * from scans limit 5"` |
+| Tail the Worker's local logs                    | `cd apps/workers && pnpm exec wrangler dev --local --log-level debug`                                 |
+| Regenerate types after editing `wrangler.jsonc` | `cd apps/workers && pnpm exec wrangler types`                                                         |
+| Inspect the bundled Worker size                 | `cd apps/workers && pnpm build && du -sh dist/`                                                       |
 
 ---
 
@@ -244,23 +244,29 @@ contain real IDs. The final shape:
   "main": "src/index.ts",
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
-  "d1_databases": [{
-    "binding": "DB",
-    "database_name": "safelaunch",
-    "database_id": "<real D1 id>",
-    "migrations_dir": "../../packages/db/migrations",
-  }],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "safelaunch",
+      "database_id": "<real D1 id>",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
   "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "safelaunch-prod-artifacts" }],
   "vectorize": [{ "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal" }],
   "ai": { "binding": "AI" },
-  "queues": { "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }] },
-  "workflows": [{ "name": "scan-workflow", "binding": "SCAN_WORKFLOW", "class_name": "ScanWorkflowEntrypoint" }],
+  "queues": {
+    "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
+  },
+  "workflows": [
+    { "name": "scan-workflow", "binding": "SCAN_WORKFLOW", "class_name": "ScanWorkflowEntrypoint" },
+  ],
   "vars": { "WEB_ORIGIN": "https://safelaunch.app" },
   "env": {
     "staging": { "vars": { "WEB_ORIGIN": "https://staging.safelaunch.app" } },
-    "production": { "vars": { "WEB_ORIGIN": "https://safelaunch.app" } }
+    "production": { "vars": { "WEB_ORIGIN": "https://safelaunch.app" } },
   },
-  "observability": { "enabled": true, "head_sampling_rate": 1 }
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
 }
 ```
 
@@ -272,22 +278,24 @@ contain real IDs. The final shape:
 
 Go to **Settings → Secrets and variables → Actions** and add:
 
-| Secret | Used by | Notes |
-| --- | --- | --- |
-| `CLOUDFLARE_API_TOKEN` | `deploy-staging.yml`, `deploy-production.yml` | Token with Workers Scripts + D1 + R2 + Vectorize + Queues + Pages scopes |
-| `CLOUDFLARE_ACCOUNT_ID` | both deploy jobs | From the Cloudflare dashboard URL |
-| `STAGING_URL` | `deploy-staging.yml` | e.g. `https://staging.safelaunch.app` |
-| `PRODUCTION_URL` | `deploy-production.yml` | e.g. `https://safelaunch.app` |
-| `PREVIEW_URL` | `ci.yml` e2e job | The Cloudflare Pages preview URL for a PR |
+| Secret                  | Used by                                       | Notes                                                                    |
+| ----------------------- | --------------------------------------------- | ------------------------------------------------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | `deploy-staging.yml`, `deploy-production.yml` | Token with Workers Scripts + D1 + R2 + Vectorize + Queues + Pages scopes |
+| `CLOUDFLARE_ACCOUNT_ID` | both deploy jobs                              | From the Cloudflare dashboard URL                                        |
+| `STAGING_URL`           | `deploy-staging.yml`                          | e.g. `https://staging.safelaunch.app`                                    |
+| `PRODUCTION_URL`        | `deploy-production.yml`                       | e.g. `https://safelaunch.app`                                            |
+| `PREVIEW_URL`           | `ci.yml` e2e job                              | The Cloudflare Pages preview URL for a PR                                |
 
 For the Cloudflare Access-protected admin:
-| Variable | Used by | Notes |
-| --- | --- | --- |
+
+| Variable        | Used by                         | Notes                              |
+| --------------- | ------------------------------- | ---------------------------------- |
 | `CF_ACCESS_AUD` | the Worker admin route (future) | Application Audience tag from §2.8 |
 
 ### 3.2 · GitHub environments
 
 Create two environments under **Settings → Environments**:
+
 - `staging` — no required reviewers (auto-deploys on merge to `main`).
 - `production` — **required reviewers**: the release captain +
   one other engineer. This is the manual approval gate for the prod
@@ -307,7 +315,7 @@ Pages project named `safelaunch-web`. Create it once:
    default) or `apps/web/.open-next/dist` depending on the OpenNext
    adapter version. See `apps/web/open-next.config.ts`.
 3. The deploy workflows use `opennextjs-cloudflare build && opennextjs-cloudflare
-   deploy` which is independent of the Pages Git integration. The Pages
+deploy` which is independent of the Pages Git integration. The Pages
    project is for previews; production goes through `wrangler`.
 
 ### 3.4 · First-time staging deploy
@@ -352,7 +360,7 @@ The production workflow:
 5. Builds and deploys the Web Worker.
 6. **Shifts traffic gradually**: 10 % → 50 % → 100 %, with 60 s pauses
    between each step. Cloudflare's `wrangler versions deploy
-   --percentage` is a Worker-version feature, not a generic
+--percentage` is a Worker-version feature, not a generic
    load-balancer.
 7. Runs smoke + eval + latency (50 samples).
 8. Records the deployment audit (`commit`, `ruleset`, `model`,

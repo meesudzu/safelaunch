@@ -111,7 +111,9 @@ export class ReportRepository {
 
   async get(scanId: string): Promise<StoredReport | null> {
     const row = await this.db
-      .prepare("SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?")
+      .prepare(
+        "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
+      )
       .bind(scanId)
       .first<ReportRow>();
     return row ? toReport(row) : null;

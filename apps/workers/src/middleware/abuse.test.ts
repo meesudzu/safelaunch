@@ -26,10 +26,10 @@ class FakeStub implements RateLimiterStub {
 }
 
 const okResponse = (overrides: Record<string, unknown> = {}) =>
-  new Response(
-    JSON.stringify({ allowed: true, count: 1, remaining: 29, ...overrides }),
-    { status: 200, headers: { "content-type": "application/json" } },
-  );
+  new Response(JSON.stringify({ allowed: true, count: 1, remaining: 29, ...overrides }), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
 
 describe("enforceRateLimit", () => {
   it("throws AbuseError(429) when the DO returns 429", async () => {

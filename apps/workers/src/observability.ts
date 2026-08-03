@@ -39,10 +39,7 @@ const getSalt = (): string => {
   return activeSalt;
 };
 
-export const hashOpaque = async (
-  value: string,
-  salt: string = getSalt(),
-): Promise<string> => {
+export const hashOpaque = async (value: string, salt: string = getSalt()): Promise<string> => {
   return sha256Hex(`${salt}::${value}`).then((hex) => hex.slice(0, 16));
 };
 

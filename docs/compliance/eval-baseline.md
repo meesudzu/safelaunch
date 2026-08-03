@@ -30,12 +30,12 @@ interface EvalCase {
 
 ## 2 · Composition (MVP baseline)
 
-| Category | High-risk | Non-high-risk | Total |
-| --- | --- | --- | --- |
-| `online_game` | 10 | 10 | 20 |
-| `electronic_press` | 10 | 10 | 20 |
-| `digital_entertainment` | 10 | 10 | 20 |
-| **Total** | **30** | **30** | **60** |
+| Category                | High-risk | Non-high-risk | Total  |
+| ----------------------- | --------- | ------------- | ------ |
+| `online_game`           | 10        | 10            | 20     |
+| `electronic_press`      | 10        | 10            | 20     |
+| `digital_entertainment` | 10        | 10            | 20     |
+| **Total**               | **30**    | **30**        | **60** |
 
 Languages are interleaved: odd indices are `vi`, even are `en`. This keeps
 the gate honest across both locales.
@@ -47,20 +47,20 @@ a `reviewDate`. Disputed cases additionally carry a `disputed` object
 with the second reviewer's attestation. A case is eligible for the
 release set only if it has either:
 
-  - a single `reviewer` and `reviewDate`, **or**
-  - both a `reviewer` and a `disputed.reviewer` (two distinct human
-    reviewers signed off).
+- a single `reviewer` and `reviewDate`, **or**
+- both a `reviewer` and a `disputed.reviewer` (two distinct human
+  reviewers signed off).
 
 ## 4 · Release gates
 
 The runner exports `RELEASE_GATES`:
 
-| Gate | Threshold | Failure mode |
-| --- | --- | --- |
-| `citationValidity` | 1.0 | Any model citation that does not point to an allowed provision AND quote the provision's text verbatim. |
-| `highRiskPrecision` | ≥ 0.9 | True positives / (true positives + false positives) for the `high` severity class. |
-| `unsupportedHighRisk` | 0 | A `high` prediction that does not cite any provision in the case's expected set. |
-| `p95LatencyMs` (probe) | 60 000 ms | `scripts/check-latency.mjs --samples 100` against the staging URL. |
+| Gate                   | Threshold | Failure mode                                                                                            |
+| ---------------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| `citationValidity`     | 1.0       | Any model citation that does not point to an allowed provision AND quote the provision's text verbatim. |
+| `highRiskPrecision`    | ≥ 0.9     | True positives / (true positives + false positives) for the `high` severity class.                      |
+| `unsupportedHighRisk`  | 0         | A `high` prediction that does not cite any provision in the case's expected set.                        |
+| `p95LatencyMs` (probe) | 60 000 ms | `scripts/check-latency.mjs --samples 100` against the staging URL.                                      |
 
 A run is **release-eligible** only when `evaluateReleaseGates(metrics).pass`
 is `true` and the latency probe's exit code is 0.

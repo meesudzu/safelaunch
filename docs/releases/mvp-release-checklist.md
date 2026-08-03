@@ -32,14 +32,14 @@
 Each command below must exit 0. Paste the last 10 lines of each output
 into the PR description.
 
-| # | Gate | Command | Result |
-| --- | --- | --- | --- |
-| 1 | Lint | `rtk pnpm lint` | ☐ PASS |
-| 2 | Typecheck | `rtk pnpm typecheck` | ☐ PASS |
-| 3 | Unit + integration tests | `rtk pnpm test` | ☐ PASS |
-| 4 | Worker dry-run build | `rtk pnpm -C apps/workers build` | ☐ PASS |
-| 5 | Web build | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS |
-| 6 | End-to-end (Playwright) | `rtk pnpm test:e2e` | ☐ PASS *or* ☐ N/A * |
+| #   | Gate                     | Command                                                                     | Result              |
+| --- | ------------------------ | --------------------------------------------------------------------------- | ------------------- |
+| 1   | Lint                     | `rtk pnpm lint`                                                             | ☐ PASS              |
+| 2   | Typecheck                | `rtk pnpm typecheck`                                                        | ☐ PASS              |
+| 3   | Unit + integration tests | `rtk pnpm test`                                                             | ☐ PASS              |
+| 4   | Worker dry-run build     | `rtk pnpm -C apps/workers build`                                            | ☐ PASS              |
+| 5   | Web build                | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS              |
+| 6   | End-to-end (Playwright)  | `rtk pnpm test:e2e`                                                         | ☐ PASS _or_ ☐ N/A * |
 
 `*` The e2e script runs `playwright test`. The MVP ships with the
 script wired in but no Playwright specs in the MVP set; the box is
@@ -50,10 +50,10 @@ box becomes a hard PASS gate.
 
 The release is **not eligible** unless both of these pass.
 
-| # | Gate | Command | Gate value | Observed |
-| --- | --- | --- | --- | --- |
-| 1 | Eval gate | `rtk pnpm -C packages/ai test -- eval-runner` | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS |
-| 2 | Latency probe | `rtk node scripts/check-latency.mjs --base-url "$STAGING_URL" --samples 100` | `P95 < 60 000 ms` | ☐ PASS |
+| #   | Gate          | Command                                                                      | Gate value                                                                     | Observed |
+| --- | ------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------- |
+| 1   | Eval gate     | `rtk pnpm -C packages/ai test -- eval-runner`                                | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS   |
+| 2   | Latency probe | `rtk node scripts/check-latency.mjs --base-url "$STAGING_URL" --samples 100` | `P95 < 60 000 ms`                                                              | ☐ PASS   |
 
 Capture the observed metrics in the PR:
 

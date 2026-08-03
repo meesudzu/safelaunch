@@ -17,7 +17,17 @@ class FakeD1Database implements D1Database {
         this.preparedCalls.push({ sql, bindings });
         const row = this.rows.find((entry) => entry.sql === sql);
         const firstReturn = row?.firstReturn;
-        const runReturn = row?.runReturn ?? { success: true, meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false } };
+        const runReturn = row?.runReturn ?? {
+          success: true,
+          meta: {
+            duration: 0,
+            size_after: 0,
+            rows_read: 0,
+            rows_written: 0,
+            last_row_id: 0,
+            changed_db: false,
+          },
+        };
         return {
           first: async <T>(): Promise<T | null> => {
             await Promise.resolve();
@@ -178,11 +188,9 @@ describe("reports router", () => {
       origError(...args);
     };
     try {
-      await runWithDb(
-        db,
-        new Request("http://local/v1/reports/rpt_abc?token=secret-token"),
-        { tokenHash: stored },
-      );
+      await runWithDb(db, new Request("http://local/v1/reports/rpt_abc?token=secret-token"), {
+        tokenHash: stored,
+      });
     } finally {
       console.error = origError;
     }

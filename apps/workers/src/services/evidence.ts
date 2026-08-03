@@ -77,9 +77,7 @@ const decodeEntities = (text: string): string =>
     .replace(/&#x([0-9a-fA-F]+);/g, (_match, hex: string) =>
       String.fromCharCode(Number.parseInt(hex, 16)),
     )
-    .replace(/&#(\d+);/g, (_match, dec: string) =>
-      String.fromCharCode(Number.parseInt(dec, 10)),
-    );
+    .replace(/&#(\d+);/g, (_match, dec: string) => String.fromCharCode(Number.parseInt(dec, 10)));
 
 export const sanitizePageText = (html: string): string => {
   if (html.length > MAX_TEXT_BYTES * 4) {
@@ -116,7 +114,10 @@ interface EvidencePattern {
 }
 
 const cleanedValue = (raw: string): string =>
-  raw.replace(/\s+/g, " ").replace(/^[\s,:;.\-–—()]+|[\s,:;.\-–—()]+$/g, "").trim();
+  raw
+    .replace(/\s+/g, " ")
+    .replace(/^[\s,:;.\-–—()]+|[\s,:;.\-–—()]+$/g, "")
+    .trim();
 
 const truncateValue = (raw: string, max: number): string => {
   const cleaned = cleanedValue(raw);
@@ -180,7 +181,8 @@ const DETECTORS: readonly EvidencePattern[] = [
     extract: (match) => {
       const email = match[1] && match[1].includes("@") ? match[1] : null;
       if (email) return email.trim();
-      const phone = match[1] && /^\+?\d[\d\s().\-]{7,18}\d$/.test(match[1].trim()) ? match[1] : null;
+      const phone =
+        match[1] && /^\+?\d[\d\s().\-]{7,18}\d$/.test(match[1].trim()) ? match[1] : null;
       if (phone) return phone.replace(/\s+/g, " ").trim();
       const cleaned = cleanedValue(match[2] ?? match[0]);
       if (cleaned.length < 4) return null;

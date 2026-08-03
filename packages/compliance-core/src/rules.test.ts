@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EvidenceItem, ScanCoverage } from "@safelaunch/contracts";
-import {
-  RUBRIC_VERSION,
-  runRules,
-  type RuleInput,
-  type RuleOutcome,
-} from "./rules";
+import { RUBRIC_VERSION, runRules, type RuleInput, type RuleOutcome } from "./rules";
 
 const FULL_COVERAGE: ScanCoverage = {
   fetched: ["homepage", "about", "privacy", "contact", "terms"],
@@ -36,7 +31,12 @@ const baseInput: RuleInput = {
   coverage: FULL_COVERAGE,
   evidence: [
     evidence({ id: "ev_op", type: "operator_identity" }),
-    evidence({ id: "ev_contact", type: "contact", value: "hotro@volam.test", excerpt: "Email liên hệ: hotro@volam.test" }),
+    evidence({
+      id: "ev_contact",
+      type: "contact",
+      value: "hotro@volam.test",
+      excerpt: "Email liên hệ: hotro@volam.test",
+    }),
     evidence({
       id: "ev_priv",
       type: "privacy_notice",

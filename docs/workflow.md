@@ -58,7 +58,7 @@ This is the team's day-to-day AI workflow — the same loop every team member (h
   `superpowers:dispatching-parallel-agents` (separate sessions) or
   `superpowers:subagent-driven-development` (in-session).
 - **UI work**: invoke `hallmark`. If you are redesigning, default to `hallmark
-  redesign <target>`. If you are studying a reference, use `hallmark study <url|img>`.
+redesign <target>`. If you are studying a reference, use `hallmark study <url|img>`.
 - **Bug fixes**: `superpowers:systematic-debugging` before any fix attempt.
 
 ## Phase 4 — Verify & Ship
@@ -77,27 +77,30 @@ This is the team's day-to-day AI workflow — the same loop every team member (h
 
 ## Storage convention
 
-| Output                                  | Lives at                                                  |
-| --------------------------------------- | --------------------------------------------------------- |
-| Design doc from `brainstorming`         | `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`     |
-| Plan from `writing-plans`               | `docs/superpowers/plans/YYYY-MM-DD-<topic>-plan.md`       |
-| Review notes from `requesting-...`      | `docs/superpowers/reviews/<pr-number>.md`                 |
-| Project skill updates                  | `.codex/skills/<name>/SKILL.md`                           |
-| Compliance PR checklists               | pasted into the PR description (per `safelaunch-compliance`) |
+| Output                             | Lives at                                                     |
+| ---------------------------------- | ------------------------------------------------------------ |
+| Design doc from `brainstorming`    | `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`        |
+| Plan from `writing-plans`          | `docs/superpowers/plans/YYYY-MM-DD-<topic>-plan.md`          |
+| Review notes from `requesting-...` | `docs/superpowers/reviews/<pr-number>.md`                    |
+| Project skill updates              | `.codex/skills/<name>/SKILL.md`                              |
+| Compliance PR checklists           | pasted into the PR description (per `safelaunch-compliance`) |
 
 ## Rituals
 
 ### Daily
+
 - Every agent session starts with `safelaunch-overview` already loaded.
 - Every PR description uses the compliance checklist if it touches compliance surfaces.
 - Every UI PR is attached to a `hallmark` run output.
 
 ### Weekly
+
 - Review the `docs/superpowers/specs/` folder for stale designs.
 - Update skill `description:` frontmatter if trigger phrases have drifted.
 - Promote recurring patterns into a new project skill via `superpowers:writing-skills`.
 
 ### Per-release
+
 - Run a full SEO audit on the production URL: `codex "/seo audit https://safelaunch.app"`.
 - Run a `hallmark audit` on the public landing page.
 - Update the brand voice / claim list if any compliance copy changed.

@@ -51,8 +51,7 @@ const extractTurnstileToken = (request: Request): string | null => {
 
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
 
-const isTerminal = (state: string): state is ScanTerminalState =>
-  TERMINAL_SCAN_STATES.has(state);
+const isTerminal = (state: string): state is ScanTerminalState => TERMINAL_SCAN_STATES.has(state);
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
@@ -83,10 +82,7 @@ scansRouter.post("/v1/scans", async (context) => {
   }
   const parsed = CreateScanInput.safeParse(payload);
   if (!parsed.success) {
-    return context.json(
-      { code: "INVALID_INPUT", issues: parsed.error.issues },
-      400,
-    );
+    return context.json({ code: "INVALID_INPUT", issues: parsed.error.issues }, 400);
   }
   const input = parsed.data;
 

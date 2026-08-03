@@ -16,6 +16,7 @@ Design documents produced by `superpowers:brainstorming`.
 ## How to read these as a future agent
 
 Each spec encodes:
+
 - The problem statement and constraints.
 - The chosen approach + rationale.
 - Out-of-scope items.

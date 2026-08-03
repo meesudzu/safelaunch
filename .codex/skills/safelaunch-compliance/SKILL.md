@@ -32,10 +32,10 @@ recommends must end with a citation object:
 
 ```ts
 type Citation = {
-  source: string;          // e.g. "GDPR Art. 7" or "Vietnam PDPD Art. 11"
-  url?: string;            // official source URL when available
-  retrievedAt: string;     // ISO date the source was last verified
-  excerpt?: string;        // optional quoted excerpt
+  source: string; // e.g. "GDPR Art. 7" or "Vietnam PDPD Art. 11"
+  url?: string; // official source URL when available
+  retrievedAt: string; // ISO date the source was last verified
+  excerpt?: string; // optional quoted excerpt
 };
 ```
 
@@ -66,7 +66,7 @@ type Citation = {
 
 ### 5. AI-generated legal text
 
-- Treat AI output as a *draft* until a human signs off. UI must visually mark
+- Treat AI output as a _draft_ until a human signs off. UI must visually mark
   "AI-assisted" with a tooltip explaining the limitation.
 - Never claim "this is legal advice" anywhere in the product. Use neutral wording:
   "compliance signal", "checklist item", "evidence-backed guidance".
@@ -97,6 +97,7 @@ Copy this into any PR that touches compliance surfaces:
 
 ```markdown
 ### Compliance PR checklist
+
 - [ ] Every claim cites a source (article + URL + retrievedAt).
 - [ ] Affected jurisdictions enumerated; "single country" paths flagged.
 - [ ] Scoring rubric change documented in `docs/compliance/rubrics/`.

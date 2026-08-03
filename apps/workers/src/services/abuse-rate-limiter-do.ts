@@ -71,9 +71,7 @@ export class AbuseRateLimiter {
     remaining: number;
   }> {
     const existing = await this.state.storage.get<RateLimitEntry>(key);
-    const fresh =
-      existing === undefined ||
-      now - existing.windowStart > config.windowMs;
+    const fresh = existing === undefined || now - existing.windowStart > config.windowMs;
     const next: RateLimitEntry = fresh
       ? { count: 1, windowStart: now }
       : { count: existing.count + 1, windowStart: existing.windowStart };
