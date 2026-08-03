@@ -1,31 +1,75 @@
-# SafeLaunch — Setup & Deploy Guide
+# SafeLaunch — Production Setup & Deploy Guide
 
-> Step-by-step instructions for taking SafeLaunch from a fresh clone to
-> a production deploy on Cloudflare. This guide is the operational
-> counterpart to `docs/releases/mvp-release-checklist.md` (the per-release
-> gate) and `docs/runbooks/release.md` / `rollback.md` (the per-release
-> process). The MVP ships with three surfaces: an API Worker, a Web
-> Worker (Next.js 14 + OpenNext), and a Cloudflare Turnstile-protected
-> admin console.
+> Operational guide for taking SafeLaunch from a fresh clone to its single
+> Cloudflare production deployment. SafeLaunch does not maintain a staging
+> environment or a Cloudflare Pages project.
 
 ---
 
-## Part 1 · Local development setup
+## 1. Production topology
 
-### 1.1 · Prerequisites
+SafeLaunch has one deployment environment: **production**.
 
-| Tool               | Version                                              | Why                                                    |
-| ------------------ | ---------------------------------------------------- | ------------------------------------------------------ |
-| Node.js            | 20.x or 22.x (see `.nvmrc`)                          | Runtime for both Workers tooling and Next.js           |
-| pnpm               | 10.13.1 (matches `packageManager` in `package.json`) | Workspace package manager                              |
-| Wrangler           | 4.114.0 (matches `apps/workers`)                     | Deploy + D1 + R2 + Vectorize + AI + Queues + Workflows |
-| Git                | any                                                  | Standard                                               |
-| Cloudflare account | free tier is enough for `wrangler dev`               | Required for the deploy steps in Part 3                |
+| Surface                   | Cloudflare resource                             | Public URL                          | Configuration                 |
+| ------------------------- | ----------------------------------------------- | ----------------------------------- | ----------------------------- |
+| Web app and admin console | Worker `safelaunch-app` (Next.js 14 + OpenNext) | `https://safelaunch.runany.dev`     | `apps/web/wrangler.jsonc`     |
+| API                       | Worker `safelaunch-api`                         | `https://safelaunch-api.runany.dev` | `apps/workers/wrangler.jsonc` |
 
-> **Tip:** the repo pins `packageManager` in `package.json`. Run
-> `corepack enable` once so pnpm auto-installs at the right version.
+The Web Worker uses `safelaunch.runany.dev` as a Cloudflare Worker Custom
+Domain. Its build-time API origin is `https://safelaunch-api.runany.dev`. The
+API Worker permits browser requests from `https://safelaunch.runany.dev` via
+its `WEB_ORIGIN` variable.
 
-### 1.2 · Clone and install
+The top-level configuration in both Wrangler files is the production
+configuration. There is intentionally no `env.production` block. Therefore:
+
+- do not create staging resources or staging GitHub environments;
+- do not create a Cloudflare Pages project;
+- do not append `--env production` to Wrangler commands;
+- do not add production resource bindings under `env.production` unless the
+  repository is deliberately migrated back to multi-environment deployment.
+
+> `production` is the GitHub Environment name and the deployment role. It is
+> not a Wrangler named environment in the current configuration.
+
+### Production Cloudflare resources
+
+The API Worker currently binds these production resources:
+
+| Binding                 | Resource                                                          |
+| ----------------------- | ----------------------------------------------------------------- |
+| `DB`                    | D1 database `safelaunch`                                          |
+| `ARTIFACTS`             | R2 bucket `safelaunch-artifacts`                                  |
+| `LEGAL_INDEX`           | Vectorize index `safelaunch-legal`, 768 dimensions, cosine metric |
+| `AI`                    | Workers AI                                                        |
+| `LEGAL_INGESTION_QUEUE` | Queue `safelaunch-legal-ingestion`                                |
+| `SCAN_WORKFLOW`         | Workflow `scan-workflow` / class `ScanWorkflowEntrypoint`         |
+| `ABUSE_RATE_LIMITER`    | Durable Object class `AbuseRateLimiter`                           |
+
+Treat `apps/workers/wrangler.jsonc` as the source of truth for resource IDs,
+names, compatibility settings, bindings, and Durable Object migrations.
+
+---
+
+## 2. Local development
+
+### 2.1. Prerequisites
+
+| Tool               | Version                             | Purpose                                           |
+| ------------------ | ----------------------------------- | ------------------------------------------------- |
+| Node.js            | 20.x or 22.x (see `.nvmrc`)         | Next.js and Cloudflare tooling runtime            |
+| pnpm               | 10.13.1                             | Workspace package manager                         |
+| Wrangler           | 4.114.0                             | Workers, D1, R2, Vectorize, Queues, and Workflows |
+| Git                | Any supported version               | Source control                                    |
+| Cloudflare account | Required only for remote operations | Production setup and deploy                       |
+
+Enable Corepack once so the repository's pinned pnpm version is used:
+
+```bash
+corepack enable
+```
+
+### 2.2. Clone and install
 
 ```bash
 git clone <your-fork-url> safelaunch
@@ -33,474 +77,486 @@ cd safelaunch
 pnpm install --frozen-lockfile
 ```
 
-`pnpm install` populates every workspace (`apps/*`, `packages/*`) and
-runs the lockfile. If the install fails on peer-dep warnings, that's
-expected for `@playwright/test` — it's only used by the e2e gate.
-
-### 1.3 · Generate the Workers environment types
+### 2.3. Generate Worker types and apply local migrations
 
 ```bash
 cd apps/workers
 pnpm exec wrangler types
-cd ../..
-```
-
-This produces `apps/workers/worker-configuration.d.ts` (gitignored).
-Commit it only if your `.gitignore` allows — the MVP keeps it out of
-the tree so that local D1 IDs never leak into version control.
-
-### 1.4 · Local Cloudflare resources
-
-`wrangler dev` will start a local D1 + R2 + Vectorize + AI on your
-machine. No remote resources are required for development. The local
-emulator binds to the `Env` type that `wrangler types` just generated.
-
-If you want to point at a real (staging) D1 instead, set
-`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` and use
-`--remote` on individual wrangler commands. The MVP defaults to local.
-
-### 1.5 · Apply the D1 migrations locally
-
-```bash
-cd apps/workers
 pnpm exec wrangler d1 migrations apply DB --local
 cd ../..
 ```
 
-This creates a `safelaunch` SQLite file under
-`apps/workers/.wrangler/state/v3/d1/` and applies every migration
-in `packages/db/migrations/`.
+Local D1 state is stored under `apps/workers/.wrangler/`. Do not commit local
+state or credentials.
 
-### 1.6 · Run the gates (the same ones CI runs)
+### 2.4. Run the quality gates
 
 ```bash
-# Lint, typecheck, tests across every workspace
 pnpm -r --if-present lint
 pnpm -r --if-present typecheck
 pnpm -r --if-present test
-
-# The eval runner (the MVP release blocker)
 pnpm -C packages/ai test -- eval-runner
 ```
 
-All four commands must exit 0 before any change is shipped.
+All commands must exit successfully before deployment.
 
-### 1.7 · Run the Worker locally
+### 2.5. Run the API locally
 
 ```bash
 cd apps/workers
 pnpm exec wrangler dev --local --port 8787
 ```
 
-The dev server listens on `http://127.0.0.1:8787`. Useful endpoints:
+The API listens on `http://127.0.0.1:8787`. Important endpoints include:
 
-- `GET  /v1/health` — health probe.
-- `POST /v1/scans` — start a scan (returns `{ scanId, state: "queued" }`).
-- `GET  /v1/scans/:scanId` — poll progress.
-- `GET  /v1/reports/:token?token=...` — fetch a report (single-use).
+- `GET /v1/health`;
+- `POST /v1/scans`;
+- `GET /v1/scans/:scanId`;
+- `GET /v1/reports/:token?token=...`.
 
-The Worker needs the legal corpus in D1 to score findings. For local
-development you can either seed the reviewed fixture provisions (see
-`packages/db/src/seed-fixtures.ts` if it exists in your build) or run
-the staging seed script against the local D1.
+Some Cloudflare bindings, especially Workers AI, may require remote access for
+an end-to-end local scan. Normal unit tests and the evaluation baseline do not
+require production resources.
 
-### 1.8 · Run the Web app locally
+### 2.6. Run the Web app locally
+
+In a second terminal:
 
 ```bash
-# In a second terminal
 cd apps/web
 NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8787 pnpm dev
 ```
 
-Open `http://localhost:3000/vi` (or `/en`). The form posts to the
-Worker's `/v1/scans` and polls the result.
+Open `http://localhost:3000/vi` or `http://localhost:3000/en`.
 
-### 1.9 · Run the legal-evaluation baseline
+### 2.7. Run smoke and latency checks against a local API
 
 ```bash
-# Run the eval runner against the 60-case benchmark set
-pnpm -C packages/ai test -- eval-runner
+node scripts/smoke.mjs \
+  --base-url http://127.0.0.1:8787
 
-# Run the latency probe (requires a live API)
-STAGING_URL=http://127.0.0.1:8787 \
-  node scripts/check-latency.mjs --samples 25
-
-# Run smoke against a local Worker
-STAGING_URL=http://127.0.0.1:8787 \
-  node scripts/smoke.mjs
+node scripts/check-latency.mjs \
+  --base-url http://127.0.0.1:8787 \
+  --samples 25
 ```
-
-The latency probe and smoke need a live, reachable API. The eval runner
-runs without one — it invokes the system under test directly.
-
-### 1.10 · Common local-dev recipes
-
-| Goal                                            | Command                                                                                               |
-| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Run a single package's tests in watch mode      | `pnpm -C packages/compliance-core test -- --watch`                                                    |
-| Open the D1 Studio                              | `cd apps/workers && pnpm exec wrangler d1 execute DB --local --command "select * from scans limit 5"` |
-| Tail the Worker's local logs                    | `cd apps/workers && pnpm exec wrangler dev --local --log-level debug`                                 |
-| Regenerate types after editing `wrangler.jsonc` | `cd apps/workers && pnpm exec wrangler types`                                                         |
-| Inspect the bundled Worker size                 | `cd apps/workers && pnpm build && du -sh dist/`                                                       |
 
 ---
 
-## Part 2 · Cloudflare prerequisites (one-time per environment)
+## 3. Cloudflare authentication and API token permissions
 
-These resources are created **once** per Cloudflare account / environment
-(staging, production). The IDs go into `apps/workers/wrangler.jsonc`
-and the corresponding secrets go into the GitHub environment.
+Use a scoped **Cloudflare Account API Token**, not the legacy Global API Key.
+Create it from **Cloudflare Dashboard → Manage Account → Account API Tokens →
+Create Token**. Account-owned tokens are preferred for CI/CD because they act as
+a service principal instead of inheriting a person's access. The built-in
+**Edit Cloudflare Workers** template is a useful starting point, but it does not
+include every D1, Vectorize, or Queues permission used by SafeLaunch.
 
-### 2.1 · Create the D1 database
+Cloudflare references:
+
+- [Workers CI/CD authentication](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
+- [Account-owned API tokens](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/)
+- [API token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)
+- [API token templates](https://developers.cloudflare.com/fundamentals/api/reference/template/)
+
+### 3.1. Production deploy token
+
+Create one token for local production administration and GitHub Actions. Grant
+only the following resources:
+
+- **Account resources:** the Cloudflare account that owns SafeLaunch;
+- **Zone resources:** only the `runany.dev` zone.
+
+Required permissions:
+
+| Scope   | Permission in Cloudflare dashboard | Why SafeLaunch needs it                                                                         |
+| ------- | ---------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Account | `Account Settings Read`            | Allows Wrangler to resolve account metadata                                                     |
+| Account | `Workers Scripts Write`            | Deploys both Workers, versions, static assets, Durable Object migrations, and Workflow bindings |
+| Account | `D1 Edit`                          | Creates the D1 database and runs migrations, queries, and exports                               |
+| Account | `Workers R2 Storage Write`         | Creates and binds `safelaunch-artifacts`                                                        |
+| Account | `Vectorize Edit`                   | Creates and manages `safelaunch-legal`                                                          |
+| Account | `Queues Edit`                      | Creates and binds `safelaunch-legal-ingestion`                                                  |
+| Zone    | `Zone Read`                        | Resolves the `runany.dev` zone                                                                  |
+| Zone    | `Workers Routes Write`             | Creates or updates the Worker Custom Domain for `safelaunch.runany.dev`                         |
+
+Cloudflare may display `Write` as `Edit` for some permission groups. Choose the
+write/edit variant, not read-only, for D1, R2, Vectorize, Queues, Workers
+Scripts, and Workers Routes.
+
+Conditional permissions are intentionally excluded from the minimum set:
+
+- `DNS Write` is not required when Wrangler manages the Custom Domain declared
+  by `custom_domain: true`. Add it for `runany.dev` only if the setup process
+  will create, replace, or delete DNS records directly.
+- `Workers AI Read` is not required for a deployed Worker to call its native
+  `AI` binding. Add it only if CI or an operator calls the Workers AI REST API
+  directly with this token.
+- `User Details Read` and `User Memberships Read` apply to user-owned tokens,
+  not the recommended account-owned CI token. If a user-owned token is used for
+  ad hoc local administration, start from the **Edit Cloudflare Workers**
+  template so Wrangler receives those identity permissions.
+
+The production token does **not** need:
+
+- Cloudflare Pages permissions;
+- access to every account or every zone;
+- Zero Trust permissions, unless the same token is intentionally used to
+  create the Access application (a separate token is safer).
+
+Store the token as `CLOUDFLARE_API_TOKEN`; never commit it or print it in CI
+logs. Store the account ID as `CLOUDFLARE_ACCOUNT_ID`.
+
+Verify the token locally:
+
+```bash
+export CLOUDFLARE_API_TOKEN='<token>'
+export CLOUDFLARE_ACCOUNT_ID='<account-id>'
+pnpm exec wrangler whoami
+```
+
+### 3.2. Separate Cloudflare Access token
+
+`scripts/setup-cloudflare-access.sh` creates the self-hosted Access application
+for `safelaunch.runany.dev/admin/*`. Prefer a short-lived, separate token in
+`CF_API_TOKEN` with:
+
+| Scope   | Permission                                                                                         | Purpose                                               |
+| ------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Account | `Access: Apps and Policies Write` (or the dashboard's equivalent `Access: Apps and Policies Edit`) | Create/update the Access application and allow policy |
+| Account | `Account Settings Read`                                                                            | Validate and resolve the account                      |
+
+Run the script only after reviewing its allow policy:
+
+```bash
+export CF_API_TOKEN='<short-lived-access-token>'
+bash scripts/setup-cloudflare-access.sh
+unset CF_API_TOKEN
+```
+
+Revoke the token after one-time setup if it is no longer needed. The script's
+email-domain allow rule must match the actual administrator identity policy
+before production use.
+
+---
+
+## 4. One-time production resource setup
+
+Authenticate as described in Section 3. Run commands from the repository root.
+Before creating anything, check the Cloudflare dashboard and
+`apps/workers/wrangler.jsonc`; the production resources may already exist.
+Never create a second production database just because a create command reports
+that a name is unavailable.
+
+### 4.1. D1
+
+Create the database only if `safelaunch` does not exist:
 
 ```bash
 pnpm exec wrangler d1 create safelaunch
-# Take note of the `database_id` printed by Wrangler.
 ```
 
-Replace the `database_id: "00000000-0000-0000-0000-000000000000"`
-placeholder in `apps/workers/wrangler.jsonc` with the real ID.
-
-### 2.2 · Apply D1 migrations to the remote database
+Put the returned `database_id` in `apps/workers/wrangler.jsonc`, then apply all
+forward-only migrations using the base production configuration:
 
 ```bash
-# Staging
-pnpm exec wrangler d1 migrations apply DB --remote --env staging
-
-# Production (do this only ONCE on first production setup)
-pnpm exec wrangler d1 migrations apply DB --remote --env production
+cd apps/workers
+pnpm exec wrangler d1 migrations apply DB --remote
+cd ../..
 ```
 
-After this, the D1 schema is in place. Re-running the migrations is a
-no-op (Wrangler tracks applied versions).
-
-### 2.3 · Create the R2 bucket
+### 4.2. R2
 
 ```bash
-pnpm exec wrangler r2 bucket create safelaunch-staging-artifacts
-pnpm exec wrangler r2 bucket create safelaunch-prod-artifacts
+pnpm exec wrangler r2 bucket create safelaunch-artifacts
 ```
 
-Update the `r2_buckets` block in `wrangler.jsonc` with the names. The MVP
-keeps page snapshots only for the duration of the scan (7-day retention
-deletes them on schedule).
+The bucket name must match the `ARTIFACTS` binding in
+`apps/workers/wrangler.jsonc`.
 
-### 2.4 · Create the Vectorize index
+### 4.3. Vectorize
 
 ```bash
 pnpm exec wrangler vectorize create safelaunch-legal \
-  --dimensions=384 \
+  --dimensions=768 \
   --metric=cosine
 ```
 
-The legal-retrieval layer embeds Vietnamese legal text with
-`@cf/baai/bge-base-en-v1.5` (384-dim). Other embedding models are
-incompatible without re-indexing.
+The 768 dimensions must match the configured embedding model
+`@cf/baai/bge-base-en-v1.5`. Changing the model or dimensions requires a new
+index and a complete re-index of the reviewed legal corpus.
 
-### 2.5 · AI binding
-
-Workers AI is enabled by default in every account. The MVP uses AI
-Gateway (`safelaunch-legal` gateway identifier) for caching + retry.
-The gateway is auto-created on first request — no manual setup.
-
-### 2.6 · Queue
+### 4.4. Queue
 
 ```bash
 pnpm exec wrangler queues create safelaunch-legal-ingestion
 ```
 
-The queue is used by the corpus ingestion pipeline (Tasks 5–6). It's
-producer-only from the Worker; the consumer runs in a separate cron /
-worker.
+### 4.5. Workers AI, Workflow, and Durable Object
 
-### 2.7 · Workflows
+Workers AI requires no separate resource creation. Wrangler registers the
+Workflow binding and applies the Durable Object migration when the API Worker
+is deployed. Do not manually create duplicate Workflow or Durable Object
+resources.
 
-The MVP scan pipeline uses a Cloudflare Workflow
-(`ScanWorkflowEntrypoint`). Workflows don't need separate setup — they're
-declared in `wrangler.jsonc` and Wrangler registers them at deploy time.
+### 4.6. Custom Domain
 
-### 2.8 · Cloudflare Access (admin)
-
-1. In the Cloudflare dashboard, go to **Zero Trust → Access → Applications**.
-2. Create a new **Self-hosted** application with the path
-   `admin.legal.*` (or the prefix you use).
-3. Set the policy: **Allow** with an email-domain rule
-   (`@yourcompany.com`) or a one-time PIN for the release captain.
-4. Capture the application's **Application Audience (AUD) tag** — it's
-   needed for the `cf-access-jwt-assertion` header validation on the
-   Worker side (see the rollout notes below).
-
-> The MVP ships with the Worker's admin routes gated by Access at the
-> edge. Without this policy, the admin form is publicly reachable.
-
-### 2.9 · `wrangler.jsonc` final shape (production)
-
-After running the steps above, `apps/workers/wrangler.jsonc` should
-contain real IDs. The final shape:
+`apps/web/wrangler.jsonc` declares:
 
 ```jsonc
-{
-  "name": "safelaunch-api",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-07-28",
-  "compatibility_flags": ["nodejs_compat"],
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "safelaunch",
-      "database_id": "<real D1 id>",
-      "migrations_dir": "../../packages/db/migrations",
-    },
-  ],
-  "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "safelaunch-prod-artifacts" }],
-  "vectorize": [{ "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal" }],
-  "ai": { "binding": "AI" },
-  "queues": {
-    "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
-  },
-  "workflows": [
-    { "name": "scan-workflow", "binding": "SCAN_WORKFLOW", "class_name": "ScanWorkflowEntrypoint" },
-  ],
-  "vars": { "WEB_ORIGIN": "https://safelaunch.app" },
-  "env": {
-    "staging": { "vars": { "WEB_ORIGIN": "https://staging.safelaunch.app" } },
-    "production": { "vars": { "WEB_ORIGIN": "https://safelaunch.app" } },
-  },
-  "observability": { "enabled": true, "head_sampling_rate": 1 },
-}
+"routes": [
+  { "pattern": "safelaunch.runany.dev", "custom_domain": true }
+]
 ```
+
+Before the first Web deploy:
+
+1. ensure `runany.dev` is an active zone in the same Cloudflare account;
+2. remove any conflicting A, AAAA, or CNAME record for
+   `safelaunch.runany.dev`;
+3. deploy the Web Worker and allow Cloudflare to create the managed DNS record
+   and certificate.
+
+No Cloudflare Pages project or Pages Git integration is used.
 
 ---
 
-## Part 3 · First-time deploy
+## 5. GitHub Actions configuration
 
-### 3.1 · GitHub repository secrets
+### 5.1. GitHub Environment
 
-Go to **Settings → Secrets and variables → Actions** and add:
+Create exactly one environment under **Settings → Environments**:
 
-| Secret                  | Used by                                       | Notes                                                                    |
-| ----------------------- | --------------------------------------------- | ------------------------------------------------------------------------ |
-| `CLOUDFLARE_API_TOKEN`  | `deploy-staging.yml`, `deploy-production.yml` | Token with Workers Scripts + D1 + R2 + Vectorize + Queues + Pages scopes |
-| `CLOUDFLARE_ACCOUNT_ID` | both deploy jobs                              | From the Cloudflare dashboard URL                                        |
-| `STAGING_URL`           | `deploy-staging.yml`                          | e.g. `https://staging.safelaunch.app`                                    |
-| `PRODUCTION_URL`        | `deploy-production.yml`                       | e.g. `https://safelaunch.app`                                            |
-| `PREVIEW_URL`           | `ci.yml` e2e job                              | The Cloudflare Pages preview URL for a PR                                |
+- `production` — require the release captain and at least one additional
+  reviewer before deployment.
 
-For the Cloudflare Access-protected admin:
+### 5.2. Secrets and variables
 
-| Variable        | Used by                         | Notes                              |
-| --------------- | ------------------------------- | ---------------------------------- |
-| `CF_ACCESS_AUD` | the Worker admin route (future) | Application Audience tag from §2.8 |
+Add these under **Settings → Secrets and variables → Actions** or directly to
+the protected `production` environment:
 
-### 3.2 · GitHub environments
+| Name                    | Value                               | Used for                       |
+| ----------------------- | ----------------------------------- | ------------------------------ |
+| `CLOUDFLARE_API_TOKEN`  | Token from Section 3.1              | Wrangler production operations |
+| `CLOUDFLARE_ACCOUNT_ID` | SafeLaunch Cloudflare account ID    | Wrangler account selection     |
+| `PRODUCTION_URL`        | `https://safelaunch-api.runany.dev` | API smoke and latency gates    |
 
-Create two environments under **Settings → Environments**:
+The Web origin is not `PRODUCTION_URL`; it is fixed by the Web Worker Custom
+Domain as `https://safelaunch.runany.dev`.
 
-- `staging` — no required reviewers (auto-deploys on merge to `main`).
-- `production` — **required reviewers**: the release captain +
-  one other engineer. This is the manual approval gate for the prod
-  deploy.
+If CI needs an API origin to build the Web app, pass
+`NEXT_PUBLIC_API_ORIGIN=https://safelaunch-api.runany.dev`. Do not provision a
+staging URL or a Pages preview URL for this purpose.
 
-### 3.3 · Configure Cloudflare Pages for the Web Worker
+### 5.3. Production-only workflow rule
 
-The Web Worker is built with `OpenNext` for Cloudflare. The deploy
-commands in the staging / production workflows assume a Cloudflare
-Pages project named `safelaunch-web`. Create it once:
-
-1. In the Cloudflare dashboard, **Workers & Pages → Create application
-   → Pages → Connect to Git**.
-2. Select the SafeLaunch repo. **Build command**:
-   `cd apps/web && pnpm install --frozen-lockfile && NEXT_PUBLIC_API_ORIGIN=$CF_PAGES_URL pnpm build`.
-   **Build output directory**: `apps/web/.vercel/output/static` (OpenNext
-   default) or `apps/web/.open-next/dist` depending on the OpenNext
-   adapter version. See `apps/web/open-next.config.ts`.
-3. The deploy workflows use `opennextjs-cloudflare build && opennextjs-cloudflare
-deploy` which is independent of the Pages Git integration. The Pages
-   project is for previews; production goes through `wrangler`.
-
-### 3.4 · First-time staging deploy
-
-After merging the MVP to `main`, the staging deploy triggers
-automatically (`.github/workflows/deploy-staging.yml`):
-
-1. CI runs first (`.github/workflows/ci.yml`). All gates must pass.
-2. The staging job:
-   - applies forward-only D1 migrations;
-   - deploys the API Worker to staging;
-   - builds and deploys the Web Worker to staging;
-   - seeds **only the reviewed fixture provisions** (never the
-     production corpus);
-   - runs `scripts/smoke.mjs`;
-   - runs the eval gate;
-   - runs the latency probe;
-   - uploads a redacted staging report.
-
-3. Watch the GitHub Actions run. If any step fails, **the release is
-   blocked** at staging — see the [rollback runbook](../runbooks/rollback.md)
-   for that environment.
-
-### 3.5 · First-time production deploy
-
-Once staging is green, the release captain triggers the production
-workflow from the GitHub UI:
-
-1. **Actions → Deploy production → Run workflow**.
-2. Enter the green commit SHA from `main`.
-3. (Optional) Enter a ruleset override. The default is the commit SHA.
-4. Click **Run workflow**. A reviewer (the second required approver from
-   §3.2) must approve in the GitHub UI before the deploy proceeds.
-
-The production workflow:
-
-1. Re-runs CI against the chosen commit. If CI fails, the deploy aborts.
-2. Exports a D1 snapshot to `artifacts/db-snapshot/db.sql` (90-day
-   retention). **This is your rollback anchor** — keep it.
-3. Applies forward-only D1 migrations to production.
-4. Deploys the API Worker to production.
-5. Builds and deploys the Web Worker.
-6. **Shifts traffic gradually**: 10 % → 50 % → 100 %, with 60 s pauses
-   between each step. Cloudflare's `wrangler versions deploy
---percentage` is a Worker-version feature, not a generic
-   load-balancer.
-7. Runs smoke + eval + latency (50 samples).
-8. Records the deployment audit (`commit`, `ruleset`, `model`,
-   `corpus`, `timestamp`) to a 365-day artifact.
-
-### 3.6 · Verify the deploy
+`.github/workflows/deploy-production.yml` is the only deployment workflow. Its
+Wrangler commands must target the base configuration and therefore must not use
+`--env production`. A production-only deploy uses:
 
 ```bash
-# The marketing homepage should render in both locales
-curl -sSL https://safelaunch.app/vi/ | head -50
-curl -sSL https://safelaunch.app/en/ | head -50
+# API migration and deploy
+cd apps/workers
+pnpm exec wrangler d1 migrations apply DB --remote
+pnpm exec wrangler deploy
+cd ../..
 
-# The health probe should return 200
-curl -sS https://api.safelaunch.app/v1/health
-
-# The report endpoint should be single-use
-# (open the URL once → 200, second time → 403 or 410)
-
-# The admin queue should require Cloudflare Access
-# (an unauthenticated request should redirect to the Access login)
+# Web build and deploy
+cd apps/web
+pnpm exec opennextjs-cloudflare build
+pnpm exec opennextjs-cloudflare deploy
+cd ../..
 ```
 
-Sign the release checklist in
-`docs/releases/mvp-release-checklist.md` and attach the filled copy to
-the release PR.
+Keep `environment: production` in GitHub Actions; that setting protects secrets
+and enforces reviewer approval independently of Wrangler environments.
 
 ---
 
-## Part 4 · Ongoing release process
+## 6. First production deploy
 
-For every release after the first:
+### 6.1. Pre-deploy gates
 
-1. Open a PR from a feature branch to `main`. The CI gate runs.
-2. Get a green CI on the PR commit.
-3. Merge to `main`. Staging deploy triggers automatically.
-4. Watch the staging deploy complete (smoke + eval + latency all pass).
-5. Trigger the production workflow from the GitHub UI as in §3.5.
-6. Verify per §3.6.
-7. Sign the release checklist.
+```bash
+pnpm install --frozen-lockfile
+pnpm -r --if-present lint
+pnpm -r --if-present typecheck
+pnpm -r --if-present test
+pnpm -C packages/ai test -- eval-runner
+```
 
-If anything in staging fails, the release is blocked — do not promote
-to production. The branch's "do not merge" / "draft" labels should
-remain on the PR until the staging issue is resolved.
+Export a D1 rollback snapshot before migrations:
+
+```bash
+mkdir -p artifacts/db-snapshot
+cd apps/workers
+pnpm exec wrangler d1 export DB \
+  --remote \
+  --output=../../artifacts/db-snapshot/db.sql
+cd ../..
+```
+
+The snapshot may contain production data. Keep it encrypted, access-controlled,
+and out of Git.
+
+### 6.2. Deploy
+
+Use the protected GitHub workflow:
+
+1. Open **Actions → deploy-production → Run workflow**.
+2. Enter a commit SHA from `main` whose CI run is green.
+3. Obtain the required GitHub Environment approval.
+4. Monitor migration, API deploy, Web deploy, smoke, eval, and latency gates.
+5. Preserve the redacted deployment audit artifact.
+
+For an emergency manual deploy, use the commands in Section 5.3 only after
+recording the approver, commit SHA, migration set, and rollback snapshot.
+
+### 6.3. Verify production
+
+```bash
+# Web Worker and localized pages
+curl -fsSIL https://safelaunch.runany.dev/
+curl -fsSL https://safelaunch.runany.dev/vi/ | head -50
+curl -fsSL https://safelaunch.runany.dev/en/ | head -50
+
+# API Worker
+curl -fsS https://safelaunch-api.runany.dev/v1/health
+
+# Automated API checks
+node scripts/smoke.mjs \
+  --base-url https://safelaunch-api.runany.dev
+node scripts/check-latency.mjs \
+  --base-url https://safelaunch-api.runany.dev \
+  --samples 50
+
+# Admin must redirect to Cloudflare Access when unauthenticated
+curl -sSIL https://safelaunch.runany.dev/admin/legal
+```
+
+Also verify that a report token remains single-use: the first request succeeds
+and a second request with the same token returns `403` or `410`.
+
+Sign `docs/releases/mvp-release-checklist.md` and attach the completed checklist
+to the release record.
 
 ---
 
-## Part 5 · Rollback
+## 7. Ongoing releases
 
-If a production deploy is bad (eval failure, latency spike, 5xx rate),
-follow the [rollback runbook](../runbooks/rollback.md). The standard
+For every release:
+
+1. Open a PR to `main` and obtain green CI.
+2. Obtain code review and merge.
+3. Trigger `deploy-production.yml` manually with the green commit SHA.
+4. Approve the protected `production` GitHub Environment.
+5. Export the D1 snapshot, apply forward-only migrations, and deploy both
+   Workers.
+6. Run smoke, evaluation, and latency gates against
+   `https://safelaunch-api.runany.dev`.
+7. Verify `https://safelaunch.runany.dev` and the Access-protected admin route.
+8. Preserve the deployment audit and signed release checklist.
+
+There is no staging promotion step. CI, reviewer approval, the pre-migration D1
+snapshot, post-deploy gates, and rollback readiness are the production safety
+controls.
+
+---
+
+## 8. Rollback
+
+Follow [`docs/runbooks/rollback.md`](../runbooks/rollback.md). The standard
 order is:
 
-1. **Worker traffic** to the previous version
-   (`wrangler versions deploy --version-id <previous> --percentage 100`).
-2. **Disable new scans** if data compatibility is uncertain
-   (set `SAFELAUNCH_SCAN_INTAKE_ENABLED: "false"` in the env, redeploy).
-3. **D1 rollback** only if a migration broke the schema
-   (restore from the snapshot artifact in the run's artifacts).
-4. **Verify** with `smoke.mjs` + the eval gate + the latency probe.
-5. **Preserve audit evidence**: attach the Worker version diff, the
-   smoke + latency output, the D1 snapshot, and the row counts
-   before / after to the incident ticket.
+1. route 100% of traffic to the last known-good Worker version;
+2. disable new scan intake if data compatibility is uncertain;
+3. restore D1 only when a migration caused the incident;
+4. rerun smoke, evaluation, and latency checks against the production API;
+5. preserve version IDs, deployment diff, snapshot, row counts, timestamps, and
+   redacted gate output as incident evidence.
 
-The full procedure (with timestamps and drill-in-staging) is in
-`docs/runbooks/rollback.md`.
+Example Worker version rollback:
+
+```bash
+cd apps/workers
+pnpm exec wrangler versions list
+pnpm exec wrangler versions deploy \
+  --version-id <previous-version-id> \
+  --percentage 100
+```
+
+Do not perform rollback drills against production. Validate the commands with
+local or disposable resources and require explicit production approval for an
+actual rollback.
 
 ---
 
-## Part 6 · Troubleshooting
+## 9. Troubleshooting
 
-### "I changed wrangler.jsonc and the types are wrong"
+### Wrangler reports that `production` is not configured
+
+The repository uses the top-level Wrangler configuration as production. Remove
+`--env production` from the command instead of creating an empty
+`env.production` block.
+
+### Worker types are stale
 
 ```bash
 cd apps/workers
 pnpm exec wrangler types
-cd ../..
 ```
 
-### "Vitest can't import in jsdom / commonjs"
-
-The `apps/web` tests use `jsdom`; the workers tests use
-`@cloudflare/vitest-pool-workers` (which is fine in Workers, not CommonJS).
-If you see `Cannot be imported in a CommonJS module`, the test file is
-running in the wrong pool. Re-check `vitest.config.ts`.
-
-### "The D1 schema is out of date locally"
+### Local D1 schema is stale
 
 ```bash
-# Drop the local D1 and re-apply migrations
 rm -rf apps/workers/.wrangler/state/v3/d1
 cd apps/workers
 pnpm exec wrangler d1 migrations apply DB --local
-cd ../..
 ```
 
-### "The eval gate fails locally with a real system"
-
-The eval runner uses a fake `SystemUnderTest` in the tests. To run
-against a real model, write a thin `provider.ts` that calls Workers AI
-and wire it into `evaluateEvidenceProvisionPair`. The MVP test
-`it("meets release quality gates", ...)` requires a stub that produces
-the expected draft shape.
-
-### "The OpenNext build fails with `Module not found`"
+### OpenNext build cannot find a module
 
 ```bash
 cd apps/web
 rm -rf .next .open-next
 pnpm install --frozen-lockfile
-NEXT_PUBLIC_API_ORIGIN=https://api.example.com pnpm build
-cd ../..
+NEXT_PUBLIC_API_ORIGIN=https://safelaunch-api.runany.dev pnpm build
 ```
 
-### "The 60-case eval set is wrong"
+### Custom Domain deployment fails
 
-Re-generate the cases from the script template (see
-`packages/ai/src/eval-runner.test.ts` for the case shape). The MVP
-treats the eval set as a frozen artifact; any change to a case is a
-breaking change to the release gate.
+Check all of the following:
+
+- the token has `Zone Read` and `Workers Routes Write` for `runany.dev`;
+- `runany.dev` belongs to the account in `CLOUDFLARE_ACCOUNT_ID`;
+- no conflicting DNS record exists for `safelaunch.runany.dev`;
+- `apps/web/wrangler.jsonc` still declares `custom_domain: true`.
+
+### A resource command returns `permission denied`
+
+Match the failed operation to Section 3.1. In particular, the **Edit
+Cloudflare Workers** token template alone does not grant `D1 Edit`, `Vectorize
+Edit`, or `Queues Edit`. Add only the missing permission and keep account/zone
+resource scopes restricted.
 
 ---
 
-## Part 7 · Reference
+## 10. References
 
-- [`docs/releases/mvp-release-checklist.md`](../releases/mvp-release-checklist.md) — the
-  per-release gate.
-- [`docs/runbooks/release.md`](../runbooks/release.md) — release
-  procedure.
-- [`docs/runbooks/rollback.md`](../runbooks/rollback.md) — rollback
-  procedure.
-- [`docs/compliance/eval-baseline.md`](../compliance/eval-baseline.md) — the
-  legal-evaluation gate.
-- [`docs/privacy/data-inventory.md`](../privacy/data-inventory.md) — the
-  privacy surface.
-- [`docs/design/homepage.md`](../design/homepage.md) — the design
-  direction.
-- [`AGENTS.md`](../../AGENTS.md) — the agent entry point.
-- `.github/workflows/` — the CI, staging, and production workflows.
+- [`docs/releases/mvp-release-checklist.md`](../releases/mvp-release-checklist.md)
+- [`docs/runbooks/release.md`](../runbooks/release.md)
+- [`docs/runbooks/rollback.md`](../runbooks/rollback.md)
+- [`docs/compliance/eval-baseline.md`](../compliance/eval-baseline.md)
+- [`docs/privacy/data-inventory.md`](../privacy/data-inventory.md)
+- [`apps/workers/wrangler.jsonc`](../../apps/workers/wrangler.jsonc)
+- [`apps/web/wrangler.jsonc`](../../apps/web/wrangler.jsonc)
+- [Cloudflare Workers CI/CD authentication](https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/)
+- [Cloudflare account-owned API tokens](https://developers.cloudflare.com/fundamentals/api/get-started/account-owned-tokens/)
+- [Cloudflare API token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)
+- [Cloudflare Worker Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
 
 ## Change log
 
-- `2026-07-30` — v1 setup & deploy guide. First release will follow
-  this document step by step.
+- `2026-08-03` — production-only deployment; changed public domain to
+  `safelaunch.runany.dev`; removed staging and Cloudflare Pages setup; documented
+  least-privilege Cloudflare API token permissions.
+- `2026-07-30` — initial setup and deploy guide.
