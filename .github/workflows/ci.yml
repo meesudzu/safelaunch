@@ -51,6 +51,15 @@ jobs:
         with:
           version: 10.13.1
       - run: pnpm install --frozen-lockfile
+      # apps/workers/tsconfig.json references ./worker-configuration.d.ts (a
+      # wrangler-generated env/binding declaration file) in its `types` array.
+      # Both ESLint (via projectService) and `tsc --noEmit` resolve that path
+      # during format/lint/typecheck, so the file must exist before either
+      # step runs. The build job also generates it as a side effect of
+      # `wrangler deploy --dry-run`, but build runs *after* format/test —
+      # too late for this job.
+      - name: Generate Cloudflare Worker types
+        run: pnpm --filter @safelaunch/workers exec wrangler types
       - name: Prettier check
         run: pnpm exec prettier --check "**/*.{ts,tsx,js,mjs,md,json,yml,yaml,css}"
       - name: ESLint
