@@ -118,8 +118,9 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
     let compressed = 0;
     let decoded = 0;
     while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+      const readResult = (await reader.read()) as { value: Uint8Array | undefined; done: boolean };
+      if (readResult.done) break;
+      const value = readResult.value;
       if (!value) continue;
       compressed += value.byteLength;
       if (compressed > limits.compressedBytes) {

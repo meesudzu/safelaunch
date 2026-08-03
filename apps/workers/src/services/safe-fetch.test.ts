@@ -20,7 +20,7 @@ class FakeResponse {
     this.body = init.body
       ? new ReadableStream({
           start: (controller) => {
-            controller.enqueue(init.body!);
+            controller.enqueue(init.body);
             controller.close();
           },
         })
@@ -118,9 +118,9 @@ describe("fetchBoundedHtml", () => {
       fetchBoundedHtml({
         url: "http://127.0.0.1/",
         resolve: fakeResolve,
-        fetchImpl: (() => {
+        fetchImpl: () => {
           throw new Error("should not be called");
-        }) as unknown as typeof fetch,
+        },
       }),
     ).rejects.toThrow(UnsafeUrlError);
   });

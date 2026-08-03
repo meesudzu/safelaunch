@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { CreateScanInput, ScanState } from "@safelaunch/contracts";
-import { ScanRepository } from "@safelaunch/db";
+import { ScanRepository, ReportRepository } from "@safelaunch/db";
 import type { ScanResult, ScanTerminalState } from "../workflows/scan-workflow";
 
 const SCAN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -9,6 +9,7 @@ const ANALYSIS_VERSION = "vn-mvp-v1";
 export interface RoutesEnv {
   DB: D1Database;
   WEB_ORIGIN?: string;
+  SCAN_WORKFLOW?: Workflow;
 }
 
 interface StoredScanRow {
@@ -37,31 +38,13 @@ const generateScanId = (): string => {
   return `scan_${out}`;
 };
 
-const generateReportToken = (): string => {
-  const bytes = new Uint8Array(24);
-  crypto.getRandomValues(bytes);
-  let out = "";
-  for (const byte of bytes) {
-    out += byte.toString(16).padStart(2, "0");
-  }
-  return `rpt_${out}`;
-};
-
-const hashToken = async (token: string): Promise<string> => {
-  const data = new TextEncoder().encode(token);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-};
-
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
 
 const isTerminal = (state: string): state is ScanTerminalState =>
   TERMINAL_SCAN_STATES.has(state);
 
-const buildReportUrl = (origin: string, token: string): string =>
-  `${origin.replace(/\/$/, "")}/reports/${token}`;
+const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
+  `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
 
 export interface CreateScanResponse {
   scanId: string;
@@ -121,6 +104,34 @@ scansRouter.post("/v1/scans", async (context) => {
       category: input.category,
     }),
   );
+  // Trigger the scan workflow. The API contract only persists the scan row
+  // here; the workflow performs fetching, evaluation, and report persistence
+  // asynchronously. If the workflow binding is absent (local dev without
+  // Workflows), the scan stays in `queued` until the cron sweep notices it.
+  const workflow = context.env.SCAN_WORKFLOW;
+  if (workflow) {
+    try {
+      await workflow.create({
+        params: {
+          scanId,
+          url: input.url,
+          jurisdiction: input.jurisdiction,
+          category: input.category,
+          analysisVersion: ANALYSIS_VERSION,
+        },
+      });
+    } catch (cause) {
+      console.log(
+        JSON.stringify({
+          level: "warn",
+          event: "scan.workflow_create_failed",
+          scanId,
+          error: cause instanceof Error ? cause.message : String(cause),
+        }),
+      );
+    }
+  }
+
   const response: CreateScanResponse = { scanId, state: "queued" };
   return context.json(response satisfies CreateScanResponse, 202);
 });
@@ -146,19 +157,23 @@ scansRouter.get("/v1/scans/:id", async (context) => {
   if (isTerminal(stored.state)) {
     const status = ScanState.parse(stored.state);
     progress.status = status;
-    const reportRow = await context.env.DB
-      .prepare("SELECT token_hash FROM reports WHERE scan_id = ?")
-      .bind(scanId)
-      .first<{ token_hash: string }>();
-    if (reportRow && reportRow.token_hash) {
-      const token = generateReportToken();
-      const tokenHash = await hashToken(token);
-      // One-time: invalidate the stored hash so subsequent GETs cannot get a URL.
-      await context.env.DB
-        .prepare("UPDATE reports SET token_hash = ? WHERE scan_id = ?")
-        .bind(tokenHash, scanId)
-        .run();
-      progress.reportUrl = buildReportUrl(origin, token);
+    // Read the persisted report. token_hash === null means the token has
+    // already been burned by a prior GET of /v1/reports/:scanId. We never
+    // generate or rotate tokens here — the workflow issued exactly one at
+    // persistReport time, and we surface that plaintext token (stored inside
+    // payload_json) only while the hash is still valid.
+    const reportRepo = new ReportRepository(context.env.DB);
+    const storedReport = await reportRepo.get(scanId);
+    if (storedReport && storedReport.tokenHash !== null) {
+      try {
+        const payload = JSON.parse(storedReport.payloadJson) as Record<string, unknown>;
+        const token = typeof payload._reportToken === "string" ? payload._reportToken : null;
+        if (token) {
+          progress.reportUrl = buildReportUrl(origin, token);
+        }
+      } catch {
+        // Malformed payload — treat as no report available.
+      }
     }
   }
   return context.json(progress);

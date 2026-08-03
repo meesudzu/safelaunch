@@ -124,7 +124,7 @@ describe("evaluateEvidenceProvisionPair", () => {
 
   it("does not let the provider return an empty legalQuote list for a high-severity claim", async () => {
     const provider = new FakeProvider(() =>
-      draft({ severity: "high", legalQuotes: [] } as Partial<EvaluationDraft>),
+      draft({ severity: "high", legalQuotes: [] }),
     );
     const result = await evaluateEvidenceProvisionPair({
       evidence: baseEvidence,

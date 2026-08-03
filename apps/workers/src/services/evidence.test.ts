@@ -14,23 +14,23 @@ interface Fixture {
 
 const onlineGameFixture: Fixture = {
   sourceUrl: "https://game.test/about",
-  html: onlineGameHtml as string,
+  html: onlineGameHtml,
 };
 const pressFixture: Fixture = {
   sourceUrl: "https://press.test/about",
-  html: electronicPressHtml as string,
+  html: electronicPressHtml,
 };
 const entertainmentFixture: Fixture = {
   sourceUrl: "https://entertainment.test/about",
-  html: digitalEntertainmentHtml as string,
+  html: digitalEntertainmentHtml,
 };
 const promptInjectionFixture: Fixture = {
   sourceUrl: "https://injection.test/help",
-  html: promptInjectionHtml as string,
+  html: promptInjectionHtml,
 };
 const emptyFixture: Fixture = {
   sourceUrl: "https://empty.test/",
-  html: emptyHtml as string,
+  html: emptyHtml,
 };
 
 describe("extractEvidence", () => {

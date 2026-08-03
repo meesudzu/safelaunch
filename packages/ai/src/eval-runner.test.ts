@@ -41,15 +41,17 @@ const provisions: EvalProvision[] = [
 ];
 
 const stubSystem = (drafts: Record<string, EvalDraft>): SystemUnderTest => ({
-  evaluate: async ({ caseId }) => drafts[caseId] ?? {
-    severity: "pass",
-    rationale: "fallback",
-    evidenceIds: [],
-    provisionIds: [],
-    legalQuotes: [],
-    confidence: 0.5,
-    recommendedAction: "none",
-  },
+  evaluate: ({ caseId }) => Promise.resolve(
+    drafts[caseId] ?? {
+      severity: "pass",
+      rationale: "fallback",
+      evidenceIds: [],
+      provisionIds: [],
+      legalQuotes: [],
+      confidence: 0.5,
+      recommendedAction: "none",
+    },
+  ),
 });
 
 const goodDraft = (caseId: string, severity: "high" | "review" | "pass"): EvalDraft => ({

@@ -345,19 +345,40 @@ const makeWorkflowEvaluator = (): ScanRunDeps["evaluate"] => {
   };
 };
 
+const sha256Hex = async (input: string): Promise<string> => {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+const REPORT_TTL_SECONDS = 7 * 24 * 60 * 60;
+
 const makeWorkflowPersistReport = (
   env: ScanWorkflowEnv,
 ): ScanRunDeps["persistReport"] => {
-  void env;
-  const issued = new Map<string, { token: string; url: string }>();
-  return (input): Promise<{ token: string; url: string } | null> => {
-    if (issued.has(input.scanId)) return Promise.resolve(null);
+  return async (input): Promise<{ token: string; url: string } | null> => {
     const tokenBytes = new Uint8Array(24);
     crypto.getRandomValues(tokenBytes);
     const token = `rpt_${Array.from(tokenBytes).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
-    const url = `https://reports.local/${token}`;
-    issued.set(input.scanId, { token, url });
-    return Promise.resolve({ token, url });
+    const tokenHash = await sha256Hex(token);
+    const now = new Date();
+    const expiresAt = new Date(now.getTime() + REPORT_TTL_SECONDS * 1000).toISOString();
+    const payloadJson = JSON.stringify({
+      ...input.payload,
+      _reportToken: token,
+    });
+    const { ReportRepository } = await import("@safelaunch/db");
+    const repo = new ReportRepository(env.DB);
+    await repo.upsert({
+      scanId: input.scanId,
+      tokenHash,
+      payloadJson,
+      expiresAt,
+    });
+    const url = `https://web.local/vi/report/${token}`;
+    return { token, url };
   };
 };
 

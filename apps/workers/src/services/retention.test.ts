@@ -29,6 +29,7 @@ class FakeD1 {
           run: async (): Promise<D1Result> => {
             await Promise.resolve();
             return {
+              results: [],
               success: true,
               meta: {
                 duration: 0,
@@ -99,7 +100,7 @@ const makeDeps = (overrides: Partial<RetentionDeps> = {}): {
   return {
     deps: {
       db,
-      r2: r2 as R2Bucket,
+      r2: r2 as unknown as R2Bucket,
       now: () => "2026-07-29T12:00:00.000Z",
       log: log as RetentionDeps["log"],
       ...overrides,
@@ -134,7 +135,6 @@ describe("purgeExpired", () => {
     };
     const summary = await purgeExpired("2026-07-29T12:00:00.000Z", deps);
     expect(summary.r2ObjectsDeleted).toBe(2);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     expect(r2.deleted.toSorted()).toEqual([
       "scans/expired/contact.html",
       "scans/expired/home.html",

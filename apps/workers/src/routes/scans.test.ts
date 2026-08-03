@@ -18,7 +18,19 @@ class FakeD1Database implements D1Database {
         this.preparedCalls.push(call);
         const row = this.rows.find((entry) => entry.sql === sql);
         const firstReturn = row?.firstReturn;
-        const runReturn = row?.runReturn ?? { success: true, meta: {} };
+        const runReturn = row?.runReturn ?? {
+            success: true,
+            meta: {
+              duration: 0,
+              size_after: 0,
+              rows_read: 0,
+              rows_written: 0,
+              last_row_id: 0,
+              changed_db: false,
+              changes: 0,
+            },
+            results: [],
+          };
         return {
           first: async <T>(): Promise<T | null> => {
             await Promise.resolve();
@@ -26,11 +38,23 @@ class FakeD1Database implements D1Database {
           },
           run: async (): Promise<D1Result> => {
             await Promise.resolve();
-            return runReturn;
+            return runReturn as D1Result;
           },
           all: async (): Promise<D1Result> => {
             await Promise.resolve();
-            return { results: [], success: true, meta: {} };
+            return {
+              results: [],
+              success: true,
+              meta: {
+                duration: 0,
+                size_after: 0,
+                rows_read: 0,
+                rows_written: 0,
+                last_row_id: 0,
+                changed_db: false,
+                changes: 0,
+              },
+            };
           },
         };
       },
@@ -38,8 +62,9 @@ class FakeD1Database implements D1Database {
     return stmt as unknown as D1PreparedStatement;
   }
 
-  dump(): Promise<void> {
-    return Promise.resolve();
+  async dump(): Promise<ArrayBuffer> {
+    await Promise.resolve();
+    return new ArrayBuffer(0);
   }
 
   batch<T>(statements: D1PreparedStatement[]): Promise<T[]> {
@@ -49,6 +74,9 @@ class FakeD1Database implements D1Database {
 
   exec(): Promise<D1ExecResult> {
     return Promise.resolve({ count: 0, duration: 0 });
+  }
+  withSession(): D1DatabaseSession {
+    return {} as D1DatabaseSession;
   }
 }
 
@@ -91,7 +119,8 @@ describe("scans router", () => {
       }),
     );
     expect(response.status).toBe(202);
-    const body = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
     expect(body.state).toBe("queued");
     expect(body.scanId).toMatch(/^scan_[0-9a-f]{36}$/);
     expect(db.preparedCalls[0]?.sql).toContain("INSERT INTO scans");
@@ -112,7 +141,8 @@ describe("scans router", () => {
       }),
     );
     expect(response.status).toBe(400);
-    const body = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
     expect(body.code).toBe("INVALID_INPUT");
     expect(db.preparedCalls).toEqual([]);
   });
@@ -125,7 +155,8 @@ describe("scans router", () => {
       new Request("http://local/v1/scans/missing"),
     );
     expect(response.status).toBe(404);
-    expect((await response.json()).code).toBe("SCAN_NOT_FOUND");
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    expect(((await response.json()) as { code: string }).code).toBe("SCAN_NOT_FOUND");
   });
 
   it("returns progress for a queued scan without a report URL", async () => {
@@ -147,13 +178,18 @@ describe("scans router", () => {
     });
     const response = await runWithDb(db, new Request("http://local/v1/scans/scan_a"));
     expect(response.status).toBe(200);
-    const body = await response.json();
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
     expect(body.scanId).toBe("scan_a");
     expect(body.state).toBe("queued");
     expect(body.reportUrl).toBeUndefined();
   });
 
-  it("returns a one-time report URL for a terminal scan and never again", async () => {
+  it("returns a stable report URL for a terminal scan (no token rotation)", async () => {
+    // B5 fix: the token is issued exactly once when the workflow persists
+    // the report. /v1/scans/:id must surface that token, NOT regenerate one
+    // per poll. Repeated polls return the same URL until /v1/reports/:scanId
+    // burns the token_hash (single-use guarantee).
     const db = new FakeD1Database();
     const stored = {
       id: "scan_b",
@@ -166,17 +202,25 @@ describe("scans router", () => {
       created_at: "2026-07-29T00:00:00.000Z",
       expires_at: "2026-08-05T00:00:00.000Z",
     };
-    db.rows.push({ sql: "SELECT * FROM scans WHERE id = ?", firstReturn: stored, runReturn: null });
-    const previousHash = "previous-hash-marker";
-    db.rows.push({
-      sql: "SELECT token_hash FROM reports WHERE scan_id = ?",
-      firstReturn: { token_hash: previousHash },
-      runReturn: null,
+    const issuedToken = "rpt_abcdef0123456789abcdef0123456789abcdef0123456789";
+    const issuedHash = await hashTokenFor(issuedToken);
+    const payloadJson = JSON.stringify({
+      scanId: "scan_b",
+      state: "completed",
+      status: "high_risk",
+      findings: [],
+      _reportToken: issuedToken,
     });
+    db.rows.push({ sql: "SELECT * FROM scans WHERE id = ?", firstReturn: stored, runReturn: null });
     db.rows.push({
-      sql: "UPDATE reports SET token_hash = ? WHERE scan_id = ?",
-      firstReturn: null,
-      runReturn: { success: true, meta: {} },
+      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
+      firstReturn: {
+        scan_id: "scan_b",
+        token_hash: issuedHash,
+        payload_json: payloadJson,
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
     });
 
     const first = await runWithDb(
@@ -185,28 +229,61 @@ describe("scans router", () => {
       { WEB_ORIGIN: "https://web.test" },
     );
     expect(first.status).toBe(200);
-    const firstBody = await first.json();
-    expect(firstBody.reportUrl).toMatch(/^https:\/\/web\.test\/reports\/rpt_/);
-    expect(firstBody.reportUrl).not.toContain(previousHash);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const firstBody = (await first.json()) as { reportUrl?: string };
+    expect(firstBody.reportUrl).toBe(`https://web.test/vi/report/${issuedToken}`);
 
-    // Now arm the DB so the next GET sees an invalidated hash (no token row).
+    // Second poll: token_hash is still valid (no rotation, no burn yet).
+    // The same URL must be returned.
     db.rows.length = 0;
     db.rows.push({ sql: "SELECT * FROM scans WHERE id = ?", firstReturn: stored, runReturn: null });
     db.rows.push({
-      sql: "SELECT token_hash FROM reports WHERE scan_id = ?",
-      firstReturn: { token_hash: await hashTokenFor("different-token") },
+      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
+      firstReturn: {
+        scan_id: "scan_b",
+        token_hash: issuedHash,
+        payload_json: payloadJson,
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
       runReturn: null,
     });
-    db.rows.push({
-      sql: "UPDATE reports SET token_hash = ? WHERE scan_id = ?",
-      firstReturn: null,
-      runReturn: { success: true, meta: {} },
-    });
     const second = await runWithDb(db, new Request("http://local/v1/scans/scan_b"));
-    const secondBody = await second.json();
-    // The route always issues a fresh token and rotates the stored hash on
-    // every GET; the one-time guarantee is enforced by the caller (the report
-    // download endpoint verifies the token hash and rejects after first use).
-    expect(secondBody.reportUrl).toMatch(/^http:\/\/localhost:3000\/reports\/rpt_/);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const secondBody = (await second.json()) as { reportUrl?: string };
+    expect(secondBody.reportUrl).toBe(`http://localhost:3000/vi/report/${issuedToken}`);
+  });
+
+  it("returns no reportUrl once the token_hash has been burned (single-use)", async () => {
+    // After /v1/reports/:scanId?token=X is opened once, the route nulls
+    // token_hash. Subsequent polls of /v1/scans/:id must NOT return a URL.
+    const db = new FakeD1Database();
+    const stored = {
+      id: "scan_c",
+      url: "https://game.test/",
+      jurisdiction: "VN",
+      category: "online_game",
+      state: "completed",
+      coverage_json: '{"fetched":["homepage"],"failed":[],"skipped":[]}',
+      analysis_version: "vn-mvp-v1",
+      created_at: "2026-07-29T00:00:00.000Z",
+      expires_at: "2026-08-05T00:00:00.000Z",
+    };
+    db.rows.push({ sql: "SELECT * FROM scans WHERE id = ?", firstReturn: stored, runReturn: null });
+    db.rows.push({
+      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
+      firstReturn: {
+        scan_id: "scan_c",
+        token_hash: null, // already burned
+        payload_json: "{}",
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+
+    const response = await runWithDb(db, new Request("http://local/v1/scans/scan_c"));
+    expect(response.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { reportUrl?: string };
+    expect(body.reportUrl).toBeUndefined();
   });
 });

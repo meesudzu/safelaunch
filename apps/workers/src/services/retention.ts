@@ -46,7 +46,7 @@ const listExpiredScanPrefixes = async (r2: R2Bucket, cutoff: string): Promise<st
   do {
     const listed = await r2.list({
       prefix: LIST_R2_SCAN_PREFIX,
-      cursor,
+      ...(cursor !== undefined ? { cursor } : {}),
     });
     for (const obj of listed.objects) {
       // Object keys look like `scans/<scanId>/<page>.html`. We only know
@@ -75,7 +75,7 @@ const deleteScanArtifacts = async (r2: R2Bucket, scanId: string): Promise<number
   do {
     const listed = await r2.list({
       prefix: `scans/${scanId}/`,
-      cursor,
+      ...(cursor !== undefined ? { cursor } : {}),
     });
     for (const obj of listed.objects) {
       await r2.delete(obj.key);

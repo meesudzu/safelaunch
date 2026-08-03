@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { EvaluationDraftSchema, type EvaluationDraft } from "@safelaunch/compliance-core";
 import { gatewayOptionsFor, type GatewayConfig } from "./gateway";
 
@@ -57,7 +56,7 @@ const safeParseDraft = (raw: unknown): EvaluationDraft | null => {
     }
   }
   if (raw && typeof raw === "object" && "response" in raw) {
-    return safeParseDraft((raw as { response: unknown }).response);
+    return safeParseDraft(raw.response);
   }
   const parsed = EvaluationDraftSchema.safeParse(raw);
   return parsed.success ? parsed.data : null;

@@ -25,14 +25,37 @@ class FakeD1Database implements D1Database {
           },
           run: async <T>(): Promise<D1Result<T>> => {
             await Promise.resolve();
-            return runReturn as D1Result<T>;
+            if (runReturn !== undefined && runReturn !== null) {
+              return runReturn as D1Result<T>;
+            }
+            return {
+              results: [],
+              success: true,
+              meta: {
+                duration: 0,
+                size_after: 0,
+                rows_read: 0,
+                rows_written: 0,
+                last_row_id: 0,
+                changed_db: false,
+                changes: 0,
+              },
+            };
           },
           all: async <T>(): Promise<D1Result<T>> => {
             await Promise.resolve();
             return {
-              results: [] as readonly T[],
+              results: [] as never,
               success: true,
-              meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false },
+              meta: {
+                duration: 0,
+                size_after: 0,
+                rows_read: 0,
+                rows_written: 0,
+                last_row_id: 0,
+                changed_db: false,
+                changes: 0,
+              },
             };
           },
         };
@@ -46,13 +69,13 @@ class FakeD1Database implements D1Database {
   }
   batch<T>(statements: D1PreparedStatement[]): Promise<T[]> {
     void statements;
-    return Promise.resolve([] as T[]);
+    return Promise.resolve([]);
   }
   exec(): Promise<D1ExecResult> {
     return Promise.resolve({ count: 0, duration: 0 });
   }
-  withSession<T>(): Promise<T> {
-    return Promise.resolve({} as T);
+  withSession(): D1DatabaseSession {
+    return {} as D1DatabaseSession;
   }
 }
 

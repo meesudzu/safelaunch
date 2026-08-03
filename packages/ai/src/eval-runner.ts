@@ -74,10 +74,10 @@ export interface SystemUnderTest {
 }
 
 export interface ConfusionMatrix {
-  readonly tp: number;
-  readonly fp: number;
-  readonly tn: number;
-  readonly fn: number;
+  tp: number;
+  fp: number;
+  tn: number;
+  fn: number;
 }
 
 export interface EvalMetrics {
@@ -140,7 +140,6 @@ const isCitationValid = (
 };
 
 export const loadCases = async (dir: string): Promise<readonly EvalCase[]> => {
-  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
   const files = await readdir(dir);
   const cases: EvalCase[] = [];
   for (const file of files) {

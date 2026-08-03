@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { ReportRepository } from "@safelaunch/db";
 
 /**
  * Public report endpoint.
@@ -8,6 +9,9 @@ import { Hono } from "hono";
  *  - compares the SHA-256 hash of the token against the stored `token_hash`
  *    using a constant-time comparison;
  *  - rejects requests whose report has expired (`410 Gone`);
+ *  - on a successful match, returns the report payload with the private
+ *    `_reportToken` field stripped, then sets `token_hash = NULL` so a
+ *    second open of the same URL returns 410 (single-use guarantee);
  *  - sets `Cache-Control: private, no-store` and `X-Robots-Tag: noindex,
  *    nofollow` so search engines and shared caches never see the payload.
  *
@@ -94,8 +98,18 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
     );
     return context.json({ code: "INVALID_TOKEN" }, 403);
   }
-  const body = JSON.parse(row.payload_json) as Record<string, unknown>;
-  return new Response(JSON.stringify(body), {
+  // Strip the private plaintext token before returning the report payload.
+  const stored = JSON.parse(row.payload_json) as Record<string, unknown>;
+  const publicPayload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(stored)) {
+    if (key === "_reportToken") continue;
+    publicPayload[key] = value;
+  }
+  // Single-use: invalidate the stored hash so the second open returns 410.
+  // We do this BEFORE returning the response so the URL is consumed atomically.
+  const repo = new ReportRepository(context.env.DB);
+  await repo.burnToken(scanId);
+  return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,
   });

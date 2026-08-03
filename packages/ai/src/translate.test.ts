@@ -39,14 +39,14 @@ const reportVi: ReportPayload = {
 
 describe("translateReport", () => {
   it("keeps machine fields identical across locales", async () => {
-    const translator = async ({ text }: { text: string }) =>
-      text === "Có vấn đề bảo mật." ? "Privacy issue detected." : text;
+    const translator = ({ text }: { text: string }) =>
+      Promise.resolve(text === "Có vấn đề bảo mật." ? "Privacy issue detected." : text);
     const result = await translateReport(reportVi, translator);
     expect(projectMachineFields(result.vi)).toEqual(projectMachineFields(result.en));
   });
 
   it("never mutates machine fields in translation", async () => {
-    const translator = async ({ text }: { text: string }) => text.toUpperCase();
+    const translator = ({ text }: { text: string }) => Promise.resolve(text.toUpperCase());
     const result = await translateReport(reportVi, translator);
     expect(result.vi.findings[0]?.severity).toBe("high");
     expect(result.vi.findings[0]?.citations[0]?.provisionId).toBe("p-1");
@@ -57,13 +57,13 @@ describe("translateReport", () => {
   });
 
   it("translates the rationale and recommendedAction of every finding", async () => {
-    const translator = async ({ text, locale }: { text: string; locale: "vi" | "en" }) => {
-      if (locale === "vi") return text;
+    const translator = ({ text, locale }: { text: string; locale: "vi" | "en" }) => {
+      if (locale === "vi") return Promise.resolve(text);
       const mapping: Record<string, string> = {
         "Có vấn đề bảo mật.": "Privacy issue detected.",
         "Bổ sung chính sách bảo mật.": "Add a privacy notice.",
       };
-      return mapping[text] ?? text;
+      return Promise.resolve(mapping[text] ?? text);
     };
     const result = await translateReport(reportVi, translator);
     expect(result.vi.findings[0]?.rationale).toBe("Có vấn đề bảo mật.");
@@ -73,8 +73,8 @@ describe("translateReport", () => {
   });
 
   it("translates the overall status' explanation field while keeping status identical", async () => {
-    const translator = async ({ text }: { text: string }) =>
-      text === "Trạng thái tổng thể" ? "Overall status" : text;
+    const translator = ({ text }: { text: string }) =>
+      Promise.resolve(text === "Trạng thái tổng thể" ? "Overall status" : text);
     const result = await translateReport(reportVi, translator, { summaryLabel: "Trạng thái tổng thể" });
     expect(result.vi.summaryLabel).toBe("Trạng thái tổng thể");
     expect(result.en.summaryLabel).toBe("Overall status");
@@ -83,16 +83,14 @@ describe("translateReport", () => {
   });
 
   it("falls back to the original text when the translator throws", async () => {
-    const translator = async () => {
-      throw new Error("upstream failed");
-    };
+    const translator = () => Promise.reject(new Error("upstream failed"));
     const result = await translateReport(reportVi, translator);
     expect(result.vi.findings[0]?.rationale).toBe("Có vấn đề bảo mật.");
     expect(result.en.findings[0]?.rationale).toBe("Có vấn đề bảo mật.");
   });
 
   it("propagates the scanId, jurisdiction, category, generatedAt identically", async () => {
-    const translator = async ({ text }: { text: string }) => text;
+    const translator = ({ text }: { text: string }) => Promise.resolve(text);
     const result = await translateReport(reportVi, translator);
     expect(result.vi.scanId).toBe("scan-1");
     expect(result.en.scanId).toBe("scan-1");
@@ -108,8 +106,8 @@ describe("translateReport", () => {
 describe("projectMachineFields", () => {
   it("returns only the machine-safe subset of a report", () => {
     const bilingual: BilingualReport = {
-      vi: reportVi,
-      en: { ...reportVi },
+      vi: { ...reportVi, summaryLabel: "Trạng thái tổng thể" },
+      en: { ...reportVi, summaryLabel: "Status" },
       summaryLabel: "Trạng thái",
     };
     const projection = projectMachineFields(bilingual.en);
