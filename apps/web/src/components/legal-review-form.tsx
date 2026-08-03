@@ -62,23 +62,22 @@ export interface LegalReviewMessages {
 }
 
 export interface LegalReviewFormProps {
-  readonly locale: "vi" | "en";
   readonly messages: LegalReviewMessages;
   readonly document: PendingLegalDocument;
   readonly submit: (input: ReviewSubmission) => Promise<void>;
 }
 
-const formatDate = (iso: string, locale: "vi" | "en"): string => {
+const formatDate = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", {
+  return date.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "2-digit",
   });
 };
 
-export const LegalReviewForm = ({ locale, messages, document, submit }: LegalReviewFormProps) => {
+export const LegalReviewForm = ({ messages, document, submit }: LegalReviewFormProps) => {
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<ReviewDecision | null>(null);
@@ -102,7 +101,7 @@ export const LegalReviewForm = ({ locale, messages, document, submit }: LegalRev
   return (
     <section
       aria-labelledby="review-title"
-      data-locale={locale}
+      data-locale="vi"
       data-document-id={document.id}
       className="bg-bg text-ink font-sans antialiased"
     >
@@ -114,15 +113,15 @@ export const LegalReviewForm = ({ locale, messages, document, submit }: LegalRev
       </h1>
       <dl className="mt-6 flex flex-col gap-3 text-sm">
         <Field label={messages.source} value={document.sourceUrl} />
-        <Field label={messages.retrievedAt} value={formatDate(document.retrievedAt, locale)} />
+        <Field label={messages.retrievedAt} value={formatDate(document.retrievedAt)} />
         <Field label={messages.sourceHash} value={document.sourceHash} mono />
         <Field
           label={messages.effectiveFrom}
-          value={document.effectiveFrom ? formatDate(document.effectiveFrom, locale) : "—"}
+          value={document.effectiveFrom ? formatDate(document.effectiveFrom) : "—"}
         />
         <Field
           label={messages.effectiveTo}
-          value={document.effectiveTo ? formatDate(document.effectiveTo, locale) : "—"}
+          value={document.effectiveTo ? formatDate(document.effectiveTo) : "—"}
         />
       </dl>
 
@@ -176,7 +175,7 @@ export const LegalReviewForm = ({ locale, messages, document, submit }: LegalRev
               className="rounded-sm border border-rule bg-surface px-3 py-2"
             >
               <p className="text-xs uppercase tracking-wider text-ink-soft">
-                {event.decision} · {formatDate(event.createdAt, locale)}
+                {event.decision} · {formatDate(event.createdAt)}
               </p>
               <p className="mt-1 text-sm">{event.reason}</p>
               <p className="mt-1 text-xs text-ink-soft">{event.actor}</p>

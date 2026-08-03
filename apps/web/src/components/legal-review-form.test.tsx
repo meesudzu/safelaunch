@@ -56,7 +56,7 @@ describe("LegalReviewForm", () => {
   it("requires a reason before approval", async () => {
     const user = userEvent.setup();
     const submit = vi.fn(() => Promise.resolve());
-    render(<LegalReviewForm document={pendingDocument} submit={submit} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={submit} messages={enMessages} />);
     await user.click(screen.getByRole("button", { name: /approve/i }));
     expect(submit).not.toHaveBeenCalled();
     expect(screen.getByText(/reason is required/i)).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe("LegalReviewForm", () => {
   it("requires a reason before rejection", async () => {
     const user = userEvent.setup();
     const submit = vi.fn(() => Promise.resolve());
-    render(<LegalReviewForm document={pendingDocument} submit={submit} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={submit} messages={enMessages} />);
     await user.click(screen.getByRole("button", { name: /reject/i }));
     expect(submit).not.toHaveBeenCalled();
     expect(screen.getByText(/reason is required/i)).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe("LegalReviewForm", () => {
   it("calls submit with approve + reason once both are provided", async () => {
     const user = userEvent.setup();
     const submit = vi.fn(() => Promise.resolve());
-    render(<LegalReviewForm document={pendingDocument} submit={submit} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={submit} messages={enMessages} />);
     await user.type(screen.getByLabelText(/reason/i), "Văn bản còn hiệu lực.");
     await user.click(screen.getByRole("button", { name: /approve/i }));
     expect(submit).toHaveBeenCalledWith({
@@ -86,7 +86,7 @@ describe("LegalReviewForm", () => {
   it("calls submit with reject + reason once both are provided", async () => {
     const user = userEvent.setup();
     const submit = vi.fn(() => Promise.resolve());
-    render(<LegalReviewForm document={pendingDocument} submit={submit} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={submit} messages={enMessages} />);
     await user.type(screen.getByLabelText(/reason/i), "Trích dẫn không rõ ràng.");
     await user.click(screen.getByRole("button", { name: /reject/i }));
     expect(submit).toHaveBeenCalledWith({
@@ -96,7 +96,7 @@ describe("LegalReviewForm", () => {
   });
 
   it("renders the source URL, hash, and provisions so reviewers can audit", () => {
-    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} messages={enMessages} />);
     expect(screen.getByText(/vbpl\.vn\/abc/)).toBeInTheDocument();
     expect(screen.getByText(/abc123/)).toBeInTheDocument();
     expect(screen.getByText(/Điều 1/)).toBeInTheDocument();
@@ -104,7 +104,7 @@ describe("LegalReviewForm", () => {
   });
 
   it("renders the audit history so reviewers can see prior decisions", () => {
-    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} messages={enMessages} />);
     expect(screen.getByText(/Initial import/i)).toBeInTheDocument();
     expect(screen.getByText(/admin@safelaunch\.test/)).toBeInTheDocument();
   });
@@ -112,7 +112,7 @@ describe("LegalReviewForm", () => {
   it("rejects whitespace-only reasons as missing", async () => {
     const user = userEvent.setup();
     const submit = vi.fn(() => Promise.resolve());
-    render(<LegalReviewForm document={pendingDocument} submit={submit} locale="en" messages={enMessages} />);
+    render(<LegalReviewForm document={pendingDocument} submit={submit} messages={enMessages} />);
     await user.type(screen.getByLabelText(/reason/i), "   ");
     await user.click(screen.getByRole("button", { name: /approve/i }));
     expect(submit).not.toHaveBeenCalled();

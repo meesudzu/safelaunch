@@ -1,11 +1,6 @@
 import { LegalReviewForm, type PendingLegalDocument, type ReviewSubmission } from "../../../../components/legal-review-form";
-import adminVi from "../../../../messages/admin-vi.json";
-import adminEn from "../../../../messages/admin-en.json";
+import messages from "../../../../messages/admin-vi.json";
 import { createApiClient, type PendingLegalDocumentDto } from "../../../../lib/api-client";
-import { isLocale } from "../../../../lib/locale";
-
-const messagesFor = (locale: "vi" | "en") =>
-  locale === "vi" ? adminVi : adminEn;
 
 const toPending = (dto: PendingLegalDocumentDto): PendingLegalDocument => ({
   id: dto.id,
@@ -39,13 +34,9 @@ const toPending = (dto: PendingLegalDocumentDto): PendingLegalDocument => ({
 export default async function LegalReviewPage({
   params,
 }: {
-  params: Promise<{ locale: string; documentId: string }>;
+  params: Promise<{ documentId: string }>;
 }) {
-  const { locale, documentId } = await params;
-  if (!isLocale(locale)) {
-    return null;
-  }
-  const messages = messagesFor(locale);
+  const { documentId } = await params;
   const client = createApiClient({
     NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN,
   });
@@ -76,7 +67,7 @@ export default async function LegalReviewPage({
             {messages["review.access_required"]}
           </p>
           <a
-            href={`/${locale}/admin/legal`}
+            href="/admin/legal"
             className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
           >
             {messages["review.back"]}
@@ -94,7 +85,7 @@ export default async function LegalReviewPage({
             {messages["review.not_found"]}
           </p>
           <a
-            href={`/${locale}/admin/legal`}
+            href="/admin/legal"
             className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
           >
             {messages["review.back"]}
@@ -115,7 +106,7 @@ export default async function LegalReviewPage({
     <main>
       <header className="border-b border-rule px-6 py-5">
         <a
-          href={`/${locale}/admin/legal`}
+          href="/admin/legal"
           className="text-xs font-semibold uppercase tracking-wider text-accent hover:underline"
         >
           {messages["review.back"]}
@@ -123,7 +114,6 @@ export default async function LegalReviewPage({
       </header>
       <div className="mx-auto max-w-4xl px-6 py-10">
         <LegalReviewForm
-          locale={locale}
           messages={{
             title: messages["review.title"],
             source: messages["list.document"] + " URL",

@@ -1,31 +1,17 @@
 import { createApiClient, type PendingDocumentSummary } from "../../../lib/api-client";
-import adminVi from "../../../messages/admin-vi.json";
-import adminEn from "../../../messages/admin-en.json";
-import { isLocale } from "../../../lib/locale";
+import messages from "../../../messages/admin-vi.json";
 
-const messagesFor = (locale: "vi" | "en") =>
-  locale === "vi" ? adminVi : adminEn;
-
-const formatDate = (iso: string, locale: "vi" | "en"): string => {
+const formatDate = (iso: string): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US", {
+  return date.toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "short",
     day: "2-digit",
   });
 };
 
-export default async function LegalQueuePage({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
-  if (!isLocale(locale)) {
-    return null;
-  }
-  const messages = messagesFor(locale);
+export default async function LegalQueuePage() {
   const client = createApiClient({
     NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN,
   });
@@ -73,7 +59,7 @@ export default async function LegalQueuePage({
                   <p className="font-serif text-lg font-semibold">{doc.title}</p>
                   <p className="text-xs uppercase tracking-wider text-ink-soft">
                     {messages["list.jurisdiction"]}: {doc.jurisdiction} · {messages["list.retrieved"]}:{" "}
-                    {formatDate(doc.retrievedAt, locale)}
+                    {formatDate(doc.retrievedAt)}
                   </p>
                   <p className="font-mono text-xs text-ink-soft break-all">
                     {doc.sourceUrl}
@@ -81,7 +67,7 @@ export default async function LegalQueuePage({
                 </div>
                 <div className="mt-3 flex justify-end">
                   <a
-                    href={`/${locale}/admin/legal/${doc.id}`}
+                    href={`/admin/legal/${doc.id}`}
                     className="inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
                   >
                     {messages["list.open"]}
