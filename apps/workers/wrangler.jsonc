@@ -4,11 +4,37 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
+
+  "vars": { "WEB_ORIGIN": "http://localhost:3000" },
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+
+  // Durable Object: AbuseRateLimiter (B6).
+  "durable_objects": {
+    "bindings": [
+      { "name": "ABUSE_RATE_LIMITER", "class_name": "AbuseRateLimiter" },
+    ],
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AbuseRateLimiter"] },
+  ],
+  "workflows": [
+    {
+      "name": "scan-workflow",
+      "binding": "SCAN_WORKFLOW",
+      "class_name": "ScanWorkflowEntrypoint",
+    },
+  ],
+
+  // The only deployable environment. Run:
+  //   1. pnpm exec wrangler d1 create safelaunch
+  //   2. paste the printed ID into `database_id` below
+  //   3. pnpm exec wrangler d1 migrations apply DB --remote
+  //   4. pnpm exec wrangler deploy
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "safelaunch",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "dc9e9e2d-fdf6-4da6-9f93-5d01744a868a",
       "migrations_dir": "../../packages/db/migrations",
     },
   ],
@@ -17,31 +43,5 @@
   "ai": { "binding": "AI" },
   "queues": {
     "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
-  },
-  "workflows": [
-    {
-      "name": "scan-workflow",
-      "binding": "SCAN_WORKFLOW",
-      "class_name": "ScanWorkflowEntrypoint",
-    },
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "ABUSE_RATE_LIMITER",
-        "class_name": "AbuseRateLimiter",
-      },
-    ],
-  },
-  "migrations": [
-    {
-      "tag": "v1",
-      "new_sqlite_classes": ["AbuseRateLimiter"],
-    },
-  ],
-  "vars": { "WEB_ORIGIN": "http://localhost:3000" },
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1,
   },
 }
