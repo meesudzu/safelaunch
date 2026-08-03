@@ -7,6 +7,7 @@ be here.
 ## Doc map
 
 - [`remaining.md`](./remaining.md) — handoff to the team (Tier 1/2/3/4)
+- [`admin-remeaning.md`](./admin-remeaning.md) — admin console roadmap (metrics, scan status, logs, future features)
 - [`workflow.md`](./workflow.md) — 4-phase AI-assisted dev workflow
 - [`skills.md`](./skills.md) — skill catalog (must-invoke per change type)
 - [`compliance/rubrics/v1.md`](./compliance/rubrics/v1.md) — rule rubric
