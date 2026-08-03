@@ -20,9 +20,13 @@ concurrency:
 jobs:
   test:
     name: test (pre-deploy gate)
+    # NOTE: ci.yml is now a reusable workflow (`on: workflow_call`) with no
+    # declared inputs, so we can't pass `with: ref:` here. For `release: published`,
+    # actions/checkout defaults to the released SHA; for `workflow_dispatch`, it
+    # checks out the workflow's branch tip. If we later need to gate deploys on
+    # an arbitrary ref, add `ref` to ci.yml's `workflow_call.inputs` and pipe it
+    # into the checkout steps.
     uses: ./.github/workflows/ci.yml
-    with:
-      ref: ${{ github.event.inputs.ref || github.sha }}
 
   backup:
     name: D1 backup (export)
@@ -30,15 +34,15 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.13.1
-      - run: rtk pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - name: Export D1 snapshot
         run: |
           mkdir -p artifacts/db-snapshot
-          rtk pnpm exec wrangler d1 export DB --output=artifacts/db-snapshot/db.sql --env production
+           pnpm exec wrangler d1 export DB --output=artifacts/db-snapshot/db.sql --env production
       - name: Upload D1 snapshot (redacted)
         uses: actions/upload-artifact@v4
         with:
@@ -59,33 +63,33 @@ jobs:
       DEPLOY_COMMIT: ${{ github.event.inputs.ref || github.sha }}
       SAFELAUNCH_RULESET: ${{ github.event.inputs.ruleset || format('{0}', github.sha) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
         with:
           version: 10.13.1
-      - run: rtk pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
       - name: Apply forward-only D1 migrations
-        run: rtk pnpm exec wrangler d1 migrations apply DB --remote --env production
+        run: pnpm exec wrangler d1 migrations apply DB --remote --env production
       - name: Deploy API Worker
-        run: rtk pnpm exec wrangler deploy --env production
+        run: pnpm exec wrangler deploy --env production
       - name: Deploy Web Worker (OpenNext)
-        run: rtk pnpm -C apps/web exec opennextjs-cloudflare build && rtk pnpm -C apps/web exec opennextjs-cloudflare deploy --env production
+        run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy --env production
       - name: Gradual traffic shift (10 / 50 / 100)
         run: |
           for share in 10 50 100; do
             echo "shifting ${share}% traffic to ${DEPLOY_COMMIT}"
-            rtk pnpm exec wrangler versions deploy --percentage ${share} --comment "traffic-${share}%"
+             pnpm exec wrangler versions deploy --percentage ${share} --comment "traffic-${share}%"
             sleep 60
           done
       - name: Smoke
         id: smoke
-        run: rtk node scripts/smoke.mjs --base-url "$PRODUCTION_URL"
+        run: node scripts/smoke.mjs --base-url "$PRODUCTION_URL"
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
       - name: Eval gate (release blocker)
-        run: rtk pnpm -C packages/ai test -- eval-runner
+        run: pnpm -C packages/ai test -- eval-runner
       - name: Latency probe
-        run: rtk node scripts/check-latency.mjs --base-url "$PRODUCTION_URL" --samples 50
+        run: node scripts/check-latency.mjs --base-url "$PRODUCTION_URL" --samples 50
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
       - name: Record deployment audit
