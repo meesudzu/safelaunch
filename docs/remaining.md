@@ -13,25 +13,6 @@ This document is the handoff to the team. Items are grouped by **Tier**
 
 ## Tier 1 — Must do before any release announcement
 
-### 1.1 Enable Cloudflare Access for `/admin/legal/*`
-- **Why:** Right now the admin endpoints are reachable by anyone who
-  can hit `safelaunch-api.runany.dev/v1/admin/legal/pending`. The
-  worker trusts the `cf-access-authenticated-user-email` header, but
-  no Access app is enforcing the gate at the edge.
-- **Effort:** 5 minutes.
-- **Owner:** Ops (one person with dashboard access).
-- **How:**
-  1. Open https://dash.cloudflare.com → Zero Trust → Access → Applications.
-  2. **Add an application** → **Self-hosted**.
-  3. Domain: `safelaunch.runany.dev` · Path: `/admin/legal/*`.
-  4. Identity providers: enable **One-time PIN** (simplest for MVP).
-  5. Policy: name `Admin Reviewers — @safelaunch.app`, action **Allow**,
-     include `email_domain: safelaunch.app`.
-  6. Save.
-- **Verify after:** `curl https://safelaunch.runany.dev/admin/legal`
-  should 302 to a Cloudflare Access sign-in page.
-- **Alternative (CI):** `scripts/setup-cloudflare-access.sh` — needs a
-  `CF_API_TOKEN` env var with `access:org:write` scope.
 
 ### 1.2 Populate Vectorize `safelaunch-legal` with real embeddings
 - **Why:** The seed in `scripts/seed-legal-corpus.sql` inserts 12
@@ -63,36 +44,7 @@ This document is the handoff to the team. Items are grouped by **Tier**
 - **Deliverable:** updated `vector_id` column in `legal_provisions` for
   all 12 rows + matching vectors in the index.
 
-### 1.3 Decide on `/` vs `/vi` as default home route
-- **Why:** `https://safelaunch.runany.dev/` returns 404 today
-  (intentional — we shipped `[locale]/page.tsx` only). Marketing links
-  probably expect the bare domain to land on the home page.
-- **Options:**
-  - **A.** Add `app/page.tsx` that just redirects to `/${accept-language-locale}`.
-  - **B.** Configure Cloudflare Access or a Worker route to rewrite `/` → `/vi` (default Vietnamese).
-- **Effort:** A: 30 minutes. B: 10 minutes if a Worker redirect rule is acceptable.
-- **Owner:** Frontend engineer.
 
-### 1.4 End-to-end smoke run on production
-- **Why:** CI runs `smoke.mjs` but no one has run the actual `POST /v1/scans
-  → poll /v1/scans/:id → GET /v1/reports/:scanId` flow against
-  `safelaunch-api.runany.dev` since deploy.
-- **Effort:** 30 minutes.
-- **Owner:** QA + Backend engineer.
-- **How:**
-  ```bash
-  curl -sX POST https://safelaunch-api.runany.dev/v1/scans \
-    -H 'content-type: application/json' \
-    -d '{"url":"https://example.com","jurisdiction":"VN","category":"online_game"}'
-  # returns {"scanId":"scan_…","state":"queued"}
-
-  # Poll until terminal
-  watch -n 5 'curl -s https://safelaunch-api.runany.dev/v1/scans/scan_…'
-  ```
-  Expected: `state` cycles `queued → fetching → evaluating → completed`,
-  then `reportUrl` is returned, then opening the report URL returns the
-  Vietnamese report payload.
-- **If anything fails:** tail logs via `pnpm exec wrangler tail safelaunch-api --format=pretty`.
 
 ---
 
@@ -132,19 +84,6 @@ This document is the handoff to the team. Items are grouped by **Tier**
   4. If any gate fails, tune the system rules in `SYSTEM_RULES` or
      add more eval cases.
 
-### 2.3 Latency probe on production
-- **Why:** `scripts/check-latency.mjs` exists but has never run
-  against the live API.
-- **Effort:** 30 minutes.
-- **Owner:** QA.
-- **How:**
-  ```bash
-  pnpm exec node scripts/check-latency.mjs \
-    --base-url https://safelaunch-api.runany.dev \
-    --samples 25 --category online_game
-  ```
-  Target: `P95 < 60_000 ms`. With current deterministic rules + stub LLM,
-  expect sub-10s. With real AI, expect 20–45s.
 
 ### 2.4 Replace outdated README.md
 - **Why:** `README.md` still says
@@ -191,13 +130,6 @@ This document is the handoff to the team. Items are grouped by **Tier**
   are useful for unit tests but not currently used by any CI step.
   Wire them into the smoke / eval gate to catch regressions.
 
-### 3.2 Worker preview URLs
-- `wrangler deploy` prints a warning:
-  *"Because your 'workers_dev' is not in your Wrangler file, it will be
-  disabled for this deployment by default."*
-  We don't need `*.workers.dev` since we use the custom domain, but
-  consider setting `workers_dev = false` explicitly to silence the
-  warning.
 
 ### 3.3 Clean up 15 stale worktrees
 - `git worktree list` shows 15 leftover task-* and `safelaunch-mvp`
@@ -274,18 +206,3 @@ This document is the handoff to the team. Items are grouped by **Tier**
 | Docs | Tech writer | `docs/` |
 | Eval gates | Backend | `packages/ai/src/eval-runner.ts`, `docs/compliance/eval-baseline.md` |
 
----
-
-## Sign-off for MVP release
-
-Before tagging `v0.1.0`:
-
-- [ ] Tier 1.1: Cloudflare Access enabled
-- [ ] Tier 1.2: Vectorize embeddings populated
-- [ ] Tier 1.3: `/` route resolution chosen
-- [ ] Tier 1.4: end-to-end smoke passed on production
-- [ ] Tier 2.4: README.md updated
-- [ ] At least one Tier 2 eval gate run against real Workers AI
-
-When all of the above are checked, the release captain signs
-`docs/releases/mvp-release-checklist.md` §8.
