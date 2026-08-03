@@ -5,7 +5,7 @@
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
 
-  "vars": { "WEB_ORIGIN": "http://localhost:3000" },
+  "vars": { "WEB_ORIGIN": "https://safelaunch.runany.dev" },
   "observability": { "enabled": true, "head_sampling_rate": 1 },
 
   // Durable Object: AbuseRateLimiter (B6).
@@ -25,11 +25,9 @@
     },
   ],
 
-  // The only deployable environment. Run:
-  //   1. pnpm exec wrangler d1 create safelaunch
-  //   2. paste the printed ID into `database_id` below
-  //   3. pnpm exec wrangler d1 migrations apply DB --remote
-  //   4. pnpm exec wrangler deploy
+  // D1 production database.
+  // Created via:  pnpm exec wrangler d1 create safelaunch
+  // Migrations:    pnpm exec wrangler d1 migrations apply DB --remote
   "d1_databases": [
     {
       "binding": "DB",
@@ -38,10 +36,26 @@
       "migrations_dir": "../../packages/db/migrations",
     },
   ],
-  "r2_buckets": [{ "binding": "ARTIFACTS", "bucket_name": "safelaunch-artifacts" }],
-  "vectorize": [{ "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal" }],
+
+  // R2 bucket: ARTIFACTS holds raw HTML snapshots captured during scans.
+  "r2_buckets": [
+    { "binding": "ARTIFACTS", "bucket_name": "safelaunch-artifacts" },
+  ],
+
+  // Vectorize index: LEGAL_INDEX holds embeddings of approved vbpl.vn
+  // provisions. Dimensions MUST match the embedding model — currently
+  // @cf/baai/bge-base-en-v1.5 → 768 dimensions.
+  "vectorize": [
+    { "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal" },
+  ],
+
   "ai": { "binding": "AI" },
+
+  // Queue: LEGAL_INGESTION_QUEUE receives vbpl.docx URLs from the
+  // crawler; a consumer parses them into legal_provisions rows.
   "queues": {
-    "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" }],
+    "producers": [
+      { "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" },
+    ],
   },
 }

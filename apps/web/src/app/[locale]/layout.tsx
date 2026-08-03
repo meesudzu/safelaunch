@@ -4,7 +4,7 @@ import { isLocale, locales } from "../../lib/locale";
 
 export type { Locale } from "../../lib/locale";
 
-export const dynamicParams = false;
+// export const dynamicParams = false; // disabled for OpenNext Cloudflare compat
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));

@@ -10,3 +10,6 @@ coverage/
 
 # Wrangler generated bindings
 apps/workers/worker-configuration.d.ts
+
+# OpenNext build output (apps/web)
+apps/web/.open-next/
