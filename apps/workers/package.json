@@ -11,6 +11,8 @@
     "wrangler": "wrangler"
   },
   "dependencies": {
+    "@safelaunch/ai": "workspace:*",
+    "@safelaunch/compliance-core": "workspace:*",
     "@safelaunch/contracts": "workspace:*",
     "@safelaunch/db": "workspace:*",
     "hono": "4.12.32",

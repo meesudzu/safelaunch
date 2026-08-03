@@ -90,6 +90,12 @@ importers:
 
   apps/workers:
     dependencies:
+      '@safelaunch/ai':
+        specifier: workspace:*
+        version: link:../../packages/ai
+      '@safelaunch/compliance-core':
+        specifier: workspace:*
+        version: link:../../packages/compliance-core
       '@safelaunch/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
