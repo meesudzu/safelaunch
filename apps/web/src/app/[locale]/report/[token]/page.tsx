@@ -1,11 +1,14 @@
-import { ReportView, type ReportPayload, type ReportMessages } from "../../../../components/report-view";
+import {
+  ReportView,
+  type ReportPayload,
+  type ReportMessages,
+} from "../../../../components/report-view";
 import reportVi from "../../../../messages/report-vi.json";
 import reportEn from "../../../../messages/report-en.json";
 import { createApiClient, type ReportPayloadDto } from "../../../../lib/api-client";
 import type { Locale } from "../../../../lib/locale";
 
-const messagesFor = (locale: Locale): ReportMessages =>
-  locale === "vi" ? reportVi : reportEn;
+const messagesFor = (locale: Locale): ReportMessages => (locale === "vi" ? reportVi : reportEn);
 
 const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
   scanId: dto.scanId,
@@ -47,11 +50,7 @@ export default async function ReportPage({
     const report = toReportPayload(dto);
     return (
       <main>
-        <ReportView
-          locale={locale}
-          messages={messagesFor(locale)}
-          report={report}
-        />
+        <ReportView locale={locale} messages={messagesFor(locale)} report={report} />
       </main>
     );
   } catch (cause) {

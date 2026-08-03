@@ -73,29 +73,21 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
     .first<ReportRow>();
   if (!row) {
     // Log only the scanId, never the token.
-    console.log(
-      JSON.stringify({ level: "info", event: "report.not_found", scanId }),
-    );
+    console.log(JSON.stringify({ level: "info", event: "report.not_found", scanId }));
     return context.json({ code: "REPORT_NOT_FOUND" }, 404);
   }
   if (!token) {
-    console.log(
-      JSON.stringify({ level: "info", event: "report.token_missing", scanId }),
-    );
+    console.log(JSON.stringify({ level: "info", event: "report.token_missing", scanId }));
     return context.json({ code: "INVALID_TOKEN" }, 403);
   }
   const now = new Date();
   if (isExpired(row.expires_at, now)) {
-    console.log(
-      JSON.stringify({ level: "info", event: "report.expired", scanId }),
-    );
+    console.log(JSON.stringify({ level: "info", event: "report.expired", scanId }));
     return context.json({ code: "REPORT_EXPIRED" }, 410);
   }
   const incomingHash = await sha256Hex(token);
   if (!constantTimeEquals(incomingHash, row.token_hash)) {
-    console.log(
-      JSON.stringify({ level: "warn", event: "report.token_mismatch", scanId }),
-    );
+    console.log(JSON.stringify({ level: "warn", event: "report.token_mismatch", scanId }));
     return context.json({ code: "INVALID_TOKEN" }, 403);
   }
   // Strip the private plaintext token before returning the report payload.

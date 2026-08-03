@@ -60,7 +60,11 @@ const buildBody = (text: string) => new TextEncoder().encode(text);
 describe("fetchBoundedHtml", () => {
   it("fetches a public html page via the resolved address", async () => {
     const fake = new FakeFetch([
-      new FakeResponse({ status: 200, headers: { "content-type": "text/html; charset=utf-8" }, body: buildBody("<html></html>") }),
+      new FakeResponse({
+        status: 200,
+        headers: { "content-type": "text/html; charset=utf-8" },
+        body: buildBody("<html></html>"),
+      }),
     ]);
     const result = await fetchBoundedHtml({
       url: "https://example.com/",
@@ -75,7 +79,11 @@ describe("fetchBoundedHtml", () => {
   it("follows a single redirect", async () => {
     const fake = new FakeFetch([
       new FakeResponse({ status: 302, headers: { location: "https://redirect.example.com/" } }),
-      new FakeResponse({ status: 200, headers: { "content-type": "text/html" }, body: buildBody("<html></html>") }),
+      new FakeResponse({
+        status: 200,
+        headers: { "content-type": "text/html" },
+        body: buildBody("<html></html>"),
+      }),
     ]);
     const result = await fetchBoundedHtml({
       url: "https://example.com/",
@@ -97,13 +105,26 @@ describe("fetchBoundedHtml", () => {
         url: "https://example.com/",
         resolve: fakeResolve,
         fetchImpl: fake.call as unknown as typeof fetch,
-        limits: { redirects: 2, compressedBytes: 1024, decodedBytes: 1024, durationMs: 5000, connectMs: 3000, accept: ["text/html"] },
+        limits: {
+          redirects: 2,
+          compressedBytes: 1024,
+          decodedBytes: 1024,
+          durationMs: 5000,
+          connectMs: 3000,
+          accept: ["text/html"],
+        },
       }),
     ).rejects.toThrow(FetchLimitError);
   });
 
   it("rejects non-html content types", async () => {
-    const fake = new FakeFetch([new FakeResponse({ status: 200, headers: { "content-type": "application/json" }, body: buildBody("{}") })]);
+    const fake = new FakeFetch([
+      new FakeResponse({
+        status: 200,
+        headers: { "content-type": "application/json" },
+        body: buildBody("{}"),
+      }),
+    ]);
     await expect(
       fetchBoundedHtml({
         url: "https://example.com/",

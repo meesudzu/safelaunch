@@ -41,17 +41,18 @@ const provisions: EvalProvision[] = [
 ];
 
 const stubSystem = (drafts: Record<string, EvalDraft>): SystemUnderTest => ({
-  evaluate: ({ caseId }) => Promise.resolve(
-    drafts[caseId] ?? {
-      severity: "pass",
-      rationale: "fallback",
-      evidenceIds: [],
-      provisionIds: [],
-      legalQuotes: [],
-      confidence: 0.5,
-      recommendedAction: "none",
-    },
-  ),
+  evaluate: ({ caseId }) =>
+    Promise.resolve(
+      drafts[caseId] ?? {
+        severity: "pass",
+        rationale: "fallback",
+        evidenceIds: [],
+        provisionIds: [],
+        legalQuotes: [],
+        confidence: 0.5,
+        recommendedAction: "none",
+      },
+    ),
 });
 
 const goodDraft = (caseId: string, severity: "high" | "review" | "pass"): EvalDraft => ({
@@ -119,7 +120,10 @@ describe("evaluateAll", () => {
   it("counts changed cases when the baseline differs from the current set", async () => {
     const cases = [passingCase("c1", "high")];
     const baseline: EvalCase[] = [
-      { ...passingCase("c1", "review"), expected: { ...passingCase("c1", "high").expected, severity: "review" } },
+      {
+        ...passingCase("c1", "review"),
+        expected: { ...passingCase("c1", "high").expected, severity: "review" },
+      },
     ];
     const system = stubSystem({ c1: goodDraft("c1", "high") });
     const metrics = await evaluateAll(cases, system, { provisions, baseline });

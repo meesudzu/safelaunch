@@ -1,8 +1,5 @@
 import type { EvidenceItem } from "@safelaunch/contracts";
-import {
-  EvaluationDraftSchema,
-  type EvaluationDraft,
-} from "@safelaunch/compliance-core";
+import { EvaluationDraftSchema, type EvaluationDraft } from "@safelaunch/compliance-core";
 import { SYSTEM_RULES, type ProviderInput } from "./provider";
 import type { RetrievalResult } from "./retrieval";
 

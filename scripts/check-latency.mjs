@@ -31,9 +31,7 @@ const percentile = (values, p) => {
   const lower = Math.floor(rank);
   const upper = Math.ceil(rank);
   if (lower === upper) return sorted[lower] ?? 0;
-  return (
-    (sorted[lower] ?? 0) * (upper - rank) + (sorted[upper] ?? 0) * (rank - lower)
-  );
+  return (sorted[lower] ?? 0) * (upper - rank) + (sorted[upper] ?? 0) * (rank - lower);
 };
 
 const fetchJson = async (url, options) => {

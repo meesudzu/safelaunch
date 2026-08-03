@@ -27,18 +27,18 @@ The MVP release plan already names the anti-slop surface. Hallmark enforces it c
 
 Restrained, warm, evidence-led. One anchor accent, one warm secondary.
 
-| Token | Value (OKLCH) | Hex | Use |
-| --- | --- | --- | --- |
-| `--bg` | `oklch(0.97 0.01 80)` | `#F8F4ED` | Page background, warm off-white |
-| `--surface` | `oklch(0.995 0.003 80)` | `#FDFCF9` | Form card surface |
-| `--ink` | `oklch(0.20 0.01 250)` | `#181A1F` | Primary text, deep ink |
-| `--ink-soft` | `oklch(0.40 0.01 250)` | `#4A4D55` | Secondary text |
-| `--accent` | `oklch(0.42 0.07 195)` | `#1E6B73` | Primary action, deep teal (Vietnamese-leaning calm) |
-| `--accent-hover` | `oklch(0.36 0.07 195)` | `#15585F` | Hover state |
-| `--gold` | `oklch(0.70 0.10 85)` | `#A6822C` | Non-advice disclosure, citation markers |
-| `--rule` | `oklch(0.88 0.01 80)` | `#D8D2C2` | Hairline borders |
-| `--error` | `oklch(0.50 0.18 27)` | `#B43A1F` | Inline validation errors |
-| `--success` | `oklch(0.45 0.10 155)` | `#1F7A50` | Submission accepted state |
+| Token            | Value (OKLCH)           | Hex       | Use                                                 |
+| ---------------- | ----------------------- | --------- | --------------------------------------------------- |
+| `--bg`           | `oklch(0.97 0.01 80)`   | `#F8F4ED` | Page background, warm off-white                     |
+| `--surface`      | `oklch(0.995 0.003 80)` | `#FDFCF9` | Form card surface                                   |
+| `--ink`          | `oklch(0.20 0.01 250)`  | `#181A1F` | Primary text, deep ink                              |
+| `--ink-soft`     | `oklch(0.40 0.01 250)`  | `#4A4D55` | Secondary text                                      |
+| `--accent`       | `oklch(0.42 0.07 195)`  | `#1E6B73` | Primary action, deep teal (Vietnamese-leaning calm) |
+| `--accent-hover` | `oklch(0.36 0.07 195)`  | `#15585F` | Hover state                                         |
+| `--gold`         | `oklch(0.70 0.10 85)`   | `#A6822C` | Non-advice disclosure, citation markers             |
+| `--rule`         | `oklch(0.88 0.01 80)`   | `#D8D2C2` | Hairline borders                                    |
+| `--error`        | `oklch(0.50 0.18 27)`   | `#B43A1F` | Inline validation errors                            |
+| `--success`      | `oklch(0.45 0.10 155)`  | `#1F7A50` | Submission accepted state                           |
 
 The palette is anchored to `--accent` (deep teal) and `--ink` (deep ink). The warm off-white background replaces the usual cold white that compliance tools use, signalling "we are on your side" rather than "we are a regulator."
 
@@ -46,11 +46,11 @@ The palette is anchored to `--accent` (deep teal) and `--ink` (deep ink). The wa
 
 Per Hallmark: exactly two display voices (a serif for editorial weight + a sans for UI) plus one mono for technical content.
 
-| Role | Family | Source | Notes |
-| --- | --- | --- | --- |
+| Role                | Family             | Source       | Notes                                                               |
+| ------------------- | ------------------ | ------------ | ------------------------------------------------------------------- |
 | Display / editorial | **Source Serif 4** | Google Fonts | Vietnamese diacritics supported; roman only, weight 400 / 600 / 700 |
-| Body / UI | **Inter** | Google Fonts | System-class sans; weight 400 / 500 / 600 |
-| Mono | **JetBrains Mono** | Google Fonts | Used for the URL form input only |
+| Body / UI           | **Inter**          | Google Fonts | System-class sans; weight 400 / 500 / 600                           |
+| Mono                | **JetBrains Mono** | Google Fonts | Used for the URL form input only                                    |
 
 Italic survives only inside running paragraph copy (e.g., the non-advice disclosure). All headings are roman.
 
@@ -94,7 +94,7 @@ Single page. No marketing carousel, no testimonial wall, no pricing. Two columns
    - Jurisdiction indicator (disabled): "🇻🇳 Việt Nam — MVP" — locked for the MVP per the plan.
    - Turnstile token field (hidden when not on Cloudflare; rendered as a real widget otherwise).
    - Submit button "Kiểm tra website" / "Scan website".
-   - **Non-advice disclosure** paragraph, italic body copy, sitting *above* the submit button so users see it before they submit.
+   - **Non-advice disclosure** paragraph, italic body copy, sitting _above_ the submit button so users see it before they submit.
 4. **Footer** (Ft2): single line with the disclosure + the source-of-law host + the build version.
 
 ### Mobile (`< 768 px`)

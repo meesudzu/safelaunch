@@ -23,11 +23,11 @@ If there is even a 1% chance a skill applies to what you are doing, **invoke it 
 
 Every agent working in this repo MUST read these skills first:
 
-| Skill                        | When to load                                                          |
-| ---------------------------- | --------------------------------------------------------------------- |
-| `safelaunch-overview`        | Always — at session start, before any tool call beyond exploration.   |
-| `safelaunch-compliance`      | Any change touching compliance, scoring, legal text, AI prompts, PII. |
-| `safelaunch-ai-workflow`     | Any non-trivial task — to find the right superpowers for the phase.   |
+| Skill                    | When to load                                                          |
+| ------------------------ | --------------------------------------------------------------------- |
+| `safelaunch-overview`    | Always — at session start, before any tool call beyond exploration.   |
+| `safelaunch-compliance`  | Any change touching compliance, scoring, legal text, AI prompts, PII. |
+| `safelaunch-ai-workflow` | Any non-trivial task — to find the right superpowers for the phase.   |
 
 These live in `.codex/skills/` and are auto-loaded by Codex. Other agents should read them explicitly:
 
@@ -43,27 +43,27 @@ These are installed at the user level (`~/.codex/skills/`, `~/.agents/skills/`) 
 
 ### Superpowers (development process)
 
-| Skill                                      | Use for                                              |
-| ------------------------------------------ | ---------------------------------------------------- |
-| `superpowers:using-superpowers`            | The skill invocation protocol itself.                |
-| `superpowers:brainstorming`                | Before any creative work — produces a design doc.    |
-| `superpowers:writing-plans`                | Turn approved design into a phased plan.             |
-| `superpowers:test-driven-development`      | Always. Encodes regulations as tests.                |
-| `superpowers:systematic-debugging`         | When something fails before guessing.                |
-| `superpowers:dispatching-parallel-agents`  | 2+ independent tasks without shared state.           |
-| `superpowers:subagent-driven-development`  | Implementation plans in the current session.         |
-| `superpowers:verification-before-completion`| Before claiming done. Actually run tests/build.      |
-| `superpowers:requesting-code-review`       | Before merging.                                      |
-| `superpowers:receiving-code-review`        | When review feedback arrives.                        |
-| `superpowers:using-git-worktrees`          | Isolating feature work.                              |
-| `superpowers:finishing-a-development-branch` | Merge / PR / cleanup.                              |
+| Skill                                        | Use for                                           |
+| -------------------------------------------- | ------------------------------------------------- |
+| `superpowers:using-superpowers`              | The skill invocation protocol itself.             |
+| `superpowers:brainstorming`                  | Before any creative work — produces a design doc. |
+| `superpowers:writing-plans`                  | Turn approved design into a phased plan.          |
+| `superpowers:test-driven-development`        | Always. Encodes regulations as tests.             |
+| `superpowers:systematic-debugging`           | When something fails before guessing.             |
+| `superpowers:dispatching-parallel-agents`    | 2+ independent tasks without shared state.        |
+| `superpowers:subagent-driven-development`    | Implementation plans in the current session.      |
+| `superpowers:verification-before-completion` | Before claiming done. Actually run tests/build.   |
+| `superpowers:requesting-code-review`         | Before merging.                                   |
+| `superpowers:receiving-code-review`          | When review feedback arrives.                     |
+| `superpowers:using-git-worktrees`            | Isolating feature work.                           |
+| `superpowers:finishing-a-development-branch` | Merge / PR / cleanup.                             |
 
 ### Anti-slop design
 
-| Skill                       | Use for                                                |
-| --------------------------- | ------------------------------------------------------ |
-| `hallmark`                  | Any UI work — landing pages, redesigns, design study.  |
-| `design-taste-frontend`     | Same scope, opinionated anti-slop frontend patterns.   |
+| Skill                   | Use for                                               |
+| ----------------------- | ----------------------------------------------------- |
+| `hallmark`              | Any UI work — landing pages, redesigns, design study. |
+| `design-taste-frontend` | Same scope, opinionated anti-slop frontend patterns.  |
 
 The `safelaunch-ai-workflow` skill (`Phase 3`) is the authoritative mapping from task to skill. When in doubt, read it.
 

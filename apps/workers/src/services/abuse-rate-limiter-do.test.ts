@@ -41,7 +41,9 @@ describe("AbuseRateLimiter DO (integration)", () => {
     const stub = getDO("exceeds-cap");
     await stub.fetch("https://abuse-rate-limiter.local/check?key=k2&windowMs=60000&max=2&now=1000");
     await stub.fetch("https://abuse-rate-limiter.local/check?key=k2&windowMs=60000&max=2&now=2000");
-    const third = await stub.fetch("https://abuse-rate-limiter.local/check?key=k2&windowMs=60000&max=2&now=3000");
+    const third = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=k2&windowMs=60000&max=2&now=3000",
+    );
     expect(third.status).toBe(429);
     const body = await parseCheck(third);
     expect(body.allowed).toBe(false);
@@ -52,9 +54,13 @@ describe("AbuseRateLimiter DO (integration)", () => {
   it("resets the window once windowMs has elapsed", async () => {
     const stub = getDO("window-reset");
     await stub.fetch("https://abuse-rate-limiter.local/check?key=k3&windowMs=10000&max=1&now=1000");
-    const blocked = await stub.fetch("https://abuse-rate-limiter.local/check?key=k3&windowMs=10000&max=1&now=2000");
+    const blocked = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=k3&windowMs=10000&max=1&now=2000",
+    );
     expect(blocked.status).toBe(429);
-    const fresh = await stub.fetch("https://abuse-rate-limiter.local/check?key=k3&windowMs=10000&max=1&now=12000");
+    const fresh = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=k3&windowMs=10000&max=1&now=12000",
+    );
     expect(fresh.status).toBe(200);
     const body = await parseCheck(fresh);
     expect(body.count).toBe(1);
@@ -63,19 +69,29 @@ describe("AbuseRateLimiter DO (integration)", () => {
   it("isolates counters across distinct keys", async () => {
     const stub = getDO("key-isolation");
     await stub.fetch("https://abuse-rate-limiter.local/check?key=A&windowMs=60000&max=1&now=1000");
-    const blockedA = await stub.fetch("https://abuse-rate-limiter.local/check?key=A&windowMs=60000&max=1&now=2000");
+    const blockedA = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=A&windowMs=60000&max=1&now=2000",
+    );
     expect(blockedA.status).toBe(429);
-    const okB = await stub.fetch("https://abuse-rate-limiter.local/check?key=B&windowMs=60000&max=1&now=3000");
+    const okB = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=B&windowMs=60000&max=1&now=3000",
+    );
     expect(okB.status).toBe(200);
   });
 
   it("rejects malformed requests with HTTP 400 and 404", async () => {
     const stub = getDO("malformed");
-    const noKey = await stub.fetch("https://abuse-rate-limiter.local/check?windowMs=60000&max=3&now=1000");
+    const noKey = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?windowMs=60000&max=3&now=1000",
+    );
     expect(noKey.status).toBe(400);
-    const badConfig = await stub.fetch("https://abuse-rate-limiter.local/check?key=k&windowMs=0&max=3&now=1000");
+    const badConfig = await stub.fetch(
+      "https://abuse-rate-limiter.local/check?key=k&windowMs=0&max=3&now=1000",
+    );
     expect(badConfig.status).toBe(400);
-    const badPath = await stub.fetch("https://abuse-rate-limiter.local/not-check?key=k&windowMs=60000&max=3&now=1000");
+    const badPath = await stub.fetch(
+      "https://abuse-rate-limiter.local/not-check?key=k&windowMs=60000&max=3&now=1000",
+    );
     expect(badPath.status).toBe(404);
   });
 });

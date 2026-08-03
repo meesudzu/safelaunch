@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import {
-  ReportView,
-  type ReportPayload,
-  type ReportMessages,
-} from "./report-view";
+import { ReportView, type ReportPayload, type ReportMessages } from "./report-view";
 
 const viMessages: ReportMessages = {
   brand: "SafeLaunch",
@@ -32,7 +28,8 @@ const viMessages: ReportMessages = {
   "finding.provision_link": "Xem văn bản đầy đủ",
   "upcoming.banner": "Có yêu cầu mới sẽ có hiệu lực vào",
   "expiry.label": "Báo cáo hết hạn vào",
-  "disclaimer": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý. Vui lòng tham vấn luật sư có chứng chỉ cho quyết định cuối cùng.",
+  disclaimer:
+    "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý. Vui lòng tham vấn luật sư có chứng chỉ cho quyết định cuối cùng.",
   "footer.disclosure": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý.",
   "footer.version": "v0.1 · SafeLaunch",
 };
@@ -63,7 +60,8 @@ const enMessages: ReportMessages = {
   "finding.provision_link": "Read the full provision",
   "upcoming.banner": "A new requirement takes effect on",
   "expiry.label": "Report expires on",
-  "disclaimer": "This report is a compliance signal, not legal advice. Please consult a licensed attorney for the final decision.",
+  disclaimer:
+    "This report is a compliance signal, not legal advice. Please consult a licensed attorney for the final decision.",
   "footer.disclosure": "This report is a compliance signal, not legal advice.",
   "footer.version": "v0.1 · SafeLaunch",
 };

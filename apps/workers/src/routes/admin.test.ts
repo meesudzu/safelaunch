@@ -52,9 +52,7 @@ class FakeD1 {
 
   async batch(statements: D1PreparedStatement[]): Promise<unknown[]> {
     await Promise.resolve();
-    this.batchCalls.push(
-      statements.map(() => ({ sql: "", bindings: [] as unknown[] })),
-    );
+    this.batchCalls.push(statements.map(() => ({ sql: "", bindings: [] as unknown[] })));
     return [];
   }
 
@@ -76,10 +74,7 @@ const buildApp = () => {
   return app;
 };
 
-const runWithDb = async (
-  db: FakeD1,
-  request: Request,
-): Promise<Response> => {
+const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
   const app = buildApp();
   return app.fetch(request, { DB: db as unknown as D1Database });
 };
@@ -104,14 +99,12 @@ describe("admin router", () => {
           },
         ],
       });
-      const response = await runWithDb(
-        db,
-        new Request("http://local/v1/admin/legal/pending"),
-      );
+      const response = await runWithDb(db, new Request("http://local/v1/admin/legal/pending"));
       expect(response.status).toBe(200);
-      const body = await jsonBody<Array<{ id: string; sourceUrl: string; effectiveFrom: string | null }>>(
-        response,
-      );
+      const body =
+        await jsonBody<Array<{ id: string; sourceUrl: string; effectiveFrom: string | null }>>(
+          response,
+        );
       expect(body).toHaveLength(1);
       expect(body[0]?.id).toBe("doc-1");
       expect(body[0]?.sourceUrl).toBe("https://vbpl.vn/doc-1");
@@ -127,10 +120,7 @@ describe("admin router", () => {
         firstReturn: null,
         allReturn: [],
       });
-      const response = await runWithDb(
-        db,
-        new Request("http://local/v1/admin/legal/missing"),
-      );
+      const response = await runWithDb(db, new Request("http://local/v1/admin/legal/missing"));
       expect(response.status).toBe(404);
       const body = await jsonBody<{ code: string }>(response);
       expect(body.code).toBe("NOT_FOUND");
@@ -139,10 +129,7 @@ describe("admin router", () => {
     it("returns 400 for invalid document id", async () => {
       const db = new FakeD1();
       const longId = "x".repeat(300);
-      const response = await runWithDb(
-        db,
-        new Request(`http://local/v1/admin/legal/${longId}`),
-      );
+      const response = await runWithDb(db, new Request(`http://local/v1/admin/legal/${longId}`));
       expect(response.status).toBe(400);
       const body = await jsonBody<{ code: string }>(response);
       expect(body.code).toBe("INVALID_DOCUMENT_ID");
@@ -202,10 +189,7 @@ describe("admin router", () => {
           },
         ],
       });
-      const response = await runWithDb(
-        db,
-        new Request("http://local/v1/admin/legal/doc-1"),
-      );
+      const response = await runWithDb(db, new Request("http://local/v1/admin/legal/doc-1"));
       expect(response.status).toBe(200);
       const body = await jsonBody<{
         id: string;
@@ -215,10 +199,7 @@ describe("admin router", () => {
       }>(response);
       expect(body.id).toBe("doc-1");
       expect(body.provisions).toHaveLength(1);
-      expect(body.provisions[0]?.categories).toEqual([
-        "online_game",
-        "electronic_press",
-      ]);
+      expect(body.provisions[0]?.categories).toEqual(["online_game", "electronic_press"]);
       expect(body.relations).toHaveLength(1);
       expect(body.relations[0]?.type).toBe("amends");
       expect(body.relations[0]?.targetDocumentId).toBe("doc-2");

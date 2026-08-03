@@ -80,7 +80,13 @@ const main = async () => {
   });
   if (scan.ok) {
     const created = await scan.json();
-    results.push({ url: `${trimmed}/v1/scans`, method: "POST", status: scan.status, elapsed: 0, ok: true });
+    results.push({
+      url: `${trimmed}/v1/scans`,
+      method: "POST",
+      status: scan.status,
+      elapsed: 0,
+      ok: true,
+    });
     const final = await check(
       `${trimmed}/v1/scans/${encodeURIComponent(created.scanId)}`,
       "GET",
@@ -89,7 +95,13 @@ const main = async () => {
     );
     results.push(final);
   } else {
-    results.push({ url: `${trimmed}/v1/scans`, method: "POST", status: scan.status, elapsed: 0, ok: false });
+    results.push({
+      url: `${trimmed}/v1/scans`,
+      method: "POST",
+      status: scan.status,
+      elapsed: 0,
+      ok: false,
+    });
   }
 
   await sleep(100);

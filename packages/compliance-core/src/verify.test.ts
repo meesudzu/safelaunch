@@ -29,9 +29,7 @@ const baseContext: VerifyContext = {
   category: "online_game",
   rubricVersion: "vn-mvp-v1",
   highRiskConfidenceThreshold: 0.9,
-  evidence: [
-    evidence({ id: "ev_priv", type: "privacy_notice", excerpt: "Chúng tôi thu thập..." }),
-  ],
+  evidence: [evidence({ id: "ev_priv", type: "privacy_notice", excerpt: "Chúng tôi thu thập..." })],
   retrieval: [
     {
       provisionId: "prov-1",

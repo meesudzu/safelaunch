@@ -75,7 +75,9 @@ describe("translateReport", () => {
   it("translates the overall status' explanation field while keeping status identical", async () => {
     const translator = ({ text }: { text: string }) =>
       Promise.resolve(text === "Trạng thái tổng thể" ? "Overall status" : text);
-    const result = await translateReport(reportVi, translator, { summaryLabel: "Trạng thái tổng thể" });
+    const result = await translateReport(reportVi, translator, {
+      summaryLabel: "Trạng thái tổng thể",
+    });
     expect(result.vi.summaryLabel).toBe("Trạng thái tổng thể");
     expect(result.en.summaryLabel).toBe("Overall status");
     expect(result.vi.status).toBe("high_risk");

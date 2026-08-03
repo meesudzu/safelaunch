@@ -1,8 +1,4 @@
-import {
-  type EvidenceItem,
-  type LegalCitation,
-  type ScanCoverage,
-} from "@safelaunch/contracts";
+import { type EvidenceItem, type LegalCitation, type ScanCoverage } from "@safelaunch/contracts";
 type AppCategoryLike = "online_game" | "electronic_press" | "digital_entertainment";
 import { RUBRIC_VERSION, severityFor } from "./scoring";
 import type { RuleOutcome, RuleSeverity } from "./scoring";
@@ -80,7 +76,6 @@ const OPERATOR_CITATION: LegalCitation = baseCitation(
   "Doanh nghiệp cung cấp dịch vụ phải công khai tên, địa chỉ, số điện thoại liên hệ trên trang thông tin điện tử của mình.",
 );
 
-
 const LICENSE_GAME_PROVISION_ID = "vn-pd-72-2013-game-license";
 const LICENSE_GAME_CITATION: LegalCitation = baseCitation(
   LICENSE_GAME_PROVISION_ID,
@@ -146,10 +141,8 @@ const RULES: readonly RuleDefinition[] = [
     requiredPages: ["contact"],
     evidenceTypes: ["contact"],
     citation: CONTACT_CITATION,
-    presentRationale:
-      "Đã phát hiện kênh liên hệ (email hoặc số điện thoại) trên trang liên hệ.",
-    absentRationale:
-      "Không tìm thấy kênh liên hệ công khai; cần bổ sung trước khi ra mắt.",
+    presentRationale: "Đã phát hiện kênh liên hệ (email hoặc số điện thoại) trên trang liên hệ.",
+    absentRationale: "Không tìm thấy kênh liên hệ công khai; cần bổ sung trước khi ra mắt.",
     unknownRationale:
       "Chưa xác định được kênh liên hệ vì trang liên hệ không thể truy cập trong lần quét này.",
   },
@@ -176,9 +169,7 @@ const hasEvidenceFor = (
   return matches;
 };
 
-const buildCitations = (
-  rule: RuleDefinition,
-): readonly RuleCitation[] => [
+const buildCitations = (rule: RuleDefinition): readonly RuleCitation[] => [
   {
     provisionId: rule.citation.provisionId,
     source: rule.citation.source,
@@ -214,7 +205,9 @@ const buildRuleResult = (
 const evaluateRule = (rule: RuleDefinition, input: RuleInput): RuleResult => {
   const allRequiredFailed = rule.requiredPages.every((page) => pageIsFailed(input.coverage, page));
   const anyRequiredFailed = rule.requiredPages.some((page) => pageIsFailed(input.coverage, page));
-  const anyRequiredFetched = rule.requiredPages.some((page) => pageWasFetched(input.coverage, page));
+  const anyRequiredFetched = rule.requiredPages.some((page) =>
+    pageWasFetched(input.coverage, page),
+  );
   const matched = hasEvidenceFor(input.evidence, rule);
   if (matched.length > 0) {
     return buildRuleResult(rule, "present", matched);
@@ -230,8 +223,8 @@ const evaluateRule = (rule: RuleDefinition, input: RuleInput): RuleResult => {
 
 export const runRules = (input: RuleInput): readonly RuleResult[] => {
   const category: AppCategoryLike = input.category;
-  const filteredRules = RULES.filter((rule) =>
-    rule.categories.includes(category) && supportsCategory(input.jurisdiction, category),
+  const filteredRules = RULES.filter(
+    (rule) => rule.categories.includes(category) && supportsCategory(input.jurisdiction, category),
   );
   return filteredRules.map((rule) => evaluateRule(rule, input));
 };

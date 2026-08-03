@@ -43,11 +43,7 @@ const localizeFinding = async (
   locale: "vi" | "en",
 ): Promise<ReportFinding> => {
   const rationale = await safeTranslate(finding.rationale, translator, locale);
-  const recommendedAction = await safeTranslate(
-    finding.recommendedAction,
-    translator,
-    locale,
-  );
+  const recommendedAction = await safeTranslate(finding.recommendedAction, translator, locale);
   return {
     ...finding,
     rationale,

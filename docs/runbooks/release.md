@@ -28,7 +28,7 @@ after CI passes. The deploy:
 5. Runs `node scripts/smoke.mjs --base-url "$STAGING_URL"`.
 6. Runs the eval gate (`pnpm -C packages/ai test -- eval-runner`).
 7. Runs the latency probe (`node scripts/check-latency.mjs --base-url
-   "$STAGING_URL" --samples 25`).
+"$STAGING_URL" --samples 25`).
 8. Uploads a redacted report artifact to GitHub Actions.
 
 **Stop conditions** (any one halts the release):

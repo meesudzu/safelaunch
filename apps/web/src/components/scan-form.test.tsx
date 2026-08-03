@@ -3,8 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScanForm, type ScanFormProps } from "./scan-form";
 
-
-
 const viMessages = {
   brand: "SafeLaunch",
   "locale.switch": "VI / EN",
@@ -31,7 +29,9 @@ const viMessages = {
   "footer.version": "v0.1",
 } as const;
 
-const createScan: ScanFormProps["createScan"] = vi.fn(() => Promise.resolve({ scanId: "scan_test", state: "queued" as const }));
+const createScan: ScanFormProps["createScan"] = vi.fn(() =>
+  Promise.resolve({ scanId: "scan_test", state: "queued" as const }),
+);
 
 describe("ScanForm", () => {
   it("submits the Vietnam scan contract without authentication", async () => {
