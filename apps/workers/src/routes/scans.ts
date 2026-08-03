@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { CreateScanInput, ScanState } from "@safelaunch/contracts";
 import { ScanRepository, ReportRepository } from "@safelaunch/db";
+import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
 import type { ScanResult, ScanTerminalState } from "../workflows/scan-workflow";
 
 const SCAN_TTL_SECONDS = 7 * 24 * 60 * 60;
@@ -10,6 +11,7 @@ export interface RoutesEnv {
   DB: D1Database;
   WEB_ORIGIN?: string;
   SCAN_WORKFLOW?: Workflow;
+  ABUSE_RATE_LIMITER?: DurableObjectNamespace;
 }
 
 interface StoredScanRow {
@@ -36,6 +38,15 @@ const generateScanId = (): string => {
     out += byte.toString(16).padStart(2, "0");
   }
   return `scan_${out}`;
+};
+
+const extractTurnstileToken = (request: Request): string | null => {
+  // The browser submits the Turnstile token as `cf-turnstile-response` on
+  // POST /v1/scans. We never log or persist it; it's forwarded to the
+  // siteverify endpoint in enforceAbuseControls.
+  const form = request.headers.get("content-type") ?? "";
+  if (!form.includes("application/json")) return null;
+  return request.headers.get("cf-turnstile-response");
 };
 
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
@@ -78,6 +89,35 @@ scansRouter.post("/v1/scans", async (context) => {
     );
   }
   const input = parsed.data;
+
+  // Anonymous abuse controls: per-(hashed-IP, hashed-hostname) sliding window
+  // via the AbuseRateLimiter Durable Object. Turnstile verification is skipped
+  // unless the secret is configured in the environment.
+  if (context.env.ABUSE_RATE_LIMITER) {
+    const clientIp = context.req.header("cf-connecting-ip") ?? "unknown";
+    const submittedHost = context.req.header("origin") ?? new URL(input.url).host;
+    const deps: AbuseControlsDeps = {
+      rateLimiter: context.env.ABUSE_RATE_LIMITER.get(
+        context.env.ABUSE_RATE_LIMITER.idFromName(`abuse::${clientIp}::${submittedHost}`),
+      ),
+    };
+    try {
+      await enforceAbuseControls(
+        {
+          ip: clientIp,
+          hostname: submittedHost,
+          turnstileToken: extractTurnstileToken(context.req.raw),
+        },
+        deps,
+      );
+    } catch (cause) {
+      if (cause instanceof AbuseError) {
+        const status = cause.status as 400 | 401 | 403 | 404 | 409 | 410 | 429 | 500 | 502 | 503;
+        return context.json({ code: cause.code }, status);
+      }
+      throw cause;
+    }
+  }
   const repository = new ScanRepository(context.env.DB);
   const scanId = generateScanId();
   const now = new Date();

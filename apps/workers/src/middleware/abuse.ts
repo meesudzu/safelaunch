@@ -4,10 +4,17 @@
  * The MVP applies two layers of protection:
  *  1. **Rate limit** by a salted hash of the client IP and a salted hash of
  *     the request hostname. Raw IP and hostname are never written to
- *     logs or counters; only the opaque hash.
+ *     logs or counters; only the opaque hash. The counter lives in a
+ *     Durable Object (`AbuseRateLimiter`) so it survives across Worker
+ *     isolates — a vanilla `Map` would lose state on every cold start
+ *     and diverge across isolates.
  *  2. **Turnstile verification** for the `/v1/scans` endpoint when the
  *     Turnstile site key is configured. The token is verified server-side
  *     against Cloudflare's siteverify endpoint and never persisted.
+ *
+ * Both controls are pure functions over an injected `DurableObjectStub`
+ * and a `fetch` implementation, so the same code is exercised by tests
+ * with a fake stub and by production with the real DO binding.
  */
 
 import { hashOpaque } from "../observability";
@@ -29,7 +36,7 @@ export interface AbuseConfig {
   };
 }
 
-const DEFAULT_CONFIG: AbuseConfig = {
+export const DEFAULT_CONFIG: AbuseConfig = {
   rateLimit: { max: 30, windowMs: 60_000 },
   turnstile: {
     siteKey: "",
@@ -44,13 +51,6 @@ export interface RequestContext {
   readonly turnstileToken: string | null;
 }
 
-interface RateLimitState {
-  count: number;
-  windowStart: number;
-}
-
-const rateLimitStore = new Map<string, RateLimitState>();
-
 export class AbuseError extends Error {
   constructor(
     readonly status: number,
@@ -62,41 +62,56 @@ export class AbuseError extends Error {
   }
 }
 
-export const resetAbuseState = (): void => {
-  rateLimitStore.clear();
+/**
+ * Minimal interface satisfied by `DurableObjectStub` in production and by
+ * the fake stub in tests. We deliberately keep the surface narrow so the
+ * middleware stays decoupled from the concrete DO binding.
+ */
+export interface RateLimiterStub {
+  fetch(input: Request | string, init?: RequestInit): Promise<Response>;
+}
+
+const buildCheckRequest = (
+  key: string,
+  config: AbuseConfig,
+  now: number,
+): Request => {
+  const url = new URL("https://abuse-rate-limiter.local/check");
+  url.searchParams.set("key", key);
+  url.searchParams.set("windowMs", `${config.rateLimit.windowMs}`);
+  url.searchParams.set("max", `${config.rateLimit.max}`);
+  url.searchParams.set("now", `${now}`);
+  return new Request(url.toString(), { method: "GET" });
 };
 
-const purgeExpiredEntries = (now: number, windowMs: number): void => {
-  for (const [key, state] of rateLimitStore.entries()) {
-    if (now - state.windowStart > windowMs) {
-      rateLimitStore.delete(key);
-    }
-  }
+const SALT = "safelaunch-rate-limit-v1";
+
+export const buildRateLimitKey = async (
+  context: RequestContext,
+): Promise<string> => {
+  const ipHash = await hashOpaque(context.ip, SALT);
+  const hostHash = await hashOpaque(context.hostname, SALT);
+  return `${ipHash}::${hostHash}`;
 };
 
 export const enforceRateLimit = async (
   context: RequestContext,
+  stub: RateLimiterStub,
   config: AbuseConfig = DEFAULT_CONFIG,
   now: number = Date.now(),
 ): Promise<void> => {
-  purgeExpiredEntries(now, config.rateLimit.windowMs);
-  const salt = "safelaunch-rate-limit-v1";
-  const ipHash = await hashOpaque(context.ip, salt);
-  const hostHash = await hashOpaque(context.hostname, salt);
-  const key = `${ipHash}::${hostHash}`;
-  const existing = rateLimitStore.get(key);
-  if (!existing || now - existing.windowStart > config.rateLimit.windowMs) {
-    rateLimitStore.set(key, { count: 1, windowStart: now });
-    return;
+  const key = await buildRateLimitKey(context);
+  const response = await stub.fetch(buildCheckRequest(key, config, now));
+  if (response.status === 429) {
+    throw new AbuseError(429, "RATE_LIMITED", "Request rate exceeded; retry later.");
   }
-  if (existing.count + 1 > config.rateLimit.max) {
+  if (!response.ok) {
     throw new AbuseError(
-      429,
-      "RATE_LIMITED",
-      "Request rate exceeded; retry later.",
+      502,
+      "RATE_LIMIT_BACKEND",
+      `Rate-limiter backend returned ${response.status}`,
     );
   }
-  existing.count += 1;
 };
 
 export interface TurnstileVerifyResult {
@@ -128,21 +143,38 @@ export const verifyTurnstile = async (
     return { success: false, hostname: context.hostname, errorCodes: ["siteverify-unreachable"] };
   }
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-  const data = (await response.json()) as { success: boolean; hostname?: string; "error-codes"?: string[] };
+  const data = (await response.json()) as unknown as {
+    success: boolean;
+    hostname?: unknown;
+    "error-codes"?: unknown;
+  };
   return {
     success: data.success === true,
-    hostname: data.hostname ?? null,
-    errorCodes: data["error-codes"] ?? [],
+    hostname: typeof data.hostname === "string" ? data.hostname : null,
+    errorCodes: Array.isArray(data["error-codes"]) ? (data["error-codes"] as string[]) : [],
   };
 };
 
+export interface AbuseControlsDeps {
+  readonly rateLimiter: RateLimiterStub;
+  readonly fetchImpl?: typeof fetch;
+  readonly now?: () => number;
+  readonly config?: AbuseConfig;
+}
+
 export const enforceAbuseControls = async (
   context: RequestContext,
-  config: AbuseConfig = DEFAULT_CONFIG,
-  fetchImpl: typeof fetch = fetch,
+  deps: AbuseControlsDeps,
 ): Promise<void> => {
-  await enforceRateLimit(context, config);
-  const turnstile = await verifyTurnstile(context, config, fetchImpl);
+  const config = deps.config ?? DEFAULT_CONFIG;
+  const now = deps.now ? deps.now() : Date.now();
+  await enforceRateLimit(
+    context,
+    deps.rateLimiter,
+    config,
+    now,
+  );
+  const turnstile = await verifyTurnstile(context, config, deps.fetchImpl ?? fetch);
   if (!turnstile.success) {
     throw new AbuseError(
       403,

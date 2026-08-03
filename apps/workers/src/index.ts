@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { scansRouter } from "./routes/scans";
 import { ScanWorkflowEntrypoint } from "./workflows/scan-workflow";
+import { AbuseRateLimiter } from "./services/abuse-rate-limiter-do";
 
 export type Env = {
   DB: D1Database;
@@ -10,6 +11,7 @@ export type Env = {
   ARTIFACTS?: R2Bucket;
   WEB_ORIGIN?: string;
   SCAN_WORKFLOW?: Workflow;
+  ABUSE_RATE_LIMITER?: DurableObjectNamespace;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -25,4 +27,4 @@ app.onError((error, context) => {
 });
 
 export default app;
-export { ScanWorkflowEntrypoint };
+export { ScanWorkflowEntrypoint, AbuseRateLimiter };

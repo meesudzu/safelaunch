@@ -4,4 +4,18 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ABUSE_RATE_LIMITER",
+        "class_name": "AbuseRateLimiter",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AbuseRateLimiter"],
+    },
+  ],
 }

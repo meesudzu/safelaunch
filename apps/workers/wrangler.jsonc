@@ -25,6 +25,20 @@
       "class_name": "ScanWorkflowEntrypoint",
     },
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ABUSE_RATE_LIMITER",
+        "class_name": "AbuseRateLimiter",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AbuseRateLimiter"],
+    },
+  ],
   "vars": { "WEB_ORIGIN": "http://localhost:3000" },
   "observability": {
     "enabled": true,
