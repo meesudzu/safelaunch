@@ -16,13 +16,7 @@ import {
   type RetrievalDeps,
 } from "@safelaunch/ai";
 
-export const SUPPORTED_PAGE_TYPES = [
-  "homepage",
-  "about",
-  "terms",
-  "privacy",
-  "contact",
-] as const;
+export const SUPPORTED_PAGE_TYPES = ["homepage", "about", "terms", "privacy", "contact"] as const;
 
 export type SupportedPageType = (typeof SUPPORTED_PAGE_TYPES)[number];
 
@@ -39,18 +33,10 @@ export const ScanParamsSchema = z.object({
 
 export type ScanParams = z.input<typeof ScanParamsSchema>;
 
-export const ScanTerminalStatus = z.enum([
-  "high_risk",
-  "needs_review",
-  "no_significant_risk",
-]);
+export const ScanTerminalStatus = z.enum(["high_risk", "needs_review", "no_significant_risk"]);
 export type ScanTerminalStatus = z.infer<typeof ScanTerminalStatus>;
 
-export const ScanTerminalState = z.enum([
-  "completed",
-  "partial",
-  "failed",
-]);
+export const ScanTerminalState = z.enum(["completed", "partial", "failed"]);
 export type ScanTerminalState = z.infer<typeof ScanTerminalState>;
 
 export const ScanCoverageSchema = z.object({
@@ -94,6 +80,11 @@ export interface ScanRunDeps {
     scanId: string;
     payload: Record<string, unknown>;
   }) => Promise<{ token: string; url: string } | null>;
+  updateState: (input: {
+    scanId: string;
+    state: ScanTerminalState;
+    coverage: ScanCoverage;
+  }) => Promise<void>;
   now: () => string;
   log: (entry: Record<string, unknown>) => void;
   retryCount?: number;
@@ -130,7 +121,12 @@ const buildCoverage = (
 const fetchWithRetries = async (
   fetcher: PageFetcher,
   url: string,
-  options: { timeoutPages: Set<SupportedPageType>; pageType: SupportedPageType; retries: number; backoffMs: number },
+  options: {
+    timeoutPages: Set<SupportedPageType>;
+    pageType: SupportedPageType;
+    retries: number;
+    backoffMs: number;
+  },
 ): Promise<{ ok: true; status: number; html: Uint8Array } | { ok: false; reason: string }> => {
   let attempt = 0;
   let lastError: unknown = null;
@@ -154,10 +150,7 @@ const fetchWithRetries = async (
   return { ok: false, reason };
 };
 
-export const runScan = async (
-  rawParams: ScanParams,
-  deps: ScanRunDeps,
-): Promise<ScanResult> => {
+export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
   const params = ScanParamsSchema.parse(rawParams);
   const requestedPages = requiredPages(params);
   const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
@@ -178,7 +171,8 @@ export const runScan = async (
   const fetched: SupportedPageType[] = [];
   const failed: SupportedPageType[] = [];
   const skipped: SupportedPageType[] = [];
-  const pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> = [];
+  const pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> =
+    [];
 
   // Always fetch homepage first.
   const homepage = await fetchWithRetries(deps.fetch, params.url, {
@@ -196,6 +190,7 @@ export const runScan = async (
       at: deps.now(),
     });
     const coverage = buildCoverage([], ["homepage"], []);
+    await deps.updateState({ scanId: params.scanId, state: "failed", coverage });
     return {
       scanId: params.scanId,
       state: "failed",
@@ -288,6 +283,8 @@ export const runScan = async (
     });
   }
 
+  await deps.updateState({ scanId: params.scanId, state, coverage });
+
   const result: ScanResult = {
     scanId: params.scanId,
     state,
@@ -317,7 +314,10 @@ export interface ScanWorkflowEnv {
 
 export type ScanWorkflowPayload = ScanParams;
 
-export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<ScanWorkflowEnv, ScanWorkflowPayload> {
+export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
+  ScanWorkflowEnv,
+  ScanWorkflowPayload
+> {
   async run(
     event: Readonly<WorkflowEvent<ScanWorkflowPayload>>,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -331,11 +331,10 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<ScanWorkflowEnv, 
       fetch: makeWorkflowFetch(),
       evaluate: makeWorkflowEvaluator(this.env),
       persistReport: makeWorkflowPersistReport(this.env),
+      updateState: makeWorkflowUpdateState(this.env),
       now: () => new Date().toISOString(),
       log: (entry) =>
-        console.log(
-          JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" }),
-        ),
+        console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" })),
       retryCount: 1,
       retryBackoffMs: 5,
     });
@@ -349,7 +348,8 @@ const makeWorkflowFetch = (): PageFetcher => {
   return {
     async fetch(url) {
       const { fetchBoundedHtml } = await import("../services/safe-fetch");
-      const result = await fetchBoundedHtml({ url, resolve: () => Promise.resolve([]) });
+      const { resolveViaDoH } = await import("../services/dns-resolver");
+      const result = await fetchBoundedHtml({ url, resolve: resolveViaDoH });
       return { status: result.status, html: result.bytes };
     },
   };
@@ -409,7 +409,10 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
         ? {
             legal: legalRepo,
             vector: vectorIndex as unknown as RetrievalDeps["vector"],
-            embed: (text: string) => embedTextAi(text, { ai: aiBinding, gateway: { id: "safelaunch-mvp" } }).then((r) => r.vector),
+            embed: (text: string) =>
+              embedTextAi(text, { ai: aiBinding, gateway: { id: "safelaunch-mvp" } }).then(
+                (r) => r.vector,
+              ),
           }
         : null;
 
@@ -421,13 +424,15 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
           rationale: rule.rationale,
           confidence: 1,
           evidenceIds: [...rule.evidenceIds],
-          citations: rule.citations.map((c: { provisionId: string; source: string; url?: string; excerpt: string }) => ({
-            provisionId: c.provisionId,
-            source: c.source,
-            url: c.url ?? c.source,
-            retrievedAt: on,
-            excerpt: c.excerpt,
-          })),
+          citations: rule.citations.map(
+            (c: { provisionId: string; source: string; url?: string; excerpt: string }) => ({
+              provisionId: c.provisionId,
+              source: c.source,
+              url: c.url ?? c.source,
+              retrievedAt: on,
+              excerpt: c.excerpt,
+            }),
+          ),
           recommendedAction: "Đã đáp ứng yêu cầu.",
           applicability: rule.applicability,
         });
@@ -440,13 +445,15 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
           rationale: rule.rationale,
           confidence: 1,
           evidenceIds: [...rule.evidenceIds],
-          citations: rule.citations.map((c: { provisionId: string; source: string; url?: string; excerpt: string }) => ({
-            provisionId: c.provisionId,
-            source: c.source,
-            url: c.url ?? c.source,
-            retrievedAt: on,
-            excerpt: c.excerpt,
-          })),
+          citations: rule.citations.map(
+            (c: { provisionId: string; source: string; url?: string; excerpt: string }) => ({
+              provisionId: c.provisionId,
+              source: c.source,
+              url: c.url ?? c.source,
+              retrievedAt: on,
+              excerpt: c.excerpt,
+            }),
+          ),
           recommendedAction: "Bổ sung trước khi ra mắt.",
           applicability: rule.applicability,
         });
@@ -493,7 +500,11 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
             retrieval,
             category,
             provider: {
-              evaluate: async (pi: { websiteContent: string; category: string; systemRules?: string }) => {
+              evaluate: async (pi: {
+                websiteContent: string;
+                category: string;
+                systemRules?: string;
+              }) => {
                 const result = await provider(pi);
                 return result.draft;
               },
@@ -503,7 +514,15 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
           // Build the provision-text map so verifyFinding can confirm
           // each legalQuote is a substring of the cited provision.
           const retrievalText = new Map<string, string>();
-          for (const r of retrieval as readonly { provisionId: string; documentId: string; source: string; title: string; effectiveFrom: string | null; effectiveTo: string | null; score: number }[]) {
+          for (const r of retrieval as readonly {
+            provisionId: string;
+            documentId: string;
+            source: string;
+            title: string;
+            effectiveFrom: string | null;
+            effectiveTo: string | null;
+            score: number;
+          }[]) {
             // We need the full provision text; the retrieval metadata only
             // carries ids. Re-query the repository for each provision id.
             const provision = await legalRepo
@@ -581,13 +600,13 @@ const sha256Hex = async (input: string): Promise<string> => {
 
 const REPORT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
-const makeWorkflowPersistReport = (
-  env: ScanWorkflowEnv,
-): ScanRunDeps["persistReport"] => {
+const makeWorkflowPersistReport = (env: ScanWorkflowEnv): ScanRunDeps["persistReport"] => {
   return async (input): Promise<{ token: string; url: string } | null> => {
     const tokenBytes = new Uint8Array(24);
     crypto.getRandomValues(tokenBytes);
-    const token = `rpt_${Array.from(tokenBytes).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+    const token = `rpt_${Array.from(tokenBytes)
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")}`;
     const tokenHash = await sha256Hex(token);
     const now = new Date();
     const expiresAt = new Date(now.getTime() + REPORT_TTL_SECONDS * 1000).toISOString();
@@ -605,6 +624,18 @@ const makeWorkflowPersistReport = (
     });
     const url = `https://web.local/vi/report/${token}`;
     return { token, url };
+  };
+};
+
+const makeWorkflowUpdateState = (env: ScanWorkflowEnv): ScanRunDeps["updateState"] => {
+  return async (input): Promise<void> => {
+    const { ScanRepository } = await import("@safelaunch/db");
+    const repo = new ScanRepository(env.DB);
+    await repo.updateState({
+      id: input.scanId,
+      state: input.state,
+      coverage: input.coverage,
+    });
   };
 };
 

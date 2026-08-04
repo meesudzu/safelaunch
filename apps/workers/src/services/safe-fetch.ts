@@ -67,16 +67,14 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
   const limits = { ...DEFAULT_FETCH_LIMITS, ...(request.limits ?? {}) };
   const fetchImpl = request.fetchImpl ?? fetch;
   const validated = await validateOrThrow(request.url, request.resolve);
-  const initialAddress = validated.addresses[0];
-  if (!initialAddress) {
+  if (validated.addresses.length === 0) {
     throw new UnsafeUrlError(request.url, "no addresses available");
   }
   let currentUrl = validated.url.toString();
-  let currentAddress = initialAddress;
   for (let redirect = 0; redirect <= limits.redirects; redirect += 1) {
     const signal = mergeAbort(limits.durationMs);
     const start = Date.now();
-    const response = await fetchImpl(currentAddress, {
+    const response = await fetchImpl(currentUrl, {
       method: "GET",
       redirect: "manual",
       signal,
@@ -92,7 +90,6 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
       }
       const next = new URL(location, currentUrl);
       const nextValidated = await validateOrThrow(next.toString(), request.resolve);
-      currentAddress = nextValidated.addresses[0] ?? currentAddress;
       currentUrl = nextValidated.url.toString();
       continue;
     }
@@ -101,13 +98,17 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
     }
     const contentType = response.headers.get("content-type");
     if (!isHtmlContentType(contentType)) {
-      throw new FetchLimitError(`unsupported content type ${contentType ?? "<none>"} from ${currentUrl}`);
+      throw new FetchLimitError(
+        `unsupported content type ${contentType ?? "<none>"} from ${currentUrl}`,
+      );
     }
     const contentLength = response.headers.get("content-length");
     if (contentLength) {
       const total = Number.parseInt(contentLength, 10);
       if (Number.isFinite(total) && total > limits.compressedBytes) {
-        throw new FetchLimitError(`response body ${total} bytes exceeds compressed limit ${limits.compressedBytes}`);
+        throw new FetchLimitError(
+          `response body ${total} bytes exceeds compressed limit ${limits.compressedBytes}`,
+        );
       }
     }
     const reader = response.body?.getReader();

@@ -1,21 +1,33 @@
 import { Hono } from "hono";
+import { constantTimeEquals } from "./reports";
 
 /**
  * Admin legal-review endpoints. Access control lives at the Cloudflare
  * Access layer (the `/admin/*` paths are gated by an Access application
  * that issues a JWT to the browser). The Worker trusts the validated
- * JWT claims forwarded by Cloudflare:
+ * claims forwarded by Cloudflare:
  *
- *   - `cf-access-authenticated-user-email`  → used as the audit `actor`
+ *   - `cf-access-authenticated-user-email`  → human reviewer, used as
+ *     the audit `actor` directly.
+ *   - `cf-access-client-id` / `cf-access-client-secret` → service token
+ *     (CI-driven review). Only honored when `ADMIN_SERVICE_TOKEN_CLIENT_ID`
+ *     + `ADMIN_SERVICE_TOKEN_CLIENT_SECRET` are configured as Worker
+ *     secrets; the request must present a matching pair. The audit actor
+ *     is recorded as `service-token:<clientId>` so CI-driven decisions are
+ *     distinguishable from human ones.
  *
- * For the MVP we accept any request that reaches this router — the
- * upstream Cloudflare Access policy is the source of truth. When the
- * Access app is misconfigured the endpoint will simply be unreachable
- * from the public internet, not silently authorized.
+ * When neither auth path resolves and no service-token secrets are
+ * configured (local dev, no Access app in front), we fall back to a
+ * stable placeholder so audit rows still record *some* actor. Once
+ * service-token secrets ARE configured, an unresolved request is
+ * rejected with 401 — the upstream Access policy is no longer the only
+ * gate for review-submission.
  */
 
 export interface AdminEnv {
   DB: D1Database;
+  ADMIN_SERVICE_TOKEN_CLIENT_ID?: string;
+  ADMIN_SERVICE_TOKEN_CLIENT_SECRET?: string;
 }
 
 interface PendingDocumentRow {
@@ -52,14 +64,36 @@ interface AuditRow {
   created_at: string;
 }
 
-const RESOLVED_ACTOR = (request: Request): string => {
-  // Cloudflare Access forwards the authenticated user's email as a header.
-  // In local dev (no Access app), fall back to a stable placeholder so
-  // audit rows still record *some* actor.
-  return (
-    request.headers.get("cf-access-authenticated-user-email") ??
-    "local-dev-reviewer"
-  );
+/**
+ * Resolves the audit actor for a review submission, or `null` if the
+ * request cannot be authenticated. Returns `null` only when service-token
+ * secrets are configured but the presented credentials don't match —
+ * callers must reject that case with 401.
+ */
+const resolveActor = (request: Request, env: AdminEnv): string | null => {
+  const humanEmail = request.headers.get("cf-access-authenticated-user-email");
+  if (humanEmail) return humanEmail;
+
+  const { ADMIN_SERVICE_TOKEN_CLIENT_ID, ADMIN_SERVICE_TOKEN_CLIENT_SECRET } = env;
+  if (!ADMIN_SERVICE_TOKEN_CLIENT_ID || !ADMIN_SERVICE_TOKEN_CLIENT_SECRET) {
+    // No service-token secrets configured (local dev, no Access app in
+    // front) — fall back to a stable placeholder so audit rows still
+    // record *some* actor.
+    return "local-dev-reviewer";
+  }
+
+  const clientId = request.headers.get("cf-access-client-id");
+  const clientSecret = request.headers.get("cf-access-client-secret");
+  if (
+    clientId &&
+    clientSecret &&
+    constantTimeEquals(clientId, ADMIN_SERVICE_TOKEN_CLIENT_ID) &&
+    constantTimeEquals(clientSecret, ADMIN_SERVICE_TOKEN_CLIENT_SECRET)
+  ) {
+    return `service-token:${clientId}`;
+  }
+
+  return null;
 };
 
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
@@ -161,6 +195,11 @@ adminRouter.get("/legal/:documentId", async (context) => {
 });
 
 adminRouter.post("/legal/:documentId/review", async (context) => {
+  const actor = resolveActor(context.req.raw, context.env);
+  if (!actor) {
+    return context.json({ code: "UNAUTHORIZED" }, 401);
+  }
+
   const documentId = context.req.param("documentId");
   if (!documentId || documentId.length > 256) {
     return context.json({ code: "INVALID_DOCUMENT_ID" }, 400);
@@ -202,7 +241,6 @@ adminRouter.post("/legal/:documentId/review", async (context) => {
   }
 
   const newStatus = decision === "approve" ? "approved" : "rejected";
-  const actor = RESOLVED_ACTOR(context.req.raw);
   const eventId = `evt_${crypto.randomUUID()}`;
   const now = new Date().toISOString();
 

@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type PageFetcher,
-  type ScanParams,
-  runScan,
-} from "./scan-workflow";
+import { type PageFetcher, type ScanParams, runScan } from "./scan-workflow";
 
 const fakeHtml = (title: string) =>
   `<!DOCTYPE html><html lang="vi"><head><title>${title}</title></head><body><p>OK</p></body></html>`;
@@ -31,9 +27,7 @@ class FakeFetcher implements PageFetcher {
     const next = previous + 1;
     this.attemptsByUrl.set(url, next);
     this.calls.push({ url, attempts: next });
-    const failure = this.failOn.find(
-      (entry) => entry.url === url && next >= entry.minAttempts,
-    );
+    const failure = this.failOn.find((entry) => entry.url === url && next >= entry.minAttempts);
     if (failure) {
       throw new Error(`forced failure for ${url}`);
     }
@@ -59,10 +53,7 @@ const captureLogger = () => {
   };
 };
 
-const makeDeps = (overrides: {
-  fetch: PageFetcher;
-  evaluate?: ScanRunDeps["evaluate"];
-}) => {
+const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evaluate"] }) => {
   const issued = new Map<string, { token: string; url: string }>();
   const persistReport = async (input: {
     scanId: string;
@@ -76,16 +67,29 @@ const makeDeps = (overrides: {
     return { token, url };
   };
   const logger = captureLogger();
+  const updateStateCalls: { scanId: string; state: string; coverage: unknown }[] = [];
+  const updateState = async (input: {
+    scanId: string;
+    state: string;
+    coverage: unknown;
+  }): Promise<void> => {
+    await Promise.resolve();
+    updateStateCalls.push(input);
+  };
   const deps = {
     fetch: overrides.fetch,
     evaluate:
       overrides.evaluate ??
-      (async (): Promise<{ status: "no_significant_risk"; findings: never[] }> => { await Promise.resolve(); return { status: "no_significant_risk" as const, findings: [] }; }),
+      (async (): Promise<{ status: "no_significant_risk"; findings: never[] }> => {
+        await Promise.resolve();
+        return { status: "no_significant_risk" as const, findings: [] };
+      }),
     persistReport,
+    updateState,
     now: () => "2026-07-29T00:00:00.000Z",
     log: logger.log,
   };
-  return { deps, logger, issued };
+  return { deps, logger, issued, updateStateCalls };
 };
 
 type ScanRunDeps = Parameters<typeof runScan>[1];
@@ -101,14 +105,18 @@ const baseParams: ScanParams = {
 describe("runScan", () => {
   it("returns completed for a happy-path fixture and persists a single report token", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
-    const { deps } = makeDeps({ fetch });
+    const { deps, updateStateCalls } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("completed");
     expect(result.coverage.failed).toEqual([]);
     expect(result.status).toBe("no_significant_risk");
     expect(result.reportUrl).toMatch(/^https:\/\/reports\.test\/tok-/);
     expect(result.scanId).toBe(baseParams.scanId);
-    // Second invocation must NOT yield a fresh token because report is one-time.
+    expect(updateStateCalls).toContainEqual({
+      scanId: baseParams.scanId,
+      state: "completed",
+      coverage: result.coverage,
+    });
     const second = await runScan(baseParams, deps);
     expect(second.reportUrl).toBeUndefined();
   });
@@ -116,10 +124,7 @@ describe("runScan", () => {
   it("returns partial when a discovered page fails and never reports no_significant_risk", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
     const { deps } = makeDeps({ fetch });
-    const result = await runScan(
-      { ...baseParams, failedPages: ["privacy"] },
-      deps,
-    );
+    const result = await runScan({ ...baseParams, failedPages: ["privacy"] }, deps);
     expect(result.state).toBe("partial");
     expect(result.coverage.failed).toContain("privacy");
     expect(result.coverage.fetched).toContain("homepage");
@@ -131,23 +136,23 @@ describe("runScan", () => {
 
   it("returns failed when the homepage fetch fails", async () => {
     const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
-    const { deps } = makeDeps({ fetch });
+    const { deps, updateStateCalls } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("failed");
     expect(result.status).toBe("needs_review");
     expect(result.coverage.failed).toContain("homepage");
     expect(result.reportUrl).toBeUndefined();
+    expect(updateStateCalls).toContainEqual({
+      scanId: baseParams.scanId,
+      state: "failed",
+      coverage: result.coverage,
+    });
   });
 
   it("does not issue a report URL when a timeout page failed", async () => {
-    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE, [
-      { url: PRIVACY, minAttempts: 1 },
-    ]);
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE, [{ url: PRIVACY, minAttempts: 1 }]);
     const { deps } = makeDeps({ fetch });
-    const result = await runScan(
-      { ...baseParams, timeoutPages: ["privacy"] },
-      deps,
-    );
+    const result = await runScan({ ...baseParams, timeoutPages: ["privacy"] }, deps);
     expect(["partial", "failed"]).toContain(result.state);
     expect(result.coverage.failed).toContain("privacy");
     expect(result.reportUrl).toBeUndefined();
@@ -167,10 +172,7 @@ describe("runScan", () => {
       },
     };
     const { deps } = makeDeps({ fetch });
-    const result = await runScan(
-      { ...baseParams, requirePages: ["homepage"] },
-      deps,
-    );
+    const result = await runScan({ ...baseParams, requirePages: ["homepage"] }, deps);
     expect(attempts).toBe(2);
     expect(result.state).toBe("completed");
   });
@@ -187,13 +189,8 @@ describe("runScan", () => {
   it("returns a coverage summary listing the fetched pages", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
     const { deps } = makeDeps({ fetch });
-    const result = await runScan(
-      { ...baseParams, requirePages: ["about", "privacy"] },
-      deps,
-    );
-    expect(result.coverage.fetched.sort()).toEqual(
-      ["about", "homepage", "privacy"].sort(),
-    );
+    const result = await runScan({ ...baseParams, requirePages: ["about", "privacy"] }, deps);
+    expect(result.coverage.fetched.sort()).toEqual(["about", "homepage", "privacy"].sort());
     expect(result.coverage.failed).toEqual([]);
     expect(result.coverage.skipped).toEqual([]);
   });
@@ -204,8 +201,6 @@ describe("runScan", () => {
     const first = await runScan(baseParams, deps);
     expect(first.coverage.fetched).toContain("homepage");
     // Same scan should not duplicate the homepage entry.
-    expect(
-      first.coverage.fetched.filter((entry) => entry === "homepage").length,
-    ).toBe(1);
+    expect(first.coverage.fetched.filter((entry) => entry === "homepage").length).toBe(1);
   });
 });

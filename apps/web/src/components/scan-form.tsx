@@ -4,11 +4,7 @@ import { useState, type FormEvent } from "react";
 import { z } from "zod";
 import { createApiClient, type CreateScanInput, type ApiClient } from "../lib/api-client";
 
-const categoryValues = [
-  "online_game",
-  "electronic_press",
-  "digital_entertainment",
-] as const;
+const categoryValues = ["online_game", "electronic_press", "digital_entertainment"] as const;
 type CategoryValue = (typeof categoryValues)[number];
 
 export interface ScanFormMessages {
@@ -55,9 +51,10 @@ export interface ScanFormProps {
   readonly locale: "vi" | "en";
   readonly messages: ScanFormMessages;
   readonly createScan?: ApiClient["createScan"];
+  readonly onScanCreated?: (scanId: string) => void;
 }
 
-export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
+export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFormProps) => {
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<CategoryValue | "">("");
   const [submitting, setSubmitting] = useState(false);
@@ -83,11 +80,13 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
         jurisdiction: "VN",
         category: parsed.data.category,
       };
-      const submit = createScan ?? createApiClient().createScan;
-      await submit(input);
+      const submit =
+        createScan ??
+        createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).createScan;
+      const result = await submit(input);
+      onScanCreated?.(result.scanId);
     } catch (cause) {
-      const message =
-        cause instanceof Error ? cause.message : messages["form.error.submit"];
+      const message = cause instanceof Error ? cause.message : messages["form.error.submit"];
       setErrors({ submit: message });
     } finally {
       setSubmitting(false);
@@ -111,10 +110,7 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
 
       <div className="mx-auto grid max-w-5xl gap-12 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:py-24">
         <div className="flex flex-col gap-6">
-          <h1
-            id="headline"
-            className="font-serif text-4xl font-semibold leading-tight md:text-5xl"
-          >
+          <h1 id="headline" className="font-serif text-4xl font-semibold leading-tight md:text-5xl">
             {messages.headline}
           </h1>
           <p className="text-lg text-ink-soft">{messages.subhead}</p>
@@ -125,17 +121,16 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
         </div>
 
         <form
-          onSubmit={(event) => { void handleSubmit(event); }}
+          onSubmit={(event) => {
+            void handleSubmit(event);
+          }}
           aria-labelledby="headline"
           className="rounded-md border border-rule bg-surface p-6 shadow-sm"
           noValidate
         >
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="scan-url"
-                className="text-sm font-medium text-ink"
-              >
+              <label htmlFor="scan-url" className="text-sm font-medium text-ink">
                 {messages["form.url.label"]}
               </label>
               <input
@@ -164,10 +159,7 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="scan-category"
-                className="text-sm font-medium text-ink"
-              >
+              <label htmlFor="scan-category" className="text-sm font-medium text-ink">
                 {messages["form.category.label"]}
               </label>
               <select
@@ -176,9 +168,7 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
                 required
                 aria-describedby="scan-category-error"
                 value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value as CategoryValue | "")
-                }
+                onChange={(event) => setCategory(event.target.value as CategoryValue | "")}
                 className="w-full rounded-sm border border-rule bg-bg px-3 py-2 text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/30"
               >
                 <option value="" disabled>
@@ -198,10 +188,7 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label
-                htmlFor="scan-jurisdiction"
-                className="text-sm font-medium text-ink"
-              >
+              <label htmlFor="scan-jurisdiction" className="text-sm font-medium text-ink">
                 {messages["form.jurisdiction.label"]}
               </label>
               <input
@@ -216,7 +203,10 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
               />
             </div>
 
-            <p data-testid="scan-disclosure" className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft">
+            <p
+              data-testid="scan-disclosure"
+              className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft"
+            >
               {messages.disclosure}
             </p>
 

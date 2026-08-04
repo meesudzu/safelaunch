@@ -1,0 +1,62 @@
+// Personal-account local dev config — copy this file to
+// `wrangler.local.jsonc` (gitignored, never committed) and fill in resource
+// identifiers from YOUR OWN Cloudflare account. This lets every developer
+// run the full stack locally (D1 + Vectorize + Queue) without ever
+// touching the real production `wrangler.jsonc` (which points at the
+// "New Dawn" account that runs safelaunch.runany.dev).
+//
+// R2 is intentionally omitted: `ARTIFACTS` is an optional binding
+// (apps/workers/src/index.ts) that no code path currently reads or writes,
+// and enabling R2 on a fresh Cloudflare account requires accepting a paid
+// subscription (even for the free tier) — not worth it just for local dev.
+//
+// One-time setup on your own Cloudflare account:
+//   wrangler login   # or set CLOUDFLARE_API_TOKEN
+//   wrangler d1 create safelaunch-dev
+//     -> copy the printed database_id into d1_databases[0].database_id below
+//   wrangler d1 migrations apply DB --local --config wrangler.local.jsonc
+//   wrangler vectorize create safelaunch-legal-dev --dimensions 768 --metric cosine
+//   wrangler queues create safelaunch-legal-ingestion-dev
+//
+// Then run everything with --config wrangler.local.jsonc, e.g.:
+//   DW_CONFIG=wrangler.local.jsonc ./scripts/dw.sh dev --ip 0.0.0.0
+//
+// Vectorize/Queue only need name matches (no account-specific ID), so if
+// you name them exactly as below you don't need to edit those sections —
+// only `d1_databases[0].database_id` is account-specific and MUST be
+// replaced with your own.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "safelaunch-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-28",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": { "WEB_ORIGIN": "http://localhost:3000" },
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+
+  "durable_objects": {
+    "bindings": [{ "name": "ABUSE_RATE_LIMITER", "class_name": "AbuseRateLimiter" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AbuseRateLimiter"] }],
+  "workflows": [
+    { "name": "scan-workflow", "binding": "SCAN_WORKFLOW", "class_name": "ScanWorkflowEntrypoint" },
+  ],
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "safelaunch-dev",
+      "database_id": "REPLACE_WITH_YOUR_OWN_D1_DATABASE_ID",
+      "migrations_dir": "../../packages/db/migrations",
+    },
+  ],
+
+  "vectorize": [{ "binding": "LEGAL_INDEX", "index_name": "safelaunch-legal-dev" }],
+
+  "ai": { "binding": "AI" },
+
+  "queues": {
+    "producers": [{ "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion-dev" }],
+  },
+}

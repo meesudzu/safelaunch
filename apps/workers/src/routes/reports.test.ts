@@ -9,15 +9,30 @@ interface QueryCall {
 
 class FakeD1Database implements D1Database {
   preparedCalls: QueryCall[] = [];
-  rows: { sql: string; firstReturn: unknown; runReturn: unknown }[] = [];
+  rows: { sql: string; bindings?: unknown[]; firstReturn: unknown; runReturn: unknown }[] = [];
 
   prepare(sql: string) {
     const stmt = {
       bind: (...bindings: unknown[]) => {
         this.preparedCalls.push({ sql, bindings });
-        const row = this.rows.find((entry) => entry.sql === sql);
+        const row = this.rows.find(
+          (entry) =>
+            entry.sql === sql &&
+            (entry.bindings === undefined ||
+              JSON.stringify(entry.bindings) === JSON.stringify(bindings)),
+        );
         const firstReturn = row?.firstReturn;
-        const runReturn = row?.runReturn ?? { success: true, meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false } };
+        const runReturn = row?.runReturn ?? {
+          success: true,
+          meta: {
+            duration: 0,
+            size_after: 0,
+            rows_read: 0,
+            rows_written: 0,
+            last_row_id: 0,
+            changed_db: false,
+          },
+        };
         return {
           first: async <T>(): Promise<T | null> => {
             await Promise.resolve();
@@ -85,31 +100,8 @@ const buildApp = () => {
   return app;
 };
 
-const runWithDb = async (
-  db: FakeD1Database,
-  request: Request,
-  body?: { tokenHash?: string; payloadJson?: string; expiresAt?: string },
-) => {
-  const app = buildApp();
-  if (body?.tokenHash) {
-    db.rows.push({
-      sql: "SELECT token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
-      firstReturn: {
-        token_hash: body.tokenHash,
-        payload_json: body.payloadJson ?? "{}",
-        expires_at: body.expiresAt ?? "2099-01-01T00:00:00.000Z",
-      },
-      runReturn: null,
-    });
-  } else {
-    db.rows.push({
-      sql: "SELECT token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
-      firstReturn: null,
-      runReturn: null,
-    });
-  }
-  return app.fetch(request, { DB: db });
-};
+const REPORT_LOOKUP_SQL =
+  "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?";
 
 const sha256 = async (token: string): Promise<string> => {
   const data = new TextEncoder().encode(token);
@@ -119,32 +111,72 @@ const sha256 = async (token: string): Promise<string> => {
     .join("");
 };
 
+/**
+ * Seeds a report row that the fake DB will only return when queried with the
+ * hash of `validToken` — a wrong token therefore genuinely misses (matching
+ * real D1 behavior), rather than matching on SQL text alone regardless of
+ * the bound value (the gap that let the old scan_id/token_hash mismatch
+ * bug pass its tests undetected).
+ */
+const seedReport = async (
+  db: FakeD1Database,
+  input: { validToken: string; scanId?: string; payloadJson?: string; expiresAt?: string },
+) => {
+  const hash = await sha256(input.validToken);
+  db.rows.push({
+    sql: REPORT_LOOKUP_SQL,
+    bindings: [hash],
+    firstReturn: {
+      scan_id: input.scanId ?? "scan-1",
+      token_hash: hash,
+      payload_json: input.payloadJson ?? "{}",
+      expires_at: input.expiresAt ?? "2099-01-01T00:00:00.000Z",
+    },
+    runReturn: null,
+  });
+};
+
+const runWithDb = (db: FakeD1Database, request: Request) => buildApp().fetch(request, { DB: db });
+
 describe("reports router", () => {
-  it("returns 404 when the scan is not in D1", async () => {
+  it("returns 404 when no report matches the token", async () => {
     const db = new FakeD1Database();
     const response = await runWithDb(db, new Request("http://local/v1/reports/rpt_abc"));
     expect(response.status).toBe(404);
   });
 
-  it("returns 403 when the token hash does not match the stored hash", async () => {
-    const stored = await sha256("correct-token");
+  it("returns 404 (not 403) when the token doesn't match any stored hash", async () => {
+    // Deliberately not distinguishing "wrong token" from "no such report" —
+    // that distinction would leak whether a report exists at all.
     const db = new FakeD1Database();
+    await seedReport(db, { validToken: "correct-token" });
     const response = await runWithDb(
       db,
       new Request("http://local/v1/reports/rpt_abc?token=wrong-token"),
-      { tokenHash: stored },
     );
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(404);
+  });
+
+  it("looks up by the token itself, not a separate scanId path param", async () => {
+    // Regression test: buildReportUrl (scans.ts) and api-client.ts only ever
+    // put the token in the URL — there is no separate scanId anywhere in a
+    // real report link, so the path segment must resolve via the token hash.
+    const db = new FakeD1Database();
+    await seedReport(db, { validToken: "correct-token", scanId: "scan-42" });
+    const response = await runWithDb(
+      db,
+      new Request("http://local/v1/reports/correct-token?token=correct-token"),
+    );
+    expect(response.status).toBe(200);
   });
 
   it("returns the payload with no-cache headers when the token is correct", async () => {
-    const stored = await sha256("correct-token");
-    const payload = JSON.stringify({ scanId: "scan-1", status: "high_risk" });
     const db = new FakeD1Database();
+    const payload = JSON.stringify({ scanId: "scan-1", status: "high_risk" });
+    await seedReport(db, { validToken: "correct-token", payloadJson: payload });
     const response = await runWithDb(
       db,
       new Request("http://local/v1/reports/rpt_abc?token=correct-token"),
-      { tokenHash: stored, payloadJson: payload },
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -155,22 +187,21 @@ describe("reports router", () => {
   });
 
   it("returns 410 Gone when the report has expired", async () => {
-    const stored = await sha256("correct-token");
     const db = new FakeD1Database();
+    await seedReport(db, {
+      validToken: "correct-token",
+      expiresAt: "2020-01-01T00:00:00.000Z",
+    });
     const response = await runWithDb(
       db,
       new Request("http://local/v1/reports/rpt_abc?token=correct-token"),
-      {
-        tokenHash: stored,
-        expiresAt: "2020-01-01T00:00:00.000Z",
-      },
     );
     expect(response.status).toBe(410);
   });
 
   it("never logs the plaintext token or its hash", async () => {
-    const stored = await sha256("secret-token");
     const db = new FakeD1Database();
+    await seedReport(db, { validToken: "secret-token" });
     const errSpy: string[] = [];
     const origError = console.error;
     console.error = (...args: unknown[]) => {
@@ -178,17 +209,13 @@ describe("reports router", () => {
       origError(...args);
     };
     try {
-      await runWithDb(
-        db,
-        new Request("http://local/v1/reports/rpt_abc?token=secret-token"),
-        { tokenHash: stored },
-      );
+      await runWithDb(db, new Request("http://local/v1/reports/rpt_abc?token=secret-token"));
     } finally {
       console.error = origError;
     }
     const blob = errSpy.join("\n");
     expect(blob).not.toContain("secret-token");
-    expect(blob).not.toContain(stored);
+    expect(blob).not.toContain(await sha256("secret-token"));
   });
 });
 

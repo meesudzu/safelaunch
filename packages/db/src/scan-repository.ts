@@ -67,6 +67,17 @@ export class ScanRepository {
       expiresAt: row.expires_at,
     };
   }
+
+  async updateState(update: {
+    id: string;
+    state: string;
+    coverage: Record<string, unknown>;
+  }): Promise<void> {
+    await this.db
+      .prepare("UPDATE scans SET state = ?, coverage_json = ? WHERE id = ?")
+      .bind(update.state, JSON.stringify(update.coverage), update.id)
+      .run();
+  }
 }
 
 export interface PersistReportInput {
@@ -78,17 +89,25 @@ export interface PersistReportInput {
 
 export interface StoredReport {
   readonly scanId: string;
-  readonly tokenHash: string | null;
+  readonly tokenHash: string;
   readonly payloadJson: string;
   readonly expiresAt: string;
 }
 
 interface ReportRow {
   scan_id: string;
-  token_hash: string | null;
+  token_hash: string;
   payload_json: string;
   expires_at: string;
 }
+
+/**
+ * `reports.token_hash` is `NOT NULL` in the schema (it's also the column a
+ * real token hash is looked up by), so "burned" can't be represented as SQL
+ * NULL — it's this sentinel instead. A real SHA-256 hex digest is always 64
+ * lowercase hex characters, so it can never collide with the empty string.
+ */
+export const BURNED_TOKEN_HASH = "";
 
 const toReport = (row: ReportRow): StoredReport => ({
   scanId: row.scan_id,
@@ -111,7 +130,9 @@ export class ReportRepository {
 
   async get(scanId: string): Promise<StoredReport | null> {
     const row = await this.db
-      .prepare("SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?")
+      .prepare(
+        "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
+      )
       .bind(scanId)
       .first<ReportRow>();
     return row ? toReport(row) : null;
@@ -119,8 +140,8 @@ export class ReportRepository {
 
   async burnToken(scanId: string): Promise<void> {
     await this.db
-      .prepare("UPDATE reports SET token_hash = NULL WHERE scan_id = ?")
-      .bind(scanId)
+      .prepare("UPDATE reports SET token_hash = ? WHERE scan_id = ?")
+      .bind(BURNED_TOKEN_HASH, scanId)
       .run();
   }
 }

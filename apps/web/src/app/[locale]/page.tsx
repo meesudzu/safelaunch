@@ -1,4 +1,4 @@
-import { ScanForm } from "../../components/scan-form";
+import { ScanFormContainer } from "../../components/scan-form-container";
 import viMessages from "../../messages/vi.json";
 import enMessages from "../../messages/en.json";
 import type { Locale } from "./layout";
@@ -17,7 +17,7 @@ export default async function HomePage({
   }
   return (
     <main>
-      <ScanForm
+      <ScanFormContainer
         locale={locale}
         messages={messagesFor(locale)}
       />

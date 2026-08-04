@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Hono } from "hono";
-import { adminRouter } from "./admin";
+import { adminRouter, type AdminEnv } from "./admin";
 
 interface QueryCall {
   sql: string;
@@ -71,7 +71,7 @@ class FakeD1 {
 }
 
 const buildApp = () => {
-  const app = new Hono<{ Bindings: { DB: D1Database } }>();
+  const app = new Hono<{ Bindings: AdminEnv }>();
   app.route("/v1/admin", adminRouter);
   return app;
 };
@@ -79,9 +79,10 @@ const buildApp = () => {
 const runWithDb = async (
   db: FakeD1,
   request: Request,
+  envOverrides: { ADMIN_SERVICE_TOKEN_CLIENT_ID?: string; ADMIN_SERVICE_TOKEN_CLIENT_SECRET?: string } = {},
 ): Promise<Response> => {
   const app = buildApp();
-  return app.fetch(request, { DB: db as unknown as D1Database });
+  return app.fetch(request, { DB: db as unknown as D1Database, ...envOverrides });
 };
 
 describe("admin router", () => {
@@ -257,6 +258,74 @@ describe("admin router", () => {
       expect(body.actor).toBe("reviewer@safelaunch.test");
       expect(body.eventId).toMatch(/^evt_/);
       expect(db.batchCalls).toHaveLength(1);
+    });
+
+    it("accepts a matching service-token client id/secret pair", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT status FROM legal_documents WHERE id = ?",
+        firstReturn: { status: "pending_review" },
+        allReturn: [],
+      });
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/legal/doc-1/review", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "cf-access-client-id": "ci-reviewer.access",
+            "cf-access-client-secret": "s3cret",
+          },
+          body: JSON.stringify({ decision: "approve", reason: "CI-driven review" }),
+        }),
+        {
+          ADMIN_SERVICE_TOKEN_CLIENT_ID: "ci-reviewer.access",
+          ADMIN_SERVICE_TOKEN_CLIENT_SECRET: "s3cret",
+        },
+      );
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{ actor: string }>(response);
+      expect(body.actor).toBe("service-token:ci-reviewer.access");
+    });
+
+    it("rejects a request with no credentials once service-token secrets are configured", async () => {
+      const db = new FakeD1();
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/legal/doc-1/review", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ decision: "approve", reason: "no credentials" }),
+        }),
+        {
+          ADMIN_SERVICE_TOKEN_CLIENT_ID: "ci-reviewer.access",
+          ADMIN_SERVICE_TOKEN_CLIENT_SECRET: "s3cret",
+        },
+      );
+      expect(response.status).toBe(401);
+      const body = await jsonBody<{ code: string }>(response);
+      expect(body.code).toBe("UNAUTHORIZED");
+    });
+
+    it("rejects a service-token secret that doesn't match", async () => {
+      const db = new FakeD1();
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/legal/doc-1/review", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "cf-access-client-id": "ci-reviewer.access",
+            "cf-access-client-secret": "wrong-secret",
+          },
+          body: JSON.stringify({ decision: "approve", reason: "bad secret" }),
+        }),
+        {
+          ADMIN_SERVICE_TOKEN_CLIENT_ID: "ci-reviewer.access",
+          ADMIN_SERVICE_TOKEN_CLIENT_SECRET: "s3cret",
+        },
+      );
+      expect(response.status).toBe(401);
     });
 
     it("rejects a document", async () => {

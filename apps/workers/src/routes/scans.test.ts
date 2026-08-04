@@ -19,18 +19,18 @@ class FakeD1Database implements D1Database {
         const row = this.rows.find((entry) => entry.sql === sql);
         const firstReturn = row?.firstReturn;
         const runReturn = row?.runReturn ?? {
-            success: true,
-            meta: {
-              duration: 0,
-              size_after: 0,
-              rows_read: 0,
-              rows_written: 0,
-              last_row_id: 0,
-              changed_db: false,
-              changes: 0,
-            },
-            results: [],
-          };
+          success: true,
+          meta: {
+            duration: 0,
+            size_after: 0,
+            rows_read: 0,
+            rows_written: 0,
+            last_row_id: 0,
+            changed_db: false,
+            changes: 0,
+          },
+          results: [],
+        };
         return {
           first: async <T>(): Promise<T | null> => {
             await Promise.resolve();
@@ -120,7 +120,12 @@ describe("scans router", () => {
     );
     expect(response.status).toBe(202);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
+    const body = (await response.json()) as {
+      code?: string;
+      state?: string;
+      scanId?: string;
+      reportUrl?: string;
+    };
     expect(body.state).toBe("queued");
     expect(body.scanId).toMatch(/^scan_[0-9a-f]{36}$/);
     expect(db.preparedCalls[0]?.sql).toContain("INSERT INTO scans");
@@ -142,7 +147,12 @@ describe("scans router", () => {
     );
     expect(response.status).toBe(400);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
+    const body = (await response.json()) as {
+      code?: string;
+      state?: string;
+      scanId?: string;
+      reportUrl?: string;
+    };
     expect(body.code).toBe("INVALID_INPUT");
     expect(db.preparedCalls).toEqual([]);
   });
@@ -150,10 +160,7 @@ describe("scans router", () => {
   it("returns 404 when the scan does not exist", async () => {
     const db = new FakeD1Database();
     db.rows.push({ sql: "SELECT * FROM scans WHERE id = ?", firstReturn: null, runReturn: null });
-    const response = await runWithDb(
-      db,
-      new Request("http://local/v1/scans/missing"),
-    );
+    const response = await runWithDb(db, new Request("http://local/v1/scans/missing"));
     expect(response.status).toBe(404);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     expect(((await response.json()) as { code: string }).code).toBe("SCAN_NOT_FOUND");
@@ -179,7 +186,12 @@ describe("scans router", () => {
     const response = await runWithDb(db, new Request("http://local/v1/scans/scan_a"));
     expect(response.status).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const body = (await response.json()) as { code?: string; state?: string; scanId?: string; reportUrl?: string };
+    const body = (await response.json()) as {
+      code?: string;
+      state?: string;
+      scanId?: string;
+      reportUrl?: string;
+    };
     expect(body.scanId).toBe("scan_a");
     expect(body.state).toBe("queued");
     expect(body.reportUrl).toBeUndefined();
@@ -223,11 +235,9 @@ describe("scans router", () => {
       runReturn: null,
     });
 
-    const first = await runWithDb(
-      db,
-      new Request("http://local/v1/scans/scan_b"),
-      { WEB_ORIGIN: "https://web.test" },
-    );
+    const first = await runWithDb(db, new Request("http://local/v1/scans/scan_b"), {
+      WEB_ORIGIN: "https://web.test",
+    });
     expect(first.status).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const firstBody = (await first.json()) as { reportUrl?: string };
@@ -254,8 +264,9 @@ describe("scans router", () => {
   });
 
   it("returns no reportUrl once the token_hash has been burned (single-use)", async () => {
-    // After /v1/reports/:scanId?token=X is opened once, the route nulls
-    // token_hash. Subsequent polls of /v1/scans/:id must NOT return a URL.
+    // After /v1/reports/:token is opened once, the route sets token_hash to
+    // BURNED_TOKEN_HASH (''). Subsequent polls of /v1/scans/:id must NOT
+    // return a URL.
     const db = new FakeD1Database();
     const stored = {
       id: "scan_c",
@@ -273,7 +284,7 @@ describe("scans router", () => {
       sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
       firstReturn: {
         scan_id: "scan_c",
-        token_hash: null, // already burned
+        token_hash: "", // already burned (BURNED_TOKEN_HASH)
         payload_json: "{}",
         expires_at: "2026-08-05T00:00:00.000Z",
       },

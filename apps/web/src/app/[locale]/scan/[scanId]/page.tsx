@@ -36,7 +36,6 @@ export default async function ScanPage({
         locale={locale}
         messages={messagesFor(locale)}
         initialState={initial}
-        poll={async (id) => client.getScan(id)}
       />
     </main>
   );

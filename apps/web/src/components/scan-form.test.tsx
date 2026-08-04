@@ -49,6 +49,25 @@ describe("ScanForm", () => {
     });
   });
 
+  it("calls onScanCreated with the new scan id after a successful submit", async () => {
+    const user = userEvent.setup();
+    const onScanCreated = vi.fn();
+    render(
+      <ScanForm
+        createScan={createScan}
+        onScanCreated={onScanCreated}
+        locale="vi"
+        messages={viMessages}
+      />,
+    );
+
+    await user.type(screen.getByLabelText("URL website"), "https://example.com");
+    await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
+
+    expect(onScanCreated).toHaveBeenCalledWith("scan_test");
+  });
+
   it("displays the non-advice disclosure above the submit button", () => {
     render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
     const disclosure = screen.getByTestId("scan-disclosure");

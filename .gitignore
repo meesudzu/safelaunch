@@ -7,6 +7,8 @@ node_modules/
 dist/
 coverage/
 .wrangler/
+playwright-report/
+test-results/
 
 # Wrangler generated bindings
 apps/workers/worker-configuration.d.ts
@@ -22,3 +24,6 @@ apps/web/.open-next/
 
 # Stray wrangler config from earlier dev iteration
 /wrangler.jsonc
+
+# Per-developer local Cloudflare account config (see wrangler.local.jsonc.example)
+apps/workers/wrangler.local.jsonc

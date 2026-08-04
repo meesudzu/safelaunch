@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createApiClient } from "../lib/api-client";
 
 export type ScanTerminalState = "completed" | "partial" | "failed";
 
@@ -8,7 +9,11 @@ export interface ScanProgressState {
   readonly scanId: string;
   readonly state: string;
   readonly status?: string;
-  readonly coverage: { fetched: readonly string[]; failed: readonly string[]; skipped: readonly string[] };
+  readonly coverage: {
+    fetched?: readonly string[];
+    failed?: readonly string[];
+    skipped?: readonly string[];
+  };
   readonly expiresAt?: string;
   readonly reportUrl?: string;
 }
@@ -33,8 +38,11 @@ export interface ScanProgressProps {
   readonly locale: "vi" | "en";
   readonly messages: ScanProgressMessages;
   readonly initialState: ScanProgressState;
-  readonly poll: (scanId: string) => Promise<ScanProgressState>;
+  readonly poll?: (scanId: string) => Promise<ScanProgressState>;
 }
+
+const defaultPoll = (scanId: string): Promise<ScanProgressState> =>
+  createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).getScan(scanId);
 
 const TERMINAL_STATES = new Set(["completed", "partial", "failed"]);
 
@@ -46,13 +54,20 @@ const backoffMs = (attempt: number): number => {
   return 3000;
 };
 
-export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
+export const ScanProgress = ({
+  locale,
+  messages,
+  initialState,
+  poll = defaultPoll,
+}: ScanProgressProps) => {
   const [state, setState] = useState<ScanProgressState>(initialState);
   const attempt = useRef(0);
   const cancelled = useRef(false);
 
   useEffect(() => {
     if (TERMINAL_STATES.has(state.state)) return undefined;
+
+    cancelled.current = false;
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
@@ -123,12 +138,12 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
         ) : null}
 
         <ul className="flex flex-col gap-1 text-sm">
-          {state.coverage.fetched.map((page) => (
+          {(state.coverage.fetched ?? []).map((page) => (
             <li key={`f-${page}`} className="text-success">
               ✓ {page}
             </li>
           ))}
-          {state.coverage.failed.map((page) => (
+          {(state.coverage.failed ?? []).map((page) => (
             <li key={`x-${page}`} className="text-error">
               ! {page}
             </li>
