@@ -42,24 +42,35 @@ export const evaluateEvidenceProvisionPair = async (
   try {
     raw = await input.provider.evaluate(providerInput);
   } catch (cause) {
-    if (cause instanceof Error) {
-      return fallbackReviewDraft(cause.message);
-    }
-    return fallbackReviewDraft("unknown provider error");
+    // Refactored to a ternary so the Cloudflare Workflow graph analyzer
+    // does not surface this conditional as an extra top-level branch on the
+    // scan-workflow instance.
+    const reason = cause instanceof Error ? cause.message : "unknown provider error";
+    return fallbackReviewDraft(reason);
   }
-  // Schema validation as a defensive belt-and-suspenders check.
+  // Schema validation as a defensive belt-and-suspenders check. The
+  // "success → use data / failure → use fallback" branch is expressed as a
+  // ternary so the Cloudflare Workflow graph analyzer doesn't surface it
+  // as a top-level branch on the scan-workflow instance.
   const parsed = EvaluationDraftSchema.safeParse(raw);
-  if (!parsed.success) {
-    return fallbackReviewDraft(parsed.error.issues.map((issue) => issue.message).join("; "));
-  }
+  const draft: EvaluationDraft = parsed.success
+    ? parsed.data
+    : fallbackReviewDraft(parsed.error.issues.map((issue) => issue.message).join("; "));
   // Belt-and-suspenders: high-severity claims must have at least one legal
   // quote. If the provider slipped one through, downgrade here so the
-  // verifier never sees an unsupported high-risk claim.
-  if (parsed.data.severity === "high" && parsed.data.legalQuotes.length === 0) {
-    return { ...parsed.data, severity: "review" };
-  }
-  return parsed.data;
+  // verifier never sees an unsupported high-risk claim. Pure expression;
+  // no if/else so the workflow graph analyzer does not surface it.
+  return downgradeHighWithoutQuotes(draft);
 };
+
+/**
+ * Downgrade "high"-severity findings that lack legal quote support. Returns
+ * the input unchanged when the downgrade condition is not met.
+ */
+const downgradeHighWithoutQuotes = (data: EvaluationDraft): EvaluationDraft =>
+  data.severity === "high" && data.legalQuotes.length === 0
+    ? { ...data, severity: "review" }
+    : data;
 
 const fallbackReviewDraft = (reason: string): EvaluationDraft => ({
   severity: "review",
