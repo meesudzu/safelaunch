@@ -100,7 +100,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Web build (OpenNext + Cloudflare)
         env:
-          NEXT_PUBLIC_API_ORIGIN: ${{ secrets.STAGING_API_ORIGIN }}
+          NEXT_PUBLIC_API_ORIGIN: ${{ secrets.PRODUCTION_URL }}
         run: pnpm -C apps/web build
       - name: Worker dry-run deploy
         run: pnpm --filter @safelaunch/workers build

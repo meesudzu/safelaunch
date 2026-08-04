@@ -76,7 +76,7 @@ jobs:
       - name: Deploy API Worker
         run: pnpm -C apps/workers exec wrangler deploy
       - name: Deploy Web Worker (OpenNext)
-        run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy --env production
+        run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy
       - name: Gradual traffic shift (10 / 50 / 100)
         run: |
           for share in 10 50 100; do

@@ -2,6 +2,7 @@ import { ScanForm } from "../../components/scan-form";
 import viMessages from "../../messages/vi.json";
 import enMessages from "../../messages/en.json";
 import type { Locale } from "./layout";
+import { createScan } from "./actions";
 
 const messagesFor = (locale: Locale) => (locale === "vi" ? viMessages : enMessages);
 
@@ -10,9 +11,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   if (locale !== "vi" && locale !== "en") {
     return null;
   }
+  // `createScan` is a Server Action ("use server") — it serialises across the
+  // server → client boundary safely, and the API call (including the
+  // NEXT_PUBLIC_API_ORIGIN lookup) stays on the server. This avoids relying
+  // on `NEXT_PUBLIC_*` being inlined into the browser bundle at build time.
   return (
     <main>
-      <ScanForm locale={locale} messages={messagesFor(locale)} />
+      <ScanForm
+        locale={locale}
+        messages={messagesFor(locale)}
+        createScan={createScan}
+      />
     </main>
   );
 }
