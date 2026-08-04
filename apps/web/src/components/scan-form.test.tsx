@@ -40,7 +40,8 @@ const viMessages = {
   "quota.redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
 } as const;
 
-const createScan = vi.fn(() => Promise.resolve({ scanId: "scan_test", state: "queued" as const })) as NonNullable<ScanFormProps["createScan"]>;
+type CreateScanFn = NonNullable<ScanFormProps["createScan"]>;
+const createScan = vi.fn(() => Promise.resolve({ scanId: "scan_test", state: "queued" as const })) as CreateScanFn;
 
 describe("ScanForm", () => {
   it("navigates to the live scan progress screen after the API accepts the scan", async () => {
