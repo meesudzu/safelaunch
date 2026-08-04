@@ -45,6 +45,8 @@ interface RuleDefinition {
   readonly unknownRationale: string;
 }
 
+const CITATION_RETRIEVED_AT = "2026-07-29T00:00:00.000Z";
+
 const PRIVACY_PROVISION_ID = "vn-pd-2025-privacy-notice";
 const OPERATOR_PROVISION_ID = "vn-pd-2025-operator-identity";
 const CONTACT_PROVISION_ID = "vn-pd-2025-contact-channel";
@@ -58,7 +60,7 @@ const baseCitation = (
   provisionId,
   source,
   url,
-  retrievedAt: "2025-01-01T00:00:00.000Z",
+  retrievedAt: CITATION_RETRIEVED_AT,
   excerpt,
 });
 
@@ -87,7 +89,7 @@ const LICENSE_GAME_CITATION: LegalCitation = baseCitation(
 const CONTACT_CITATION: LegalCitation = baseCitation(
   CONTACT_PROVISION_ID,
   "Luật An toàn thông tin mạng 2015",
-  "https://vbpl.vn/TW/Pages/vbpq-thuoctinhluoc.do?itemId=25878",
+  "https://vbpl.vn/TW/Pages/vbpq-thuoctinhluoc.do?itemId=25914",
   "Tổ chức, doanh nghiệp cung cấp dịch vụ trên mạng phải công bố thông tin liên lạc để tiếp nhận phản ánh của người sử dụng.",
 );
 

@@ -51,6 +51,17 @@ describe("RUBRIC_VERSION", () => {
   });
 });
 
+describe("citation sources", () => {
+  it("uses the reviewed vbpl.vn source for contact-info", () => {
+    const contact = runRules(baseInput).find((rule) => rule.ruleId === "contact-info");
+    expect(contact?.citations[0]).toMatchObject({
+      provisionId: "vn-pd-2025-contact-channel",
+      source: "Luật An toàn thông tin mạng 2015",
+      excerpt: expect.any(String),
+    });
+  });
+});
+
 describe("runRules", () => {
   it("does not infer absence from a failed privacy page", () => {
     const result = runRules({
