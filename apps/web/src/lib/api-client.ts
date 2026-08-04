@@ -151,7 +151,7 @@ const toApiClientError = async (response: Response, code: string): Promise<ApiCl
 export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
   const base = env.NEXT_PUBLIC_API_ORIGIN ? trimTrailingSlash(env.NEXT_PUBLIC_API_ORIGIN) : null;
   return {
-    createScan: async (input: CreateScanInput): Promise<CreateScanResponse> => {
+    createScan: async (input: CreateScanInput): Promise<CreateScanResponse | ScanCachedResponse> => {
       const response = await fetch(`${requireOrigin(base)}/v1/scans`, {
         method: "POST",
         headers: {
@@ -160,10 +160,13 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         },
         body: JSON.stringify(input),
       });
-      if (!response.ok) {
-        throw await toApiClientError(response, "CREATE_SCAN_FAILED");
+      if (response.status === 200) {
+        return (await response.json()) as ScanCachedResponse;
       }
-      return (await response.json()) as CreateScanResponse;
+      if (response.status === 202) {
+        return (await response.json()) as CreateScanResponse;
+      }
+      throw await toApiClientError(response, "CREATE_SCAN_FAILED");
     },
     getScan: async (scanId: string): Promise<ScanProgress> => {
       const response = await fetch(

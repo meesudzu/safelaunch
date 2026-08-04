@@ -36,7 +36,7 @@ export interface NewRedeemGrant {
   grantedAt: string;
 }
 
-export interface StoredRedeemGrant extends NewRedeemGrant {}
+export type StoredRedeemGrant = NewRedeemGrant;
 
 interface RedeemCodeRow {
   id: string;

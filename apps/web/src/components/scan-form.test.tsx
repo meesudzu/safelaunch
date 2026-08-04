@@ -32,6 +32,12 @@ const viMessages = {
   disclosure: "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý.",
   "footer.disclosure": "Báo cáo tham khảo, không phải tư vấn pháp lý.",
   "footer.version": "v0.1",
+  "quota.disclaimer": "Mỗi website chỉ được quét 1 lần mỗi ngày (UTC).",
+  "quota.redeem.toggle": "Tôi có redeem code",
+  "quota.redeem.label": "Redeem code",
+  "quota.redeem.placeholder": "SL-XXXX-XXXX",
+  "quota.redeem.invalid": "Redeem code không hợp lệ hoặc đã hết hạn.",
+  "quota.redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
 } as const;
 
 const createScan: ScanFormProps["createScan"] = vi.fn(() =>
@@ -95,5 +101,33 @@ describe("ScanForm", () => {
     render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
     expect(screen.getByLabelText("URL website")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: /Loại ứng dụng/ })).toBeInTheDocument();
+  });
+
+  it("renders the quota disclaimer", () => {
+    render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("quota-disclaimer")).toBeInTheDocument();
+  });
+
+  it("opens the redeem code field when the toggle is clicked", async () => {
+    const user = userEvent.setup();
+    render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
+    await user.click(screen.getByText("Tôi có redeem code"));
+    expect(screen.getByTestId("redeem-input")).toBeInTheDocument();
+  });
+
+  it("submits the redeem code when present", async () => {
+    const user = userEvent.setup();
+    render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
+    await user.type(screen.getByLabelText("URL website"), "https://example.com");
+    await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
+    await user.click(screen.getByText("Tôi có redeem code"));
+    await user.type(screen.getByTestId("redeem-input"), "SL-A2K9-7X4P");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
+    expect(createScan).toHaveBeenCalledWith({
+      url: "https://example.com",
+      jurisdiction: "VN",
+      category: "online_game",
+      redeemCode: "SL-A2K9-7X4P",
+    });
   });
 });
