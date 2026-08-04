@@ -17,18 +17,16 @@ beforeEach(async () => {
   // Apply every migration in lexical order so schema changes
   // (e.g. 0003_reports_nullable_token_hash) are reflected in tests.
   const migrationsDir = new URL("../migrations/", import.meta.url);
-  const files = (await readdir(migrationsDir))
-    .filter((name) => name.endsWith(".sql"))
-    .sort();
+  const files = (await readdir(migrationsDir)).filter((name) => name.endsWith(".sql")).sort();
   for (const file of files) {
     const raw = await readFile(new URL(file, migrationsDir), "utf8");
     // Strip line comments so the first ";"-delimited chunk in a file
     // that starts with a header comment does not become an empty
     // statement that SQLite rejects.
     const sql = raw
-      .split('\n')
-      .map((line) => line.replace(/--.*$/, ''))
-      .join('\n');
+      .split("\n")
+      .map((line) => line.replace(/--.*$/, ""))
+      .join("\n");
     for (const statement of sql
       .split(";")
       .map((part) => part.trim())
@@ -118,8 +116,7 @@ describe("D1 repositories", () => {
       expiresAt: "2099-01-01T00:00:00.000Z",
     });
     const reports = new ReportRepository(db);
-    const tokenHash =
-      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const tokenHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     await reports.upsert({
       scanId: "scan-9",
       tokenHash,
