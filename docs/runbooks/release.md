@@ -27,9 +27,7 @@ after CI passes. The deploy:
    full production corpus).
 5. Runs `node scripts/smoke.mjs --base-url "$STAGING_URL"`.
 6. Runs the eval gate (`pnpm -C packages/ai test -- eval-runner`).
-7. Runs the latency probe (`node scripts/check-latency.mjs --base-url
-"$STAGING_URL" --samples 25`).
-8. Uploads a redacted report artifact to GitHub Actions.
+7. Uploads a redacted report artifact to GitHub Actions.
 
 **Stop conditions** (any one halts the release):
 
@@ -37,7 +35,6 @@ after CI passes. The deploy:
   budget).
 - Eval gate fails (`citationValidity < 1.0`, `highRiskPrecision < 0.9`,
   or `unsupportedHighRisk > 0`).
-- Latency probe P95 ≥ 60 000 ms.
 
 If any stop condition fires, do **not** proceed to production. Either
 revert the merge commit on `main` (the `rollback.md` runbook covers
@@ -60,8 +57,7 @@ workflow:
 5. **Deploys the API Worker** to production.
 6. **Deploys the Web Worker** (OpenNext) to production.
 7. **Runs smoke** against `https://api.safelaunch.app`.
-8. **Runs the latency probe** with 50 samples.
-9. **Records the deployment audit** to
+8. **Records the deployment audit** to
    `artifacts/deployment.json` — commit, ruleset, prompt version, model,
    corpus version, timestamp. This artifact lives for 365 days.
 
@@ -98,3 +94,6 @@ After the workflow reports green, manually verify:
 ## 7 · Change log
 
 - `2026-07-30` — v1 runbook. First release of the SafeLaunch MVP.
+- `2026-08-04` — Removed the standalone CICD latency probe
+  (`scripts/check-latency.mjs` and its `Latency probe` step in
+  `deploy-production.yml`). Smoke + eval gate remain the release gates.

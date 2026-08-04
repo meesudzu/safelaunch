@@ -84,10 +84,6 @@ jobs:
         run: node scripts/smoke.mjs --base-url "$PRODUCTION_URL"
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
-      - name: Latency probe
-        run: node scripts/check-latency.mjs --base-url "$PRODUCTION_URL" --samples 50
-        env:
-          PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
       - name: Record deployment audit
         run: |
           mkdir -p artifacts

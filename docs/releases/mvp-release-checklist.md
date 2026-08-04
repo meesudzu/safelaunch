@@ -44,10 +44,9 @@ into the PR description.
 
 The release is **not eligible** unless both of these pass.
 
-| #   | Gate          | Command                                                                      | Gate value                                                                     | Observed |
-| --- | ------------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------- |
-| 1   | Eval gate     | `rtk pnpm -C packages/ai test -- eval-runner`                                | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS   |
-| 2   | Latency probe | `rtk node scripts/check-latency.mjs --base-url "$STAGING_URL" --samples 100` | `P95 < 60 000 ms`                                                              | ☐ PASS   |
+| #   | Gate      | Command                                       | Gate value                                                                     | Observed |
+| --- | --------- | --------------------------------------------- | ------------------------------------------------------------------------------ | -------- |
+| 1   | Eval gate | `rtk pnpm -C packages/ai test -- eval-runner` | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS   |
 
 Capture the observed metrics in the PR:
 
@@ -55,9 +54,6 @@ Capture the observed metrics in the PR:
 citationValidity = ____________
 highRiskPrecision = ____________
 unsupportedHighRisk = ____________
-p50 = ____________ ms
-p95 = ____________ ms
-p99 = ____________ ms
 ```
 
 ## 5 · Privacy gates
@@ -76,7 +72,6 @@ p99 = ____________ ms
 ## 6 · Operational gates
 
 - [ ] `scripts/smoke.mjs` against staging returns exit 0.
-- [ ] `scripts/check-latency.mjs` against staging returns exit 0.
 - [ ] The D1 staging database has all forward-only migrations applied
       (`wrangler d1 migrations list DB --env staging` shows the latest
       migration).

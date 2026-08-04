@@ -129,15 +129,11 @@ NEXT_PUBLIC_API_ORIGIN=http://127.0.0.1:8787 pnpm dev
 
 Open `http://localhost:3000/vi` or `http://localhost:3000/en`.
 
-### 2.7. Run smoke and latency checks against a local API
+### 2.7. Run smoke checks against a local API
 
 ```bash
 node scripts/smoke.mjs \
   --base-url http://127.0.0.1:8787
-
-node scripts/check-latency.mjs \
-  --base-url http://127.0.0.1:8787 \
-  --samples 25
 ```
 
 ---
@@ -425,9 +421,6 @@ curl -fsS https://safelaunch-api.runany.dev/v1/health
 # Automated API checks
 node scripts/smoke.mjs \
   --base-url https://safelaunch-api.runany.dev
-node scripts/check-latency.mjs \
-  --base-url https://safelaunch-api.runany.dev \
-  --samples 50
 
 # Admin must redirect to Cloudflare Access when unauthenticated
 curl -sSIL https://safelaunch.runany.dev/admin/legal
