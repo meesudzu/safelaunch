@@ -2,7 +2,28 @@ import { describe, expect, it } from "vitest";
 import {
   deterministicReportToken,
   deterministicTokenHash,
+  evaluatePhase,
+  fetchPhase,
+  persistReportPhase,
+  persistTerminalPhase,
+  type EvaluatePhaseDeps,
+  type FetchPhaseDeps,
+  type PersistDeps,
 } from "./scan-workflow.phases";
+import type {
+  PageFetcher,
+  ScanCoverage,
+  ScanParams,
+  SupportedPageType,
+} from "./scan-workflow";
+
+const sha256Hex = async (input: string): Promise<string> => {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+};
 
 describe("deterministicReportToken", () => {
   it("returns the same token for the same scanId", async () => {
@@ -23,15 +44,9 @@ describe("deterministicReportToken", () => {
     const token = await deterministicReportToken(scanId);
     const hash = await deterministicTokenHash(scanId);
     expect(hash).toMatch(/^[0-9a-f]{64}$/);
-    expect(hash.length).toBe(token.length - 4); // rpt_ prefix removed
+    expect(hash.length).toBe(token.length - 4);
   });
 });
-
-import {
-  fetchPhase,
-  type FetchPhaseDeps,
-} from "./scan-workflow.phases";
-import type { PageFetcher, ScanParams } from "./scan-workflow";
 
 const baseParams: ScanParams = {
   scanId: "scan-1",
@@ -65,7 +80,11 @@ const baseDeps: FetchPhaseDeps = {
 describe("fetchPhase", () => {
   it("returns homepage + one requested page on success", async () => {
     const result = await fetchPhase(baseParams, baseDeps);
-    expect(result.homepage).toEqual({ ok: true, status: 200, html: expect.any(Uint8Array) });
+    expect(result.homepage).toEqual({
+      ok: true,
+      status: 200,
+      html: expect.any(Uint8Array),
+    });
     expect(result.fetched).toEqual(expect.arrayContaining(["homepage", "about"]));
     expect(result.failed).toEqual([]);
   });
@@ -77,7 +96,7 @@ describe("fetchPhase", () => {
     expect(result.failed).toEqual(["homepage"]);
   });
 
-  it("retries transient failures up to retryCount", async () => {
+  it("retries transient failures up to retryCount + 1 attempts", async () => {
     let calls = 0;
     const flaky: PageFetcher = {
       async fetch() {
@@ -96,19 +115,18 @@ describe("fetchPhase", () => {
   });
 });
 
-import { evaluatePhase, type EvaluatePhaseDeps } from "./scan-workflow.phases";
-import type {
-  ScanCoverage,
-  SupportedPageType,
-} from "./scan-workflow";
-
 const fakeCoverage: ScanCoverage = {
   fetched: ["homepage"],
   failed: [],
   skipped: [],
 };
 
-const fakePages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> = [
+const fakePages: Array<{
+  type: SupportedPageType;
+  url: string;
+  status: number;
+  html: Uint8Array;
+}> = [
   { type: "homepage", url: "https://example.com", status: 200, html: new TextEncoder().encode("") },
 ];
 
@@ -117,17 +135,17 @@ describe("evaluatePhase", () => {
     const expected = [
       {
         id: "rule-1::evidence-1",
-        severity: "high",
+        severity: "high" as const,
         rationale: "GDPR Art. 7 violation",
         confidence: 0.9,
         evidenceIds: ["evidence-1"],
         citations: [],
         recommendedAction: "Fix consent flow",
-        applicability: "EU",
+        applicability: "current" as const,
       },
     ];
     const evaluator: EvaluatePhaseDeps["evaluate"] = async () => ({
-      status: "high_risk",
+      status: "high_risk" as const,
       findings: expected,
     });
     const out = await evaluatePhase(
@@ -144,13 +162,6 @@ describe("evaluatePhase", () => {
     expect(out.status).toBe("high_risk");
   });
 });
-
-import {
-  persistReportPhase,
-  persistTerminalPhase,
-  type PersistDeps,
-} from "./scan-workflow.phases";
-import type { ScanCoverage } from "./scan-workflow";
 
 const stubDb = () => {
   const calls: Array<{ sql: string; args: unknown[] }> = [];
@@ -173,14 +184,6 @@ const stubDb = () => {
 };
 
 const coverage: ScanCoverage = { fetched: ["homepage"], failed: [], skipped: [] };
-
-const sha256Hex = async (input: string): Promise<string> => {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-};
 
 describe("persistReportPhase", () => {
   it("uses the deterministic token derived from scanId (stable across retries)", async () => {
@@ -237,7 +240,6 @@ describe("persistTerminalPhase", () => {
     );
     expect(db.calls.length).toBe(1);
     const call = db.calls[0]!;
-    // Must mirror the existing ScanRepository.updateTerminal SQL shape.
     expect(call.sql).toMatch(/UPDATE scans SET state = \?, coverage_json = \? WHERE id = \?/);
     expect(call.args[0]).toBe("completed");
     expect(call.args[2]).toBe("scan-term");

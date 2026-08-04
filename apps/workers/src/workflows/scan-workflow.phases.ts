@@ -1,3 +1,14 @@
+import type {
+  EvaluateOutcome,
+  PageFetcher,
+  ScanCoverage,
+  ScanParams,
+  ScanTerminalState,
+  ScanTerminalStatus,
+  SupportedPageType,
+} from "./scan-workflow";
+
+
 /**
  * Pure per-phase helpers extracted from `scan-workflow.runScan`.
  *
@@ -38,7 +49,6 @@ export const deterministicTokenHash = async (scanId: string): Promise<string> =>
   return sha256Hex(token);
 };
 
-import type { PageFetcher, ScanParams, SupportedPageType } from "./scan-workflow";
 
 export interface FetchPhaseDeps {
   fetch: PageFetcher;
@@ -55,19 +65,14 @@ export interface FetchPhasePage {
   html: Uint8Array;
 }
 
-export type FetchPhaseResult =
-  | {
-      homepage: { ok: true; status: number; html: Uint8Array };
-      pages: FetchPhasePage[];
-      fetched: SupportedPageType[];
-      failed: SupportedPageType[];
-    }
-  | {
-      homepage: { ok: false; reason: string };
-      pages: [];
-      fetched: [];
-      failed: ["homepage"];
-    };
+export type FetchPhaseResult = {
+  homepage:
+    | { ok: true; status: number; html: Uint8Array }
+    | { ok: false; reason: string };
+  pages: FetchPhasePage[];
+  fetched: SupportedPageType[];
+  failed: SupportedPageType[];
+};
 
 const requiredPagesOf = (params: ScanParams): readonly SupportedPageType[] => {
   if (params.requirePages === undefined) return ["about", "privacy"] as const;
@@ -132,7 +137,7 @@ export const fetchPhase = async (
       homepage: { ok: false, reason: homepageResult.reason },
       pages: [],
       fetched: [],
-      failed: ["homepage"],
+      failed: ["homepage" satisfies SupportedPageType],
     };
   }
 
@@ -166,11 +171,6 @@ export const fetchPhase = async (
   return { homepage: homepageResult, pages, fetched, failed };
 };
 
-import type {
-  EvaluateOutcome,
-  ScanCoverage,
-  SupportedPageType,
-} from "./scan-workflow";
 
 export interface EvaluatePhaseInput {
   scanId: string;
@@ -201,11 +201,6 @@ export const evaluatePhase = async (
   return outcome;
 };
 
-import type {
-  ScanCoverage,
-  ScanTerminalState,
-  ScanTerminalStatus,
-} from "./scan-workflow";
 
 export interface PersistDeps {
   db: D1Database;

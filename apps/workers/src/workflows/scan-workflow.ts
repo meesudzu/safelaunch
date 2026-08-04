@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { EvidenceItem, ReportFinding } from "@safelaunch/contracts";
 import { extractEvidence } from "../services/evidence";
+import { fetchPhase, evaluatePhase } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
 import {
   runRules,
@@ -153,9 +154,6 @@ const fetchWithRetries = async (
 
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
   const params = ScanParamsSchema.parse(rawParams);
-  const requestedPages = requiredPages(params);
-  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
-  const forcedFailed = new Set<SupportedPageType>(params.failedPages ?? []);
   const retryCount = deps.retryCount ?? 1;
   const retryBackoffMs = deps.retryBackoffMs ?? 5;
 
@@ -165,31 +163,19 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     scanId: params.scanId,
     jurisdiction: params.jurisdiction,
     category: params.category,
-    requestedPages,
+    requestedPages: requiredPages(params),
     at: deps.now(),
   });
 
-  const fetched: SupportedPageType[] = [];
-  const failed: SupportedPageType[] = [];
-  const skipped: SupportedPageType[] = [];
-  const pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> =
-    [];
-
-  // Always fetch homepage first.
-  const homepage = await fetchWithRetries(deps.fetch, params.url, {
-    pageType: "homepage",
-    timeoutPages,
-    retries: retryCount,
-    backoffMs: retryBackoffMs,
+  const fetchResult = await fetchPhase(params, {
+    fetch: deps.fetch,
+    log: deps.log,
+    now: deps.now,
+    retryCount,
+    retryBackoffMs,
   });
-  if (!homepage.ok) {
-    deps.log({
-      level: "error",
-      event: "scan.homepage_failed",
-      scanId: params.scanId,
-      reason: homepage.reason,
-      at: deps.now(),
-    });
+
+  if (!fetchResult.homepage.ok) {
     const coverage = buildCoverage([], ["homepage"], []);
     await deps.persistTerminalState?.({
       scanId: params.scanId,
@@ -204,43 +190,23 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
       coverage,
     };
   }
-  fetched.push("homepage");
-  pages.push({ type: "homepage", url: params.url, status: homepage.status, html: homepage.html });
 
-  for (const pageType of requestedPages) {
-    if (pageType === "homepage") continue;
-    if (forcedFailed.has(pageType) || timeoutPages.has(pageType)) {
-      failed.push(pageType);
-      continue;
-    }
-    const pageUrl = `${params.url.replace(/\/$/, "")}/${pageType}`;
-    const result = await fetchWithRetries(deps.fetch, pageUrl, {
-      pageType,
-      timeoutPages,
-      retries: retryCount,
-      backoffMs: retryBackoffMs,
-    });
-    if (!result.ok) {
-      failed.push(pageType);
-      continue;
-    }
-    fetched.push(pageType);
-    pages.push({ type: pageType, url: pageUrl, status: result.status, html: result.html });
-  }
-
-  const coverage = buildCoverage(fetched, failed, skipped);
-  const evaluation = await deps.evaluate({
-    scanId: params.scanId,
-    jurisdiction: params.jurisdiction,
-    category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
-    pages,
-    coverage,
-  });
+  const coverage = buildCoverage(fetchResult.fetched, fetchResult.failed, []);
+  const evaluation = await evaluatePhase(
+    {
+      scanId: params.scanId,
+      jurisdiction: params.jurisdiction,
+      category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
+      pages: fetchResult.pages,
+      coverage,
+    },
+    { evaluate: deps.evaluate, log: deps.log },
+  );
 
   let state: ScanTerminalState;
-  if (failed.length === 0) {
+  if (fetchResult.failed.length === 0) {
     state = "completed";
-  } else if (failed.includes("homepage") || fetched.length === 0) {
+  } else if (fetchResult.failed.includes("homepage") || fetchResult.fetched.length === 0) {
     state = "failed";
   } else {
     state = "partial";
@@ -252,7 +218,8 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     status = "needs_review";
   }
 
-  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => failed.includes(p));
+  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
+  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => fetchResult.failed.includes(p));
   let reportUrl: string | undefined;
   if (state !== "failed" && timeoutPagesFailed.length === 0) {
     const issued = await deps.persistReport({
