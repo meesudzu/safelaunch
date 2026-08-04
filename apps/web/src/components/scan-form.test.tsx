@@ -114,21 +114,22 @@ describe("ScanForm", () => {
   });
 
   it("renders the cached banner when the API returns a cached payload", async () => {
-    const createScanCached: ScanFormProps["createScan"] = vi.fn(() =>
-      Promise.resolve({
-        scanId: "scan_cached",
-        state: "completed",
-        status: "needs_review",
-        coverage: { fetched: [], failed: [], skipped: [] },
-        createdAt: "2026-08-03T10:00:00.000Z",
-        expiresAt: "2026-08-10T10:00:00.000Z",
-        reportUrl: "https://example.com/report/tok1",
-        cached: true,
-        quotaDay: "2026-08-03",
-        domainKey: "example.com",
-        message: "scan.cached.used",
-      }),
-    );
+    const cachedResponse = {
+      scanId: "scan_cached",
+      state: "completed" as const,
+      status: "needs_review" as const,
+      coverage: { fetched: [], failed: [], skipped: [] },
+      createdAt: "2026-08-03T10:00:00.000Z",
+      expiresAt: "2026-08-10T10:00:00.000Z",
+      reportUrl: "https://example.com/report/tok1",
+      cached: true as const,
+      quotaDay: "2026-08-03",
+      domainKey: "example.com",
+      message: "scan.cached.used",
+    };
+    const createScanCached = vi.fn(() =>
+      Promise.resolve(cachedResponse),
+    ) as CreateScanFn;
     const user = userEvent.setup();
     render(<ScanForm createScan={createScanCached} locale="vi" messages={viMessages} />);
     await user.type(screen.getByLabelText("URL website"), "https://example.com");
