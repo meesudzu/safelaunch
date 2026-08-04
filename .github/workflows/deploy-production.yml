@@ -41,8 +41,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Export D1 snapshot
         run: |
-          mkdir -p artifacts/db-snapshot
-          pnpm -C apps/workers exec wrangler d1 export DB --output=artifacts/db-snapshot/db.sql --env production
+          mkdir -p "$GITHUB_WORKSPACE/artifacts/db-snapshot"
+          pnpm -C apps/workers exec wrangler d1 export DB --remote --output="$GITHUB_WORKSPACE/artifacts/db-snapshot/db.sql"
       - name: Upload D1 snapshot (redacted)
         uses: actions/upload-artifact@v4
         with:
@@ -69,9 +69,9 @@ jobs:
           version: 10.13.1
       - run: pnpm install --frozen-lockfile
       - name: Apply forward-only D1 migrations
-        run: pnpm -C apps/workers exec wrangler d1 migrations apply DB --remote --env production
+        run: pnpm -C apps/workers exec wrangler d1 migrations apply DB --remote
       - name: Deploy API Worker
-        run: pnpm -C apps/workers exec wrangler deploy --env production
+        run: pnpm -C apps/workers exec wrangler deploy
       - name: Deploy Web Worker (OpenNext)
         run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy --env production
       - name: Gradual traffic shift (10 / 50 / 100)
