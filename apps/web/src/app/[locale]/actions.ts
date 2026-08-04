@@ -1,7 +1,17 @@
 "use server";
 
 import { createApiClient } from "../../lib/api-client";
-import type { CreateScanInput, CreateScanResponse, ScanCachedResponse } from "../../lib/api-client";
+import type {
+  CreateScanInput,
+  CreateScanResponse,
+  ScanCachedResponse,
+  ScanProgress,
+} from "../../lib/api-client";
+
+const apiClient = () =>
+  createApiClient({
+    NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN,
+  });
 
 /**
  * Server action invoked by the homepage scan form.
@@ -18,8 +28,10 @@ import type { CreateScanInput, CreateScanResponse, ScanCachedResponse } from "..
 export async function createScan(
   input: CreateScanInput,
 ): Promise<CreateScanResponse | ScanCachedResponse> {
-  const client = createApiClient({
-    NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN,
-  });
-  return client.createScan(input);
+  return apiClient().createScan(input);
+}
+
+/** Server action used by the scan progress screen for initial load and polling. */
+export async function getScan(scanId: string): Promise<ScanProgress> {
+  return apiClient().getScan(scanId);
 }

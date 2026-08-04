@@ -53,18 +53,19 @@ const backoffMs = (attempt: number): number => {
 export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
   const [state, setState] = useState<ScanProgressState>(initialState);
   const attempt = useRef(0);
-  const cancelled = useRef(false);
+  const isTerminal = TERMINAL_STATES.has(state.state);
 
   useEffect(() => {
-    if (TERMINAL_STATES.has(state.state)) return undefined;
+    if (isTerminal) return undefined;
 
+    let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const tick = async () => {
-      if (cancelled.current) return;
+      if (cancelled) return;
       attempt.current += 1;
       try {
         const next = await poll(state.scanId);
-        if (cancelled.current) return;
+        if (cancelled) return;
         setState(next);
         if (!TERMINAL_STATES.has(next.state)) {
           timer = setTimeout(() => {
@@ -72,6 +73,7 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
           }, backoffMs(attempt.current));
         }
       } catch {
+        if (cancelled) return;
         // Transient error — back off and retry.
         timer = setTimeout(() => {
           void tick();
@@ -84,10 +86,10 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
     }, backoffMs(attempt.current));
 
     return () => {
-      cancelled.current = true;
+      cancelled = true;
       if (timer) clearTimeout(timer);
     };
-  }, [state.scanId, poll, state.state]);
+  }, [isTerminal, poll, state.scanId]);
 
   const stateLabel = ((): string => {
     const key = `state.${state.state}` as keyof ScanProgressMessages;
