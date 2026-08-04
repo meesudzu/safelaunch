@@ -37,3 +37,131 @@ export const deterministicTokenHash = async (scanId: string): Promise<string> =>
   const token = await deterministicReportToken(scanId);
   return sha256Hex(token);
 };
+
+import type { PageFetcher, ScanParams, SupportedPageType } from "./scan-workflow";
+
+export interface FetchPhaseDeps {
+  fetch: PageFetcher;
+  log: (entry: Record<string, unknown>) => void;
+  now: () => string;
+  retryCount: number;
+  retryBackoffMs: number;
+}
+
+export interface FetchPhasePage {
+  type: SupportedPageType;
+  url: string;
+  status: number;
+  html: Uint8Array;
+}
+
+export type FetchPhaseResult =
+  | {
+      homepage: { ok: true; status: number; html: Uint8Array };
+      pages: FetchPhasePage[];
+      fetched: SupportedPageType[];
+      failed: SupportedPageType[];
+    }
+  | {
+      homepage: { ok: false; reason: string };
+      pages: [];
+      fetched: [];
+      failed: ["homepage"];
+    };
+
+const requiredPagesOf = (params: ScanParams): readonly SupportedPageType[] => {
+  if (params.requirePages === undefined) return ["about", "privacy"] as const;
+  return params.requirePages;
+};
+
+const fetchWithRetries = async (
+  fetcher: PageFetcher,
+  url: string,
+  options: {
+    timeoutPages: Set<SupportedPageType>;
+    pageType: SupportedPageType;
+    retries: number;
+    backoffMs: number;
+  },
+): Promise<{ ok: true; status: number; html: Uint8Array } | { ok: false; reason: string }> => {
+  let attempt = 0;
+  let lastError: unknown = null;
+  while (attempt <= options.retries) {
+    try {
+      const result = await fetcher.fetch(url);
+      return { ok: true, status: result.status, html: result.html };
+    } catch (cause) {
+      lastError = cause;
+      attempt += 1;
+      if (attempt > options.retries) break;
+      await new Promise((resolve) => setTimeout(resolve, options.backoffMs));
+    }
+  }
+  const reason =
+    options.timeoutPages.has(options.pageType) || lastError instanceof Error
+      ? lastError instanceof Error
+        ? lastError.message
+        : "fetch failed"
+      : "fetch failed";
+  return { ok: false, reason };
+};
+
+export const fetchPhase = async (
+  params: ScanParams,
+  deps: FetchPhaseDeps,
+): Promise<FetchPhaseResult> => {
+  const requestedPages = requiredPagesOf(params);
+  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
+  const forcedFailed = new Set<SupportedPageType>(params.failedPages ?? []);
+
+  const homepageResult = await fetchWithRetries(deps.fetch, params.url, {
+    pageType: "homepage",
+    timeoutPages,
+    retries: deps.retryCount,
+    backoffMs: deps.retryBackoffMs,
+  });
+  if (!homepageResult.ok) {
+    deps.log({
+      level: "error",
+      event: "scan.homepage_failed",
+      scanId: params.scanId,
+      reason: homepageResult.reason,
+      at: deps.now(),
+    });
+    return {
+      homepage: { ok: false, reason: homepageResult.reason },
+      pages: [],
+      fetched: [],
+      failed: ["homepage"],
+    };
+  }
+
+  const pages: FetchPhasePage[] = [
+    { type: "homepage", url: params.url, status: homepageResult.status, html: homepageResult.html },
+  ];
+  const fetched: SupportedPageType[] = ["homepage"];
+  const failed: SupportedPageType[] = [];
+
+  for (const pageType of requestedPages) {
+    if (pageType === "homepage") continue;
+    if (forcedFailed.has(pageType) || timeoutPages.has(pageType)) {
+      failed.push(pageType);
+      continue;
+    }
+    const pageUrl = `${params.url.replace(/\/$/, "")}/${pageType}`;
+    const result = await fetchWithRetries(deps.fetch, pageUrl, {
+      pageType,
+      timeoutPages,
+      retries: deps.retryCount,
+      backoffMs: deps.retryBackoffMs,
+    });
+    if (!result.ok) {
+      failed.push(pageType);
+      continue;
+    }
+    fetched.push(pageType);
+    pages.push({ type: pageType, url: pageUrl, status: result.status, html: result.html });
+  }
+
+  return { homepage: homepageResult, pages, fetched, failed };
+};
