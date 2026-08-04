@@ -1,6 +1,13 @@
 import { z } from "zod";
 import type { EvidenceItem, ReportFinding } from "@safelaunch/contracts";
 import { extractEvidence } from "../services/evidence";
+import {
+  evaluatePhase,
+  fetchPhase,
+  fetchSinglePagePhase,
+  persistReportPhase,
+  persistTerminalPhase,
+} from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
 import {
   runRules,
@@ -119,43 +126,8 @@ const buildCoverage = (
   };
 };
 
-const fetchWithRetries = async (
-  fetcher: PageFetcher,
-  url: string,
-  options: {
-    timeoutPages: Set<SupportedPageType>;
-    pageType: SupportedPageType;
-    retries: number;
-    backoffMs: number;
-  },
-): Promise<{ ok: true; status: number; html: Uint8Array } | { ok: false; reason: string }> => {
-  let attempt = 0;
-  let lastError: unknown = null;
-  while (attempt <= options.retries) {
-    try {
-      const result = await fetcher.fetch(url);
-      return { ok: true, status: result.status, html: result.html };
-    } catch (cause) {
-      lastError = cause;
-      attempt += 1;
-      if (attempt > options.retries) break;
-      await new Promise((resolve) => setTimeout(resolve, options.backoffMs));
-    }
-  }
-  const reason =
-    options.timeoutPages.has(options.pageType) || lastError instanceof Error
-      ? lastError instanceof Error
-        ? lastError.message
-        : "fetch failed"
-      : "fetch failed";
-  return { ok: false, reason };
-};
-
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
   const params = ScanParamsSchema.parse(rawParams);
-  const requestedPages = requiredPages(params);
-  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
-  const forcedFailed = new Set<SupportedPageType>(params.failedPages ?? []);
   const retryCount = deps.retryCount ?? 1;
   const retryBackoffMs = deps.retryBackoffMs ?? 5;
 
@@ -165,31 +137,19 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     scanId: params.scanId,
     jurisdiction: params.jurisdiction,
     category: params.category,
-    requestedPages,
+    requestedPages: requiredPages(params),
     at: deps.now(),
   });
 
-  const fetched: SupportedPageType[] = [];
-  const failed: SupportedPageType[] = [];
-  const skipped: SupportedPageType[] = [];
-  const pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> =
-    [];
-
-  // Always fetch homepage first.
-  const homepage = await fetchWithRetries(deps.fetch, params.url, {
-    pageType: "homepage",
-    timeoutPages,
-    retries: retryCount,
-    backoffMs: retryBackoffMs,
+  const fetchResult = await fetchPhase(params, {
+    fetch: deps.fetch,
+    log: deps.log,
+    now: deps.now,
+    retryCount,
+    retryBackoffMs,
   });
-  if (!homepage.ok) {
-    deps.log({
-      level: "error",
-      event: "scan.homepage_failed",
-      scanId: params.scanId,
-      reason: homepage.reason,
-      at: deps.now(),
-    });
+
+  if (!fetchResult.homepage.ok) {
     const coverage = buildCoverage([], ["homepage"], []);
     await deps.persistTerminalState?.({
       scanId: params.scanId,
@@ -204,43 +164,23 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
       coverage,
     };
   }
-  fetched.push("homepage");
-  pages.push({ type: "homepage", url: params.url, status: homepage.status, html: homepage.html });
 
-  for (const pageType of requestedPages) {
-    if (pageType === "homepage") continue;
-    if (forcedFailed.has(pageType) || timeoutPages.has(pageType)) {
-      failed.push(pageType);
-      continue;
-    }
-    const pageUrl = `${params.url.replace(/\/$/, "")}/${pageType}`;
-    const result = await fetchWithRetries(deps.fetch, pageUrl, {
-      pageType,
-      timeoutPages,
-      retries: retryCount,
-      backoffMs: retryBackoffMs,
-    });
-    if (!result.ok) {
-      failed.push(pageType);
-      continue;
-    }
-    fetched.push(pageType);
-    pages.push({ type: pageType, url: pageUrl, status: result.status, html: result.html });
-  }
-
-  const coverage = buildCoverage(fetched, failed, skipped);
-  const evaluation = await deps.evaluate({
-    scanId: params.scanId,
-    jurisdiction: params.jurisdiction,
-    category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
-    pages,
-    coverage,
-  });
+  const coverage = buildCoverage(fetchResult.fetched, fetchResult.failed, []);
+  const evaluation = await evaluatePhase(
+    {
+      scanId: params.scanId,
+      jurisdiction: params.jurisdiction,
+      category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
+      pages: fetchResult.pages,
+      coverage,
+    },
+    { evaluate: deps.evaluate, log: deps.log },
+  );
 
   let state: ScanTerminalState;
-  if (failed.length === 0) {
+  if (fetchResult.failed.length === 0) {
     state = "completed";
-  } else if (failed.includes("homepage") || fetched.length === 0) {
+  } else if (fetchResult.failed.includes("homepage") || fetchResult.fetched.length === 0) {
     state = "failed";
   } else {
     state = "partial";
@@ -252,7 +192,8 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     status = "needs_review";
   }
 
-  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => failed.includes(p));
+  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
+  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => fetchResult.failed.includes(p));
   let reportUrl: string | undefined;
   if (state !== "failed" && timeoutPagesFailed.length === 0) {
     const issued = await deps.persistReport({
@@ -330,24 +271,190 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 > {
   async run(
     event: Readonly<WorkflowEvent<ScanWorkflowPayload>>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _step: WorkflowStep,
+    step: WorkflowStep,
   ): Promise<ScanResult> {
-    // Each `step.do` invocation captures a unit of work that the Workflow
-    // runtime retries and persists independently. The wrapper delegates the
-    // actual logic to `runScan` so the same code path is exercised by tests.
+    // Each `step.do(name, fn)` becomes one node on the Cloudflare dashboard
+    // Graph. The runtime retries the closure on transient failure and memoizes
+    // its return value so a partial failure does not replay earlier phases.
     const params: ScanWorkflowPayload = event.payload;
-    return runScan(params, {
-      fetch: makeWorkflowFetch(),
-      evaluate: makeWorkflowEvaluator(this.env),
-      persistReport: makeWorkflowPersistReport(this.env),
-      persistTerminalState: makeWorkflowPersistTerminalState(this.env),
-      now: () => new Date().toISOString(),
-      log: (entry) =>
-        console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" })),
-      retryCount: 1,
-      retryBackoffMs: 5,
+    const log = (entry: Record<string, unknown>) =>
+      console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" }));
+    const now = () => new Date().toISOString();
+
+    // 1. parse-params: validate and freeze the payload.
+    // eslint-disable-next-line @typescript-eslint/require-await
+    const parsed = await step.do<ScanWorkflowPayload>("parse-params", async () =>
+      ScanParamsSchema.parse(params),
+    );
+
+    // 2. fetch:homepage (must succeed for the scan to continue).
+    const homepagePage = await step.do("fetch:homepage", async () => {
+      const fetcher = makeWorkflowFetch();
+      try {
+        const r = await fetcher.fetch(parsed.url);
+        return { ok: true as const, status: r.status, html: r.html };
+      } catch (cause) {
+        return {
+          ok: false as const,
+          reason: cause instanceof Error ? cause.message : "fetch failed",
+        };
+      }
     });
+
+    if (!homepagePage.ok) {
+      const failedCoverage = {
+        fetched: [] as SupportedPageType[],
+        failed: ["homepage"] as SupportedPageType[],
+        skipped: [] as SupportedPageType[],
+      };
+      await step.do("persist-terminal", async () =>
+        persistTerminalPhase(
+          {
+            scanId: parsed.scanId,
+            state: "failed",
+            status: "needs_review",
+            coverage: failedCoverage,
+          },
+          { db: this.env.DB, log, now },
+        ),
+      );
+      return {
+        scanId: parsed.scanId,
+        state: "failed" as ScanTerminalState,
+        status: "needs_review" as ScanTerminalStatus,
+        coverage: failedCoverage,
+      };
+    }
+
+    // 3. fetch:<page> — one step per requested page (excluding homepage).
+    const requiredPages = parsed.requirePages ?? ["about", "privacy"];
+    const timeoutPages = new Set<SupportedPageType>(parsed.timeoutPages ?? []);
+    const forcedFailed = new Set<SupportedPageType>(parsed.failedPages ?? []);
+
+    type PageResult =
+      | { ok: true; pageType: SupportedPageType; status: number; html: Uint8Array }
+      | { ok: false; pageType: SupportedPageType; reason: string };
+    const perPageResults: PageResult[] = [];
+    for (const pageType of requiredPages) {
+      if (pageType === "homepage") continue;
+      const result = await step.do(`fetch:${pageType}`, () =>
+        fetchSinglePagePhase(
+          {
+            fetcher: makeWorkflowFetch(),
+            pageType,
+            baseUrl: parsed.url,
+            retries: 1,
+            backoffMs: 5,
+            timeoutPages,
+            forcedFailed,
+          },
+          log,
+        ),
+      );
+      perPageResults.push(result);
+    }
+
+    // 4. evaluate-rules (single fan-out step — see spec §4 assumption G7).
+    // extract-evidence is currently performed inside makeWorkflowEvaluator; the
+    // step boundary still exists at evaluate-rules. Splitting extraction into a
+    // separate step would require reshaping ScanRunDeps.evaluate so runScan
+    // tests could supply evidence — that refactor is deferred.
+    const homeRow = {
+      type: "homepage" as const,
+      url: parsed.url,
+      status: homepagePage.status,
+      html: homepagePage.html,
+    };
+    const fetchedRows = [
+      homeRow,
+      ...perPageResults.flatMap((r) =>
+        r.ok
+          ? [
+              {
+                type: r.pageType,
+                url: `${parsed.url}/${r.pageType}`,
+                status: r.status,
+                html: r.html,
+              },
+            ]
+          : [],
+      ),
+    ];
+
+    const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
+    const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
+    const coverage: ScanCoverage = {
+      fetched: ["homepage", ...fetcheds],
+      failed: Array.from(new Set<SupportedPageType>(["homepage", ...faileds])),
+      skipped: [],
+    };
+    const evaluation = await step.do("evaluate-rules", () =>
+      evaluatePhase(
+        {
+          scanId: parsed.scanId,
+          jurisdiction: parsed.jurisdiction,
+          category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
+          pages: fetchedRows,
+          coverage,
+        },
+        { evaluate: makeWorkflowEvaluator(this.env), log },
+      ),
+    );
+
+    // 6. aggregate-findings
+    const complete = coverage.failed.length === 0;
+    // eslint-disable-next-line @typescript-eslint/require-await
+    const aggregated = await step.do("aggregate-findings", async () =>
+      aggregateFindings(evaluation.findings, { complete }),
+    );
+
+    let state: ScanTerminalState;
+    if (coverage.failed.length === 0) {
+      state = "completed";
+    } else if (coverage.fetched.length === 0) {
+      state = "failed";
+    } else {
+      state = "partial";
+    }
+
+    let finalStatus: ScanTerminalStatus = aggregated;
+    if (state !== "completed" && finalStatus === "no_significant_risk") {
+      finalStatus = "needs_review";
+    }
+
+    // 7. persist-report (deterministic token, idempotent upsert)
+    const report = await step.do("persist-report", async () =>
+      persistReportPhase(
+        {
+          scanId: parsed.scanId,
+          payload: {
+            scanId: parsed.scanId,
+            state,
+            status: finalStatus,
+            coverage,
+            findings: evaluation.findings,
+            generatedAt: now(),
+          },
+        },
+        { db: this.env.DB, log, now },
+      ),
+    );
+
+    // 8. persist-terminal (last; same coverage shape)
+    await step.do("persist-terminal", async () =>
+      persistTerminalPhase(
+        { scanId: parsed.scanId, state, status: finalStatus, coverage },
+        { db: this.env.DB, log, now },
+      ),
+    );
+
+    return {
+      scanId: parsed.scanId,
+      state,
+      status: finalStatus,
+      coverage,
+      reportUrl: report.url,
+    };
   }
 }
 
@@ -617,52 +724,6 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
     );
 
     return { status, findings };
-  };
-};
-
-const sha256Hex = async (input: string): Promise<string> => {
-  const data = new TextEncoder().encode(input);
-  const digest = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-};
-
-const REPORT_TTL_SECONDS = 7 * 24 * 60 * 60;
-
-const makeWorkflowPersistReport = (env: ScanWorkflowEnv): ScanRunDeps["persistReport"] => {
-  return async (input): Promise<{ token: string; url: string } | null> => {
-    const tokenBytes = new Uint8Array(24);
-    crypto.getRandomValues(tokenBytes);
-    const token = `rpt_${Array.from(tokenBytes)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("")}`;
-    const tokenHash = await sha256Hex(token);
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + REPORT_TTL_SECONDS * 1000).toISOString();
-    const payloadJson = JSON.stringify({
-      ...input.payload,
-      _reportToken: token,
-    });
-    const { ReportRepository } = await import("@safelaunch/db");
-    const repo = new ReportRepository(env.DB);
-    await repo.upsert({
-      scanId: input.scanId,
-      tokenHash,
-      payloadJson,
-      expiresAt,
-    });
-    const url = `https://web.local/vi/report/${token}`;
-    return { token, url };
-  };
-};
-
-const makeWorkflowPersistTerminalState = (
-  env: ScanWorkflowEnv,
-): NonNullable<ScanRunDeps["persistTerminalState"]> => {
-  return async ({ scanId, state, coverage }) => {
-    const { ScanRepository } = await import("@safelaunch/db");
-    await new ScanRepository(env.DB).updateTerminal({ id: scanId, state, coverage });
   };
 };
 
