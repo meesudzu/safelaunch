@@ -200,3 +200,81 @@ export const evaluatePhase = async (
   });
   return outcome;
 };
+
+import type {
+  ScanCoverage,
+  ScanTerminalState,
+  ScanTerminalStatus,
+} from "./scan-workflow";
+
+export interface PersistDeps {
+  db: D1Database;
+  log: (entry: Record<string, unknown>) => void;
+  now: () => string;
+}
+
+const REPORT_TTL_SECONDS = 7 * 24 * 60 * 60;
+const WEB_REPORT_BASE = "https://web.local/vi/report";
+
+/**
+ * Persists the report payload idempotently. Uses the deterministic token
+ * derived from `scanId`, so a replay of this phase overwrites the same row in
+ * the `reports` table and the report URL stays stable.
+ */
+export const persistReportPhase = async (
+  input: { scanId: string; payload: Record<string, unknown> },
+  deps: PersistDeps,
+): Promise<{ token: string; url: string }> => {
+  const token = await deterministicReportToken(input.scanId);
+  const tokenHash = await deterministicTokenHash(input.scanId);
+  const now = new Date(deps.now());
+  const expiresAt = new Date(now.getTime() + REPORT_TTL_SECONDS * 1000).toISOString();
+  const payloadJson = JSON.stringify({
+    ...input.payload,
+    _reportToken: token,
+  });
+  await deps.db
+    .prepare(
+      "INSERT INTO reports (scan_id, token_hash, payload_json, expires_at) VALUES (?, ?, ?, ?) ON CONFLICT(scan_id) DO UPDATE SET token_hash = excluded.token_hash, payload_json = excluded.payload_json, expires_at = excluded.expires_at",
+    )
+    .bind(input.scanId, tokenHash, payloadJson, expiresAt)
+    .run();
+  const url = `${WEB_REPORT_BASE}/${token}`;
+  deps.log({
+    level: "info",
+    event: "scan.report_persisted",
+    scanId: input.scanId,
+    at: deps.now(),
+  });
+  return { token, url };
+};
+
+/**
+ * Updates the scan row's terminal state. Mirrors `ScanRepository.updateTerminal`
+ * exactly so this helper does not diverge from the package's contract.
+ *
+ * `status` is accepted (forward-compatible) but NOT persisted — current schema
+ * stores the compliance verdict inside the report payload, not the scan row.
+ */
+export const persistTerminalPhase = async (
+  input: {
+    scanId: string;
+    state: ScanTerminalState;
+    status: ScanTerminalStatus;
+    coverage: ScanCoverage;
+  },
+  deps: PersistDeps,
+): Promise<void> => {
+  void input.status; // accepted for API symmetry; see function doc.
+  await deps.db
+    .prepare("UPDATE scans SET state = ?, coverage_json = ? WHERE id = ?")
+    .bind(input.state, JSON.stringify(input.coverage), input.scanId)
+    .run();
+  deps.log({
+    level: "info",
+    event: "scan.terminal_persisted",
+    scanId: input.scanId,
+    state: input.state,
+    at: deps.now(),
+  });
+};

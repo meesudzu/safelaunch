@@ -144,3 +144,102 @@ describe("evaluatePhase", () => {
     expect(out.status).toBe("high_risk");
   });
 });
+
+import {
+  persistReportPhase,
+  persistTerminalPhase,
+  type PersistDeps,
+} from "./scan-workflow.phases";
+import type { ScanCoverage } from "./scan-workflow";
+
+const stubDb = () => {
+  const calls: Array<{ sql: string; args: unknown[] }> = [];
+  return {
+    calls,
+    prepare(sql: string) {
+      return {
+        sql,
+        bind(...args: unknown[]) {
+          return {
+            async run() {
+              calls.push({ sql, args });
+              return { success: true };
+            },
+          };
+        },
+      };
+    },
+  };
+};
+
+const coverage: ScanCoverage = { fetched: ["homepage"], failed: [], skipped: [] };
+
+const sha256Hex = async (input: string): Promise<string> => {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+};
+
+describe("persistReportPhase", () => {
+  it("uses the deterministic token derived from scanId (stable across retries)", async () => {
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    const input = {
+      scanId: "scan-replay",
+      payload: { findings: [], status: "high_risk" as const },
+    };
+    const a = await persistReportPhase(input, deps);
+    const b = await persistReportPhase(input, deps);
+    expect(a.token).toBe(b.token);
+    expect(a.url).toMatch(/^https:\/\/web\.local\/vi\/report\/rpt_[0-9a-f]{64}$/);
+    expect(a.token).toBe(`rpt_${await sha256Hex("scan-replay")}`);
+  });
+
+  it("calls upsert with the same scanId row on retry (idempotent)", async () => {
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistReportPhase(
+      { scanId: "scan-empty", payload: { findings: [], status: "needs_review" as const } },
+      deps,
+    );
+    expect(db.calls.length).toBe(1);
+    expect(db.calls[0]!.sql).toMatch(/INSERT INTO reports .* ON CONFLICT\(scan_id\) DO UPDATE/);
+    expect(db.calls[0]!.args[0]).toBe("scan-empty");
+  });
+});
+
+describe("persistTerminalPhase", () => {
+  it("updates the scan row once with state and coverage (matches ScanRepository.updateTerminal)", async () => {
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistTerminalPhase(
+      {
+        scanId: "scan-term",
+        state: "completed",
+        status: "high_risk",
+        coverage,
+      },
+      deps,
+    );
+    expect(db.calls.length).toBe(1);
+    const call = db.calls[0]!;
+    // Must mirror the existing ScanRepository.updateTerminal SQL shape.
+    expect(call.sql).toMatch(/UPDATE scans SET state = \?, coverage_json = \? WHERE id = \?/);
+    expect(call.args[0]).toBe("completed");
+    expect(call.args[2]).toBe("scan-term");
+  });
+});
