@@ -165,3 +165,38 @@ export const fetchPhase = async (
 
   return { homepage: homepageResult, pages, fetched, failed };
 };
+
+import type {
+  EvaluateOutcome,
+  ScanCoverage,
+  SupportedPageType,
+} from "./scan-workflow";
+
+export interface EvaluatePhaseInput {
+  scanId: string;
+  jurisdiction: string;
+  category: "online_game" | "electronic_press" | "digital_entertainment";
+  pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }>;
+  coverage: ScanCoverage;
+}
+
+export interface EvaluatePhaseDeps {
+  evaluate: (input: EvaluatePhaseInput) => Promise<EvaluateOutcome>;
+  log: (entry: Record<string, unknown>) => void;
+}
+
+export const evaluatePhase = async (
+  input: EvaluatePhaseInput,
+  deps: EvaluatePhaseDeps,
+): Promise<EvaluateOutcome> => {
+  const outcome = await deps.evaluate(input);
+  deps.log({
+    level: "info",
+    event: "scan.evaluated",
+    scanId: input.scanId,
+    findingsCount: outcome.findings.length,
+    status: outcome.status,
+    coverageComplete: input.coverage.failed.length === 0,
+  });
+  return outcome;
+};

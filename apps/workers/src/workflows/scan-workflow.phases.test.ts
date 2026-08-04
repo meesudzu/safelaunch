@@ -95,3 +95,52 @@ describe("fetchPhase", () => {
     if (!result.homepage.ok) throw new Error("expected homepage ok after retries");
   });
 });
+
+import { evaluatePhase, type EvaluatePhaseDeps } from "./scan-workflow.phases";
+import type {
+  ScanCoverage,
+  SupportedPageType,
+} from "./scan-workflow";
+
+const fakeCoverage: ScanCoverage = {
+  fetched: ["homepage"],
+  failed: [],
+  skipped: [],
+};
+
+const fakePages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> = [
+  { type: "homepage", url: "https://example.com", status: 200, html: new TextEncoder().encode("") },
+];
+
+describe("evaluatePhase", () => {
+  it("returns the evaluator's outcome verbatim", async () => {
+    const expected = [
+      {
+        id: "rule-1::evidence-1",
+        severity: "high",
+        rationale: "GDPR Art. 7 violation",
+        confidence: 0.9,
+        evidenceIds: ["evidence-1"],
+        citations: [],
+        recommendedAction: "Fix consent flow",
+        applicability: "EU",
+      },
+    ];
+    const evaluator: EvaluatePhaseDeps["evaluate"] = async () => ({
+      status: "high_risk",
+      findings: expected,
+    });
+    const out = await evaluatePhase(
+      {
+        scanId: "scan-1",
+        jurisdiction: "VN",
+        category: "online_game" as const,
+        pages: fakePages,
+        coverage: fakeCoverage,
+      },
+      { evaluate: evaluator, log: () => {} },
+    );
+    expect(out.findings).toEqual(expected);
+    expect(out.status).toBe("high_risk");
+  });
+});
