@@ -197,7 +197,7 @@ describe("persistReportPhase", () => {
     const a = await persistReportPhase(input, deps);
     const b = await persistReportPhase(input, deps);
     expect(a.token).toBe(b.token);
-    expect(a.url).toMatch(/^https:\/\/web\.local\/vi\/report\/rpt_[0-9a-f]{64}$/);
+    expect(a.url).toMatch(/^https:\/\/safelaunch\.runany.\dev\/vi\/report\/rpt_[0-9a-f]{64}$/);
     expect(a.token).toBe(`rpt_${await sha256Hex("scan-replay")}`);
   });
 
