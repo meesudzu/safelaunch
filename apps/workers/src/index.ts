@@ -30,7 +30,7 @@ app.onError((error, context) => {
   return context.json({ code: "INTERNAL_ERROR", requestId }, 500);
 });
 
-const worker: ExportedHandler<Env> = {
+const worker = {
   fetch: app.fetch,
   queue(batch) {
     // Keep delivery explicit until the legal ingestion lifecycle is wired in.
@@ -46,7 +46,7 @@ const worker: ExportedHandler<Env> = {
     );
     throw new Error("Legal ingestion queue consumer is not implemented");
   },
-};
+} satisfies ExportedHandler<Env>;
 
 export default worker;
 export { ScanWorkflowEntrypoint, AbuseRateLimiter };
