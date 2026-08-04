@@ -200,6 +200,118 @@ describe("reports router", () => {
   });
 });
 
+
+const runWithDbByToken = async (
+  db: FakeD1Database,
+  request: Request,
+  body?: { tokenHash?: string; payloadJson?: string; expiresAt?: string },
+) => {
+  const app = buildApp();
+  if (body?.tokenHash) {
+    db.rows.push({
+      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
+      firstReturn: {
+        scan_id: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+        token_hash: body.tokenHash,
+        payload_json: body.payloadJson ?? "{}",
+        expires_at: body.expiresAt ?? "2099-01-01T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+  } else {
+    db.rows.push({
+      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
+      firstReturn: null,
+      runReturn: null,
+    });
+  }
+  return app.fetch(request, { DB: db });
+};
+
+describe("reports router — by-token lookup", () => {
+  it("returns 404 when no row matches the token hash", async () => {
+    const db = new FakeD1Database();
+    const response = await runWithDbByToken(
+      db,
+      new Request("http://local/v1/reports/by-token/some-token"),
+    );
+    expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body).toEqual({ code: "REPORT_NOT_FOUND" });
+  });
+
+  it("returns the payload with no-cache headers when the token hash matches", async () => {
+    const token = "rpt_dd5196a8aec1ead9d9ccd39d0d7b2109a557f1a333001bdc";
+    const stored = await sha256(token);
+    const payload = JSON.stringify({
+      scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+      status: "high_risk",
+    });
+    const db = new FakeD1Database();
+    const response = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${encodeURIComponent(token)}`),
+      { tokenHash: stored, payloadJson: payload },
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+    expect(response.headers.get("Content-Type")).toContain("application/json");
+    const body = await response.json();
+    expect(body).toEqual({
+      scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+      status: "high_risk",
+    });
+    expect(body).not.toHaveProperty("_reportToken");
+  });
+
+  it("returns 410 Gone when the matched report has expired", async () => {
+    const token = "rpt_expired";
+    const stored = await sha256(token);
+    const db = new FakeD1Database();
+    const response = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${token}`),
+      { tokenHash: stored, expiresAt: "2020-01-01T00:00:00.000Z" },
+    );
+    expect(response.status).toBe(410);
+  });
+
+  it("returns 404 after the token has been burned (single-use guarantee)", async () => {
+    const db = new FakeD1Database();
+    // After burn, token_hash is NULL, so the hash lookup yields no row.
+    const response = await runWithDbByToken(
+      db,
+      new Request("http://local/v1/reports/by-token/rpt_alreadyused"),
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("never logs the plaintext token or its hash via the by-token path", async () => {
+    const token = "rpt_secret_token";
+    const stored = await sha256(token);
+    const db = new FakeD1Database();
+    const errSpy: string[] = [];
+    const origError = console.error;
+    console.error = (...args: unknown[]) => {
+      errSpy.push(args.map(String).join(" "));
+      origError(...args);
+    };
+    try {
+      await runWithDbByToken(
+        db,
+        new Request(`http://local/v1/reports/by-token/${token}`),
+        { tokenHash: stored },
+      );
+    } finally {
+      console.error = origError;
+    }
+    const blob = errSpy.join("\n");
+    expect(blob).not.toContain(token);
+    expect(blob).not.toContain(stored);
+  });
+});
+
 describe("constantTimeEquals", () => {
   it("returns true for equal strings", () => {
     expect(constantTimeEquals("abcdef", "abcdef")).toBe(true);

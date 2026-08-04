@@ -130,6 +130,20 @@ export class ReportRepository {
     return row ? toReport(row) : null;
   }
 
+  async getByTokenHash(tokenHash: string): Promise<StoredReport | null> {
+    // Look up the report by its token hash. Used by the public report
+    // page whose URL contains the one-time token, not the scanId.
+    // Returns null after the token has been burned (token_hash IS NULL),
+    // which gives us the single-use guarantee for free.
+    const row = await this.db
+      .prepare(
+        "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
+      )
+      .bind(tokenHash)
+      .first<ReportRow>();
+    return row ? toReport(row) : null;
+  }
+
   async burnToken(scanId: string): Promise<void> {
     await this.db
       .prepare("UPDATE reports SET token_hash = NULL WHERE scan_id = ?")

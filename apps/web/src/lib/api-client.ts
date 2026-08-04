@@ -181,8 +181,11 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
       return (await response.json()) as ScanProgress;
     },
     getReport: async (token: string): Promise<ReportPayloadDto> => {
+      // The public report URL only contains the one-time token (no scanId
+      // is ever exposed to the client), so we call the by-token endpoint
+      // which looks the row up by SHA-256(token_hash) directly.
       const response = await fetch(
-        `${requireOrigin(base)}/v1/reports/${encodeURIComponent(token)}?token=${encodeURIComponent(token)}`,
+        `${requireOrigin(base)}/v1/reports/by-token/${encodeURIComponent(token)}`,
         { headers: { accept: "application/json" } },
       );
       if (!response.ok) {
