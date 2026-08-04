@@ -14,8 +14,10 @@ interface FakeCode {
   revokedAt?: string | null;
 }
 
-const castRedeemRepo = (r: FakeRedeemRepo): Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & FakeRedeemRepo =>
-  r as unknown as Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & FakeRedeemRepo;
+const castRedeemRepo = (
+  r: FakeRedeemRepo,
+): Pick<RedeemRepository, "findByHash" | "applyGrant"> & FakeRedeemRepo =>
+  r as unknown as Pick<RedeemRepository, "findByHash" | "applyGrant"> & FakeRedeemRepo;
 
 interface FakeGrant {
   id: string;
@@ -38,7 +40,8 @@ interface FakeScanRow {
 class FakeRedeemRepo {
   codes: Record<string, FakeCode> = {};
   grants: FakeGrant[] = [];
-  createCode = (c: FakeCode): Promise<FakeCode> => Promise.resolve(this.codes[c.id] = { ...c, revokedAt: c.revokedAt ?? null });
+  createCode = (c: FakeCode): Promise<FakeCode> =>
+    Promise.resolve((this.codes[c.id] = { ...c, revokedAt: c.revokedAt ?? null }));
   findByHash = (h: string): Promise<FakeCode | null> =>
     Promise.resolve(Object.values(this.codes).find((c) => c.codeHash === h) ?? null);
   applyGrant = (g: FakeGrant): Promise<FakeGrant> => {
@@ -60,7 +63,9 @@ class FakeScanRepo {
   ): Promise<FakeScanRow | null> => {
     return Promise.resolve(
       this.rows
-        .filter((r) => r.domainKey === domainKey && r.quotaDay === day && terminal.includes(r.state))
+        .filter(
+          (r) => r.domainKey === domainKey && r.quotaDay === day && terminal.includes(r.state),
+        )
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null,
     );
   };
@@ -68,7 +73,8 @@ class FakeScanRepo {
 
 class FakeReportRepo {
   rows: Record<string, { payloadJson: string }> = {};
-  get = (scanId: string): Promise<{ payloadJson: string } | null> => Promise.resolve(this.rows[scanId] ?? null);
+  get = (scanId: string): Promise<{ payloadJson: string } | null> =>
+    Promise.resolve(this.rows[scanId] ?? null);
 }
 
 describe("toQuotaDay", () => {
@@ -86,7 +92,9 @@ describe("resolveScanRequest", () => {
 
   it("returns fresh when no prior scan today", async () => {
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: castRedeemRepo(new FakeRedeemRepo()),
       scanLookup: new FakeScanRepo().lookup,
@@ -100,14 +108,20 @@ describe("resolveScanRequest", () => {
   it("returns cached when a prior scan exists (no code)", async () => {
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const reportRepo = new FakeReportRepo();
     reportRepo.rows["scan_1"] = { payloadJson: JSON.stringify({ _reportToken: "tok1" }) };
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: castRedeemRepo(new FakeRedeemRepo()),
       scanLookup: scanRepo.lookup,
@@ -125,19 +139,33 @@ describe("resolveScanRequest", () => {
 
   it("returns fresh when a valid redeem code is presented", async () => {
     const _redeemRepoInstance = new FakeRedeemRepo();
-    const redeemRepo = _redeemRepoInstance as unknown as Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & typeof _redeemRepoInstance;
+    const redeemRepo = _redeemRepoInstance as unknown as Pick<
+      RedeemRepository,
+      "findByHash" | "applyGrant"
+    > &
+      typeof _redeemRepoInstance;
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z", expiresAt: "2026-12-01T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
     });
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo,
       scanLookup: scanRepo.lookup,
@@ -154,19 +182,33 @@ describe("resolveScanRequest", () => {
 
   it("rejects an expired code", async () => {
     const _redeemRepoInstance = new FakeRedeemRepo();
-    const redeemRepo = _redeemRepoInstance as unknown as Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & typeof _redeemRepoInstance;
+    const redeemRepo = _redeemRepoInstance as unknown as Pick<
+      RedeemRepository,
+      "findByHash" | "applyGrant"
+    > &
+      typeof _redeemRepoInstance;
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-01-01T00:00:00.000Z", expiresAt: "2026-01-02T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-02T00:00:00.000Z",
     });
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo,
       scanLookup: scanRepo.lookup,
@@ -179,20 +221,34 @@ describe("resolveScanRequest", () => {
 
   it("rejects a revoked code", async () => {
     const _redeemRepoInstance = new FakeRedeemRepo();
-    const redeemRepo = _redeemRepoInstance as unknown as Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & typeof _redeemRepoInstance;
+    const redeemRepo = _redeemRepoInstance as unknown as Pick<
+      RedeemRepository,
+      "findByHash" | "applyGrant"
+    > &
+      typeof _redeemRepoInstance;
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z", expiresAt: "2026-12-01T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
       revokedAt: "2026-08-03T09:00:00.000Z",
     });
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo,
       scanLookup: scanRepo.lookup,
@@ -205,22 +261,40 @@ describe("resolveScanRequest", () => {
 
   it("rejects a code already used for the same domain/day", async () => {
     const _redeemRepoInstance = new FakeRedeemRepo();
-    const redeemRepo = _redeemRepoInstance as unknown as Pick<RedeemRepository, 'findByHash' | 'applyGrant'> & typeof _redeemRepoInstance;
+    const redeemRepo = _redeemRepoInstance as unknown as Pick<
+      RedeemRepository,
+      "findByHash" | "applyGrant"
+    > &
+      typeof _redeemRepoInstance;
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z", expiresAt: "2026-12-01T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
     });
     await redeemRepo.applyGrant({
-      id: "rg_1", codeId: "rc_1", domainKey, quotaDay: day, grantedAt: now,
+      id: "rg_1",
+      codeId: "rc_1",
+      domainKey,
+      quotaDay: day,
+      grantedAt: now,
     });
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo,
       scanLookup: scanRepo.lookup,
@@ -234,12 +308,18 @@ describe("resolveScanRequest", () => {
   it("rejects a malformed code", async () => {
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "not-a-code",
       redeemRepo: castRedeemRepo(new FakeRedeemRepo()),
       scanLookup: scanRepo.lookup,
@@ -253,12 +333,18 @@ describe("resolveScanRequest", () => {
   it("returns cached for a failed scan with status=undefined and reportUrl=null", async () => {
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "failed", status: null,
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "failed",
+      status: null,
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: castRedeemRepo(new FakeRedeemRepo()),
       scanLookup: scanRepo.lookup,

@@ -1,11 +1,7 @@
 "use server";
 
 import { createApiClient } from "../../lib/api-client";
-import type {
-  CreateScanInput,
-  CreateScanResponse,
-  ScanCachedResponse,
-} from "../../lib/api-client";
+import type { CreateScanInput, CreateScanResponse, ScanCachedResponse } from "../../lib/api-client";
 
 /**
  * Server action invoked by the homepage scan form.

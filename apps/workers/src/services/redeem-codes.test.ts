@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { generateRedeemCode, hashRedeemCode, REDEEM_CODE_PATTERN, isValidRedeemCodeShape } from "./redeem-codes";
+import {
+  generateRedeemCode,
+  hashRedeemCode,
+  REDEEM_CODE_PATTERN,
+  isValidRedeemCodeShape,
+} from "./redeem-codes";
 
 describe("redeem code generator", () => {
   it("matches the SL-XXXX-XXXX pattern", () => {

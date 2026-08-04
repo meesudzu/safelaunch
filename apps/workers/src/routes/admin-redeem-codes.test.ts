@@ -51,10 +51,18 @@ class FakeD1 {
     };
     return stmt as unknown as D1PreparedStatement;
   }
-  batch(): Promise<unknown[]> { return Promise.resolve([]); }
-  exec(): Promise<D1ExecResult> { return Promise.resolve({ count: 0, duration: 0 }); }
-  withSession(): D1DatabaseSession { return {} as D1DatabaseSession; }
-  dump(): Promise<ArrayBuffer> { return Promise.resolve(new ArrayBuffer(0)); }
+  batch(): Promise<unknown[]> {
+    return Promise.resolve([]);
+  }
+  exec(): Promise<D1ExecResult> {
+    return Promise.resolve({ count: 0, duration: 0 });
+  }
+  withSession(): D1DatabaseSession {
+    return {} as D1DatabaseSession;
+  }
+  dump(): Promise<ArrayBuffer> {
+    return Promise.resolve(new ArrayBuffer(0));
+  }
 }
 
 const buildApp = () => {
@@ -82,7 +90,9 @@ describe("admin redeem codes router", () => {
     );
     expect(res.status).toBe(200);
     const body = await jsonBody<{ code: string; codeHashPrefix: string; createdBy: string }>(res);
-    expect(body.code).toMatch(/^SL-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/);
+    expect(body.code).toMatch(
+      /^SL-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/,
+    );
     expect(body.codeHashPrefix).toMatch(/^[0-9a-f]{8}$/);
     expect(body.createdBy).toBe("reviewer@safelaunch.app");
   });
@@ -103,9 +113,13 @@ describe("admin redeem codes router", () => {
   it("GET does not include plaintext or code_hash", async () => {
     const db = new FakeD1();
     const row: RedeemCodeRow = {
-      id: "rc_1", code_hash: "x".repeat(64), label: "Pilot",
-      created_by: "reviewer@safelaunch.app", created_at: "2026-08-03T00:00:00.000Z",
-      expires_at: "2026-09-01T00:00:00.000Z", revoked_at: null,
+      id: "rc_1",
+      code_hash: "x".repeat(64),
+      label: "Pilot",
+      created_by: "reviewer@safelaunch.app",
+      created_at: "2026-08-03T00:00:00.000Z",
+      expires_at: "2026-09-01T00:00:00.000Z",
+      revoked_at: null,
     };
     db.rows.push({
       sql: "SELECT * FROM redeem_codes ORDER BY created_at DESC LIMIT ? OFFSET ?",
@@ -123,24 +137,35 @@ describe("admin redeem codes router", () => {
 
   it("DELETE soft-revokes", async () => {
     const db = new FakeD1();
-    const res = await runWithDb(db, new Request("https://example/v1/admin/redeem-codes/rc_1", { method: "DELETE" }));
+    const res = await runWithDb(
+      db,
+      new Request("https://example/v1/admin/redeem-codes/rc_1", { method: "DELETE" }),
+    );
     expect(res.status).toBe(200);
-    const updateCall = db.preparedCalls.some((c) => c.sql.includes("UPDATE") && c.sql.includes("revoked_at"));
+    const updateCall = db.preparedCalls.some(
+      (c) => c.sql.includes("UPDATE") && c.sql.includes("revoked_at"),
+    );
     expect(updateCall).toBe(true);
   });
 
   it("GET /:id/grants returns grant rows", async () => {
     const db = new FakeD1();
     const row: GrantRow = {
-      id: "rg_1", code_id: "rc_1", domain_key: "example.com",
-      quota_day: "2026-08-03", granted_at: "2026-08-03T10:00:00.000Z",
+      id: "rg_1",
+      code_id: "rc_1",
+      domain_key: "example.com",
+      quota_day: "2026-08-03",
+      granted_at: "2026-08-03T10:00:00.000Z",
     };
     db.rows.push({
       sql: "SELECT * FROM redeem_grants WHERE code_id = ? ORDER BY granted_at DESC",
       firstReturn: null,
       allReturn: [row],
     });
-    const res = await runWithDb(db, new Request("https://example/v1/admin/redeem-codes/rc_1/grants"));
+    const res = await runWithDb(
+      db,
+      new Request("https://example/v1/admin/redeem-codes/rc_1/grants"),
+    );
     expect(res.status).toBe(200);
     const body = await jsonBody<Array<{ domainKey: string }>>(res);
     expect(body[0]?.domainKey).toBe("example.com");

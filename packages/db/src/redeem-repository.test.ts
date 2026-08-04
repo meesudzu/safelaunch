@@ -20,7 +20,10 @@ const splitStatements = (sql: string): string[] => {
     .split("\n")
     .map((line) => line.replace(/--.*$/, ""))
     .join("\n");
-  return stripped.split(";").map((s) => s.trim()).filter(Boolean);
+  return stripped
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
 };
 
 beforeEach(async () => {
@@ -43,7 +46,9 @@ describe("RedeemRepository", () => {
   it("creates a code and looks it up by hash", async () => {
     const repo = new RedeemRepository(db);
     const code = await repo.createCode({
-      id: "rc_1", codeHash: "abc123", label: "Pilot",
+      id: "rc_1",
+      codeHash: "abc123",
+      label: "Pilot",
       createdBy: "reviewer@safelaunch.app",
       createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
@@ -62,8 +67,11 @@ describe("RedeemRepository", () => {
   it("soft-revokes a code", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_2", codeHash: "h2", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_2",
+      codeHash: "h2",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     await repo.softRevoke("rc_2", "2026-08-04T00:00:00.000Z");
@@ -74,35 +82,55 @@ describe("RedeemRepository", () => {
   it("applies a grant and rejects a duplicate (code, domain, day)", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_3", codeHash: "h3", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_3",
+      codeHash: "h3",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     const grant = await repo.applyGrant({
-      id: "rg_1", codeId: "rc_3", domainKey: "example.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:00:00.000Z",
+      id: "rg_1",
+      codeId: "rc_3",
+      domainKey: "example.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:00:00.000Z",
     });
     expect(grant.id).toBe("rg_1");
-    await expect(repo.applyGrant({
-      id: "rg_2", codeId: "rc_3", domainKey: "example.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:01:00.000Z",
-    })).rejects.toBeInstanceOf(DuplicateGrantError);
+    await expect(
+      repo.applyGrant({
+        id: "rg_2",
+        codeId: "rc_3",
+        domainKey: "example.com",
+        quotaDay: "2026-08-03",
+        grantedAt: "2026-08-03T10:01:00.000Z",
+      }),
+    ).rejects.toBeInstanceOf(DuplicateGrantError);
   });
 
   it("allows the same code on a different domain the same day", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_4", codeHash: "h4", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_4",
+      codeHash: "h4",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     await repo.applyGrant({
-      id: "rg_a", codeId: "rc_4", domainKey: "a.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:00:00.000Z",
+      id: "rg_a",
+      codeId: "rc_4",
+      domainKey: "a.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:00:00.000Z",
     });
     await repo.applyGrant({
-      id: "rg_b", codeId: "rc_4", domainKey: "b.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:01:00.000Z",
+      id: "rg_b",
+      codeId: "rc_4",
+      domainKey: "b.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:01:00.000Z",
     });
     const grants = await repo.listGrantsForCode("rc_4");
     expect(grants.map((g) => g.domainKey).sort()).toEqual(["a.com", "b.com"]);

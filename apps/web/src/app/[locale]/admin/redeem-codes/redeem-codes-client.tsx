@@ -81,7 +81,9 @@ export const RedeemCodesClient = (props: RedeemCodesClientProps) => {
           </label>
           <button
             type="button"
-            onClick={() => { void create(); }}
+            onClick={() => {
+              void create();
+            }}
             data-testid="create-btn"
             className="inline-flex w-fit rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-surface"
           >
@@ -101,9 +103,7 @@ export const RedeemCodesClient = (props: RedeemCodesClientProps) => {
           data-testid="latest-code"
           className="rounded-sm border border-amber-300 bg-amber-50 p-4"
         >
-          <p className="text-sm font-semibold">
-            Save this code — it will not be shown again.
-          </p>
+          <p className="text-sm font-semibold">Save this code — it will not be shown again.</p>
           <code
             data-testid="latest-code-value"
             className="mt-2 block rounded-sm bg-bg p-2 font-mono text-base"

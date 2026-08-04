@@ -85,7 +85,8 @@ const isQuotaEnabled = (env: RoutesEnv): boolean => env.ENABLE_DAILY_QUOTA === "
  * a new `domain_key` column on `scans`. The query is bounded by an inner
  * LIMIT so it cannot full-scan the table.
  */
-const makeScanLookup = (db: D1Database): ScanLookup =>
+const makeScanLookup =
+  (db: D1Database): ScanLookup =>
   async (key, day, terminal) => {
     const placeholder = `https://%${key}/%`;
     const inner = await db
@@ -110,7 +111,8 @@ const makeScanLookup = (db: D1Database): ScanLookup =>
     };
   };
 
-const makeReportGet = (db: D1Database): ReportGet =>
+const makeReportGet =
+  (db: D1Database): ReportGet =>
   async (scanId) => {
     const row = await db
       .prepare("SELECT scan_id, payload_json FROM reports WHERE scan_id = ?")
@@ -144,7 +146,11 @@ scansRouter.post("/v1/scans", async (context) => {
     };
     try {
       await enforceAbuseControls(
-        { ip: clientIp, hostname: submittedHost, turnstileToken: extractTurnstileToken(context.req.raw) },
+        {
+          ip: clientIp,
+          hostname: submittedHost,
+          turnstileToken: extractTurnstileToken(context.req.raw),
+        },
         deps,
       );
     } catch (cause) {
@@ -183,11 +189,15 @@ scansRouter.post("/v1/scans", async (context) => {
     }
 
     if (result.kind === "cached") {
-      console.log(JSON.stringify({
-        level: "info", event: "scan.cached_served",
-        originalScanId: result.originalScanId,
-        domainKey: key, quotaDay,
-      }));
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "scan.cached_served",
+          originalScanId: result.originalScanId,
+          domainKey: key,
+          quotaDay,
+        }),
+      );
       const cached: ScanCachedResponse = {
         scanId: result.originalScanId,
         state: result.state as ScanCachedResponse["state"],
@@ -206,12 +216,16 @@ scansRouter.post("/v1/scans", async (context) => {
 
     // result.kind === "fresh" — log if a code unlocked it.
     if (result.codeId) {
-      console.log(JSON.stringify({
-        level: "info", event: "redeem.applied",
-        codeId: result.codeId,
-        domainKey: key, quotaDay,
-        actor: "anonymous",
-      }));
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "redeem.applied",
+          codeId: result.codeId,
+          domainKey: key,
+          quotaDay,
+          actor: "anonymous",
+        }),
+      );
     }
   }
 
@@ -229,25 +243,37 @@ scansRouter.post("/v1/scans", async (context) => {
     expiresAt: expiresAt.toISOString(),
   });
 
-  console.log(JSON.stringify({
-    level: "info", event: "scan.created",
-    scanId, jurisdiction: input.jurisdiction, category: input.category,
-  }));
+  console.log(
+    JSON.stringify({
+      level: "info",
+      event: "scan.created",
+      scanId,
+      jurisdiction: input.jurisdiction,
+      category: input.category,
+    }),
+  );
 
   const workflow = context.env.SCAN_WORKFLOW;
   if (workflow) {
     try {
       await workflow.create({
         params: {
-          scanId, url: input.url, jurisdiction: input.jurisdiction,
-          category: input.category, analysisVersion: ANALYSIS_VERSION,
+          scanId,
+          url: input.url,
+          jurisdiction: input.jurisdiction,
+          category: input.category,
+          analysisVersion: ANALYSIS_VERSION,
         },
       });
     } catch (cause) {
-      console.log(JSON.stringify({
-        level: "warn", event: "scan.workflow_create_failed",
-        scanId, error: cause instanceof Error ? cause.message : String(cause),
-      }));
+      console.log(
+        JSON.stringify({
+          level: "warn",
+          event: "scan.workflow_create_failed",
+          scanId,
+          error: cause instanceof Error ? cause.message : String(cause),
+        }),
+      );
     }
   }
 

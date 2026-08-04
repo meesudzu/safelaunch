@@ -75,8 +75,11 @@ export const resolveScanRequest = async (deps: ResolveScanDeps): Promise<Resolve
       }
       const grantId = deps.generateGrantId ? deps.generateGrantId() : `rg_${crypto.randomUUID()}`;
       await deps.redeemRepo.applyGrant({
-        id: grantId, codeId: code.id,
-        domainKey: deps.domainKey, quotaDay: deps.quotaDay, grantedAt: deps.now,
+        id: grantId,
+        codeId: code.id,
+        domainKey: deps.domainKey,
+        quotaDay: deps.quotaDay,
+        grantedAt: deps.now,
       });
       return ok(code.id);
     }
@@ -106,8 +109,11 @@ export const resolveScanRequest = async (deps: ResolveScanDeps): Promise<Resolve
   try {
     const grantId = deps.generateGrantId ? deps.generateGrantId() : `rg_${crypto.randomUUID()}`;
     await deps.redeemRepo.applyGrant({
-      id: grantId, codeId: code.id,
-      domainKey: deps.domainKey, quotaDay: deps.quotaDay, grantedAt: deps.now,
+      id: grantId,
+      codeId: code.id,
+      domainKey: deps.domainKey,
+      quotaDay: deps.quotaDay,
+      grantedAt: deps.now,
     });
   } catch (cause) {
     if (cause instanceof DuplicateGrantError) {

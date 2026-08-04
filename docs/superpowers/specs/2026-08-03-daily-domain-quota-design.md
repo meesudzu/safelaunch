@@ -86,15 +86,15 @@ We deliberately **do not** add a `domain_key` column to `scans`. The `url` colum
 
 ### 5.3 What gets persisted where
 
-| Datum                       | Where                                        | Form                  |
-| --------------------------- | -------------------------------------------- | --------------------- |
-| Plaintext redeem code       | nowhere (shown once to admin)                | —                     |
-| `code_hash`                 | `redeem_codes.code_hash`                     | SHA-256 hex           |
-| Admin email                 | `redeem_codes.created_by`                    | header value already trusted by Access |
-| Domain input                | `redeem_grants.domain_key`                   | normalized host only |
-| Grant day                   | `redeem_grants.quota_day`                   | `YYYY-MM-DD` UTC      |
-| Original scan URL           | `scans.url` (unchanged)                      | full URL              |
-| Audit log                   | structured `console.log` (no PII)            | JSON, see §11         |
+| Datum                 | Where                             | Form                                   |
+| --------------------- | --------------------------------- | -------------------------------------- |
+| Plaintext redeem code | nowhere (shown once to admin)     | —                                      |
+| `code_hash`           | `redeem_codes.code_hash`          | SHA-256 hex                            |
+| Admin email           | `redeem_codes.created_by`         | header value already trusted by Access |
+| Domain input          | `redeem_grants.domain_key`        | normalized host only                   |
+| Grant day             | `redeem_grants.quota_day`         | `YYYY-MM-DD` UTC                       |
+| Original scan URL     | `scans.url` (unchanged)           | full URL                               |
+| Audit log             | structured `console.log` (no PII) | JSON, see §11                          |
 
 ## 6. API contract
 
@@ -113,14 +113,14 @@ Request body is unchanged. **New optional field**:
 
 Response variants:
 
-| HTTP | code                          | When                                                                                     |
-| ---- | ----------------------------- | ---------------------------------------------------------------------------------------- |
-| 202  | (no `code`)                   | Fresh scan accepted; existing behavior.                                                  |
-| 200  | `SCAN_USED_CACHED`            | Quota hit, no redeem code (or invalid). Returns the cached payload directly (see 6.3).   |
-| 400  | `INVALID_REDEEM_CODE`         | `redeemCode` present but malformed (wrong shape).                                        |
-| 401  | `REDEEM_CODE_EXPIRED`         | `redeemCode` present but the code has expired or been revoked.                           |
-| 409  | `REDEEM_CODE_ALREADY_USED`    | `redeemCode` already granted for this domain + day.                                      |
-| 5xx  | (unchanged)                   | Server errors.                                                                           |
+| HTTP | code                       | When                                                                                   |
+| ---- | -------------------------- | -------------------------------------------------------------------------------------- |
+| 202  | (no `code`)                | Fresh scan accepted; existing behavior.                                                |
+| 200  | `SCAN_USED_CACHED`         | Quota hit, no redeem code (or invalid). Returns the cached payload directly (see 6.3). |
+| 400  | `INVALID_REDEEM_CODE`      | `redeemCode` present but malformed (wrong shape).                                      |
+| 401  | `REDEEM_CODE_EXPIRED`      | `redeemCode` present but the code has expired or been revoked.                         |
+| 409  | `REDEEM_CODE_ALREADY_USED` | `redeemCode` already granted for this domain + day.                                    |
+| 5xx  | (unchanged)                | Server errors.                                                                         |
 
 The cached response is **synchronous 200** because no workflow is triggered.
 
@@ -132,28 +132,28 @@ No new fields. The progress page keeps polling until terminal state.
 
 ```ts
 interface ScanCachedResponse {
-  scanId: string;                            // ORIGINAL scan id
+  scanId: string; // ORIGINAL scan id
   state: "completed" | "partial" | "failed"; // see §8.4: failed scans also count
   status?: "high_risk" | "needs_review" | "no_significant_risk"; // absent when state="failed"
   coverage: { fetched: string[]; failed: string[]; skipped: string[] };
   createdAt: string;
   expiresAt: string;
-  reportUrl: string | null;                 // null when state="failed"
-  cached: true;                             // marker
-  quotaDay: string;                         // "YYYY-MM-DD"
-  domainKey: string;                        // normalized host
-  message: string;                          // i18n key, e.g. "scan.cached.used" or "scan.cached.failed"
+  reportUrl: string | null; // null when state="failed"
+  cached: true; // marker
+  quotaDay: string; // "YYYY-MM-DD"
+  domainKey: string; // normalized host
+  message: string; // i18n key, e.g. "scan.cached.used" or "scan.cached.failed"
 }
 ```
 
 ### 6.4 Admin endpoints (new)
 
-| Method | Path                                     | Purpose                                                  |
-| ------ | ---------------------------------------- | -------------------------------------------------------- |
-| POST   | `/v1/admin/redeem-codes`                 | Create a redeem code (returns the plaintext once).       |
-| GET    | `/v1/admin/redeem-codes`                 | List redeem codes (paginated, filter by active/expired). |
-| DELETE | `/v1/admin/redeem-codes/:id`             | Soft-revoke a code (`revoked_at = now`).                 |
-| GET    | `/v1/admin/redeem-codes/:id/grants`      | List grants for a code (audit).                          |
+| Method | Path                                | Purpose                                                  |
+| ------ | ----------------------------------- | -------------------------------------------------------- |
+| POST   | `/v1/admin/redeem-codes`            | Create a redeem code (returns the plaintext once).       |
+| GET    | `/v1/admin/redeem-codes`            | List redeem codes (paginated, filter by active/expired). |
+| DELETE | `/v1/admin/redeem-codes/:id`        | Soft-revoke a code (`revoked_at = now`).                 |
+| GET    | `/v1/admin/redeem-codes/:id/grants` | List grants for a code (audit).                          |
 
 All inherit Cloudflare Access. The created-by actor is the `cf-access-authenticated-user-email` header (same as `admin.ts`).
 
@@ -171,7 +171,7 @@ Response:
 ```json
 {
   "id": "rc_abc123",
-  "code": "SL-A2K9-7X4P",    // PLAINTEXT — shown once, never returned again
+  "code": "SL-A2K9-7X4P", // PLAINTEXT — shown once, never returned again
   "label": "Pilot user — Vinh",
   "expiresAt": "2026-09-01T00:00:00.000Z",
   "createdAt": "2026-08-03T10:00:00.000Z",
@@ -300,39 +300,53 @@ Two new log events (privacy-first):
 
 ## 10. Edge cases
 
-| Case | Behavior |
-| ---- | -------- |
-| User submits URL with `www.` prefix | `domain_key` strips `www.`. Same quota. |
-| User submits URL with trailing slash | Dropped — `(url).host` is already canonical. |
-| User submits URL with query string | Ignored — host is the same. |
-| User submits a domain with no successful scan today but a failed scan | `SCAN_USED_CACHED` with the failed scan's status. UI banner explained. |
-| Two users submit the same domain 1 second apart | Second request gets `SCAN_USED_CACHED` to the first user's fresh scan. |
-| User starts a scan near midnight UTC, scan completes after midnight | The scan's `created_at` (queuing time) determines the quota day. |
-| User submits a malformed redeem code | 400 `INVALID_REDEEM_CODE`. |
-| Admin revokes a code mid-day | Code continues to count for grants already issued; new applies return 401. |
-| User clears cookies / uses a different IP | Quota is per host, not per IP. New IP still gets cached. |
-| Worker restarts mid-scan | The original scan row already exists in D1; the quota slot is already taken. |
-| `redeemCode` field is empty string | Treated as omitted. |
+| Case                                                                  | Behavior                                                                     |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| User submits URL with `www.` prefix                                   | `domain_key` strips `www.`. Same quota.                                      |
+| User submits URL with trailing slash                                  | Dropped — `(url).host` is already canonical.                                 |
+| User submits URL with query string                                    | Ignored — host is the same.                                                  |
+| User submits a domain with no successful scan today but a failed scan | `SCAN_USED_CACHED` with the failed scan's status. UI banner explained.       |
+| Two users submit the same domain 1 second apart                       | Second request gets `SCAN_USED_CACHED` to the first user's fresh scan.       |
+| User starts a scan near midnight UTC, scan completes after midnight   | The scan's `created_at` (queuing time) determines the quota day.             |
+| User submits a malformed redeem code                                  | 400 `INVALID_REDEEM_CODE`.                                                   |
+| Admin revokes a code mid-day                                          | Code continues to count for grants already issued; new applies return 401.   |
+| User clears cookies / uses a different IP                             | Quota is per host, not per IP. New IP still gets cached.                     |
+| Worker restarts mid-scan                                              | The original scan row already exists in D1; the quota slot is already taken. |
+| `redeemCode` field is empty string                                    | Treated as omitted.                                                          |
 
 ## 11. Observability
 
 ```json
-{ "level": "info", "event": "scan.cached_served",
-  "originalScanId": "scan_abc", "domainKey": "example.com",
-  "quotaDay": "2026-08-03" }
+{
+  "level": "info",
+  "event": "scan.cached_served",
+  "originalScanId": "scan_abc",
+  "domainKey": "example.com",
+  "quotaDay": "2026-08-03"
+}
 ```
 
 ```json
-{ "level": "info", "event": "redeem.applied",
-  "codeId": "rc_abc", "codeHashPrefix": "9f2a4b1c",
-  "domainKey": "example.com", "quotaDay": "2026-08-03",
-  "actor": "reviewer@safelaunch.app" }
+{
+  "level": "info",
+  "event": "redeem.applied",
+  "codeId": "rc_abc",
+  "codeHashPrefix": "9f2a4b1c",
+  "domainKey": "example.com",
+  "quotaDay": "2026-08-03",
+  "actor": "reviewer@safelaunch.app"
+}
 ```
 
 ```json
-{ "level": "info", "event": "redeem.code_created",
-  "codeId": "rc_abc", "codeHashPrefix": "9f2a4b1c",
-  "actor": "reviewer@safelaunch.app", "labelLength": 12 }
+{
+  "level": "info",
+  "event": "redeem.code_created",
+  "codeId": "rc_abc",
+  "codeHashPrefix": "9f2a4b1c",
+  "actor": "reviewer@safelaunch.app",
+  "labelLength": 12
+}
 ```
 
 No PII, no plaintext codes, no URLs in logs.

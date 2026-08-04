@@ -82,7 +82,14 @@ export class RedeemRepository {
       .prepare(
         "INSERT INTO redeem_codes (id, code_hash, label, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .bind(input.id, input.codeHash, input.label, input.createdBy, input.createdAt, input.expiresAt)
+      .bind(
+        input.id,
+        input.codeHash,
+        input.label,
+        input.createdBy,
+        input.createdAt,
+        input.expiresAt,
+      )
       .run();
     return { ...input, revokedAt: null };
   }

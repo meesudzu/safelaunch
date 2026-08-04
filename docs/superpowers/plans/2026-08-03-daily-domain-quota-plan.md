@@ -16,43 +16,44 @@
 
 ## File Structure
 
-| Path | Purpose |
-| ---- | ------- |
-| `packages/db/migrations/0002_daily_quota.sql` | New tables: `redeem_codes`, `redeem_grants`. |
-| `packages/db/src/redeem-repository.ts` | D1 repository for codes + grants. |
-| `packages/db/src/redeem-repository.test.ts` | Miniflare-backed tests. |
-| `packages/db/src/index.ts` | Re-export the new repo. |
-| `packages/compliance-core/src/domain-key.ts` | Pure function: URL → normalized host. |
-| `packages/compliance-core/src/domain-key.test.ts` | Vitest unit tests. |
-| `packages/compliance-core/src/index.ts` | Re-export `domainKey()`. |
-| `packages/contracts/src/scan.ts` | Extend `CreateScanInput` with optional `redeemCode`. |
-| `packages/contracts/src/scan-cached.ts` | New `ScanCachedResponse` + `SCAN_USED_CACHED` enum. |
-| `apps/workers/src/services/quota-service.ts` | Core quota/redeem resolution logic. |
-| `apps/workers/src/services/quota-service.test.ts` | Pure tests with fake D1. |
-| `apps/workers/src/services/redeem-codes.ts` | Code generation + hashing helpers. |
-| `apps/workers/src/services/redeem-codes.test.ts` | Pure tests. |
-| `apps/workers/src/routes/scans.ts` | Wire `QuotaService` into `POST /v1/scans`. |
-| `apps/workers/src/routes/scans.test.ts` | Extend with quota tests. |
-| `apps/workers/src/routes/admin-redeem-codes.ts` | New admin Hono router. |
-| `apps/workers/src/routes/admin-redeem-codes.test.ts` | Tests with fake D1. |
-| `apps/workers/src/index.ts` | Mount new admin router. |
-| `apps/workers/wrangler.jsonc` | Add `ENABLE_DAILY_QUOTA` var (gated). |
-| `apps/web/src/lib/api-client.ts` | Add `redeemCode` and `[ScanCachedResponse]` types. |
-| `apps/web/src/components/scan-form.tsx` | Disclaimer + redeem toggle. |
-| `apps/web/src/components/scan-form.test.tsx` | New tests for the disclaimer. |
-| `apps/web/src/components/scan-progress.tsx` | Cached banner. |
-| `apps/web/src/components/scan-progress.test.tsx` | New tests for banner. |
-| `apps/web/src/messages/{vi,en}.json` | New `quota` and `package` blocks. |
-| `apps/web/src/app/[locale]/admin/redeem-codes/page.tsx` | Admin list + create. |
-| `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.tsx` | Client component. |
-| `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.test.tsx` | Tests. |
-| `docs/superpowers/reviews/_pending-<branch>.md` | PR review notes (filled at the end). |
+| Path                                                                        | Purpose                                              |
+| --------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `packages/db/migrations/0002_daily_quota.sql`                               | New tables: `redeem_codes`, `redeem_grants`.         |
+| `packages/db/src/redeem-repository.ts`                                      | D1 repository for codes + grants.                    |
+| `packages/db/src/redeem-repository.test.ts`                                 | Miniflare-backed tests.                              |
+| `packages/db/src/index.ts`                                                  | Re-export the new repo.                              |
+| `packages/compliance-core/src/domain-key.ts`                                | Pure function: URL → normalized host.                |
+| `packages/compliance-core/src/domain-key.test.ts`                           | Vitest unit tests.                                   |
+| `packages/compliance-core/src/index.ts`                                     | Re-export `domainKey()`.                             |
+| `packages/contracts/src/scan.ts`                                            | Extend `CreateScanInput` with optional `redeemCode`. |
+| `packages/contracts/src/scan-cached.ts`                                     | New `ScanCachedResponse` + `SCAN_USED_CACHED` enum.  |
+| `apps/workers/src/services/quota-service.ts`                                | Core quota/redeem resolution logic.                  |
+| `apps/workers/src/services/quota-service.test.ts`                           | Pure tests with fake D1.                             |
+| `apps/workers/src/services/redeem-codes.ts`                                 | Code generation + hashing helpers.                   |
+| `apps/workers/src/services/redeem-codes.test.ts`                            | Pure tests.                                          |
+| `apps/workers/src/routes/scans.ts`                                          | Wire `QuotaService` into `POST /v1/scans`.           |
+| `apps/workers/src/routes/scans.test.ts`                                     | Extend with quota tests.                             |
+| `apps/workers/src/routes/admin-redeem-codes.ts`                             | New admin Hono router.                               |
+| `apps/workers/src/routes/admin-redeem-codes.test.ts`                        | Tests with fake D1.                                  |
+| `apps/workers/src/index.ts`                                                 | Mount new admin router.                              |
+| `apps/workers/wrangler.jsonc`                                               | Add `ENABLE_DAILY_QUOTA` var (gated).                |
+| `apps/web/src/lib/api-client.ts`                                            | Add `redeemCode` and `[ScanCachedResponse]` types.   |
+| `apps/web/src/components/scan-form.tsx`                                     | Disclaimer + redeem toggle.                          |
+| `apps/web/src/components/scan-form.test.tsx`                                | New tests for the disclaimer.                        |
+| `apps/web/src/components/scan-progress.tsx`                                 | Cached banner.                                       |
+| `apps/web/src/components/scan-progress.test.tsx`                            | New tests for banner.                                |
+| `apps/web/src/messages/{vi,en}.json`                                        | New `quota` and `package` blocks.                    |
+| `apps/web/src/app/[locale]/admin/redeem-codes/page.tsx`                     | Admin list + create.                                 |
+| `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.tsx`      | Client component.                                    |
+| `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.test.tsx` | Tests.                                               |
+| `docs/superpowers/reviews/_pending-<branch>.md`                             | PR review notes (filled at the end).                 |
 
 ---
 
 ## Task 1: D1 migration 0002 — schema additions
 
 **Files:**
+
 - Create: `packages/db/migrations/0002_daily_quota.sql`
 
 - [ ] **Step 1: Write the migration**
@@ -101,6 +102,7 @@ git commit -m "feat(db): add redeem_codes + redeem_grants tables (0002)"
 ## Task 2: Domain key normalizer (pure)
 
 **Files:**
+
 - Create: `packages/compliance-core/src/domain-key.ts`
 - Create: `packages/compliance-core/src/domain-key.test.ts`
 - Modify: `packages/compliance-core/src/index.ts`
@@ -212,6 +214,7 @@ git commit -m "feat(core): domainKey() normalizer for daily quota"
 ## Task 3: RedeemRepository (D1)
 
 **Files:**
+
 - Create: `packages/db/src/redeem-repository.ts`
 - Create: `packages/db/src/redeem-repository.test.ts`
 - Modify: `packages/db/src/index.ts`
@@ -236,7 +239,10 @@ const migrations = async (): Promise<string[]> => {
 };
 
 const splitStatements = (sql: string): string[] =>
-  sql.split(";").map((s) => s.trim()).filter(Boolean);
+  sql
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean);
 
 beforeEach(async () => {
   mf = new Miniflare({
@@ -280,8 +286,11 @@ describe("RedeemRepository", () => {
   it("soft-revokes a code", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_2", codeHash: "h2", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_2",
+      codeHash: "h2",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     await repo.softRevoke("rc_2", "2026-08-04T00:00:00.000Z");
@@ -292,35 +301,55 @@ describe("RedeemRepository", () => {
   it("applies a grant and rejects a duplicate (code, domain, day)", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_3", codeHash: "h3", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_3",
+      codeHash: "h3",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     const grant = await repo.applyGrant({
-      id: "rg_1", codeId: "rc_3", domainKey: "example.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:00:00.000Z",
+      id: "rg_1",
+      codeId: "rc_3",
+      domainKey: "example.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:00:00.000Z",
     });
     expect(grant.id).toBe("rg_1");
-    await expect(repo.applyGrant({
-      id: "rg_2", codeId: "rc_3", domainKey: "example.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:01:00.000Z",
-    })).rejects.toBeInstanceOf(DuplicateGrantError);
+    await expect(
+      repo.applyGrant({
+        id: "rg_2",
+        codeId: "rc_3",
+        domainKey: "example.com",
+        quotaDay: "2026-08-03",
+        grantedAt: "2026-08-03T10:01:00.000Z",
+      }),
+    ).rejects.toBeInstanceOf(DuplicateGrantError);
   });
 
   it("allows the same code on a different domain the same day", async () => {
     const repo = new RedeemRepository(db);
     await repo.createCode({
-      id: "rc_4", codeHash: "h4", label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z",
+      id: "rc_4",
+      codeHash: "h4",
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
       expiresAt: "2026-09-01T00:00:00.000Z",
     });
     await repo.applyGrant({
-      id: "rg_a", codeId: "rc_4", domainKey: "a.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:00:00.000Z",
+      id: "rg_a",
+      codeId: "rc_4",
+      domainKey: "a.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:00:00.000Z",
     });
     await repo.applyGrant({
-      id: "rg_b", codeId: "rc_4", domainKey: "b.com",
-      quotaDay: "2026-08-03", grantedAt: "2026-08-03T10:01:00.000Z",
+      id: "rg_b",
+      codeId: "rc_4",
+      domainKey: "b.com",
+      quotaDay: "2026-08-03",
+      grantedAt: "2026-08-03T10:01:00.000Z",
     });
     const grants = await repo.listGrantsForCode("rc_4");
     expect(grants.map((g) => g.domainKey).sort()).toEqual(["a.com", "b.com"]);
@@ -342,7 +371,11 @@ Expected: FAIL — module not found.
 // packages/db/src/redeem-repository.ts
 
 export class DuplicateGrantError extends Error {
-  constructor(public readonly codeId: string, public readonly domainKey: string, public readonly quotaDay: string) {
+  constructor(
+    public readonly codeId: string,
+    public readonly domainKey: string,
+    public readonly quotaDay: string,
+  ) {
     super(`duplicate grant for code=${codeId} domain=${domainKey} day=${quotaDay}`);
     this.name = "DuplicateGrantError";
   }
@@ -421,7 +454,14 @@ export class RedeemRepository {
       .prepare(
         "INSERT INTO redeem_codes (id, code_hash, label, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .bind(input.id, input.codeHash, input.label, input.createdBy, input.createdAt, input.expiresAt)
+      .bind(
+        input.id,
+        input.codeHash,
+        input.label,
+        input.createdBy,
+        input.createdAt,
+        input.expiresAt,
+      )
       .run();
     return { ...input, revokedAt: null };
   }
@@ -517,6 +557,7 @@ git commit -m "feat(db): RedeemRepository for codes + grants"
 ## Task 4: Redeem code generation + hashing helpers
 
 **Files:**
+
 - Create: `apps/workers/src/services/redeem-codes.ts`
 - Create: `apps/workers/src/services/redeem-codes.test.ts`
 
@@ -583,10 +624,7 @@ export const generateRedeemCode = (): string => {
 };
 
 const sha256Hex = async (input: string): Promise<string> => {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(input.trim()),
-  );
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input.trim()));
   const bytes = new Uint8Array(digest);
   let out = "";
   for (const b of bytes) out += b.toString(16).padStart(2, "0");
@@ -617,6 +655,7 @@ git commit -m "feat(workers): redeem code generator + sha256 hashing"
 ## Task 5: QuotaService — pure logic
 
 **Files:**
+
 - Create: `apps/workers/src/services/quota-service.ts`
 - Create: `apps/workers/src/services/quota-service.test.ts`
 
@@ -633,22 +672,35 @@ const H = async (s: string) => (s.length === 64 ? s : "h".repeat(64));
 class FakeRedeemRepo {
   codes: Record<string, any> = {};
   grants: any[] = [];
-  createCode = async (c: any) => { this.codes[c.id] = c; return c; };
-  findByHash = async (h: string) => Object.values(this.codes).find((c: any) => c.codeHash === h) ?? null;
+  createCode = async (c: any) => {
+    this.codes[c.id] = c;
+    return c;
+  };
+  findByHash = async (h: string) =>
+    Object.values(this.codes).find((c: any) => c.codeHash === h) ?? null;
   applyGrant = async (g: any) => {
-    if (this.grants.find((x) => x.codeId === g.codeId && x.domainKey === g.domainKey && x.quotaDay === g.quotaDay)) {
+    if (
+      this.grants.find(
+        (x) => x.codeId === g.codeId && x.domainKey === g.domainKey && x.quotaDay === g.quotaDay,
+      )
+    ) {
       throw new DuplicateGrantError(g.codeId, g.domainKey, g.quotaDay);
     }
-    this.grants.push(g); return g;
+    this.grants.push(g);
+    return g;
   };
 }
 
 class FakeScanRepo {
   rows: any[] = [];
   latestForDomainToday = (domainKey: string, day: string, terminal: string[]) => {
-    return this.rows
-      .filter((r) => r.domainKey === domainKey && r.quotaDay === day && terminal.includes(r.state))
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+    return (
+      this.rows
+        .filter(
+          (r) => r.domainKey === domainKey && r.quotaDay === day && terminal.includes(r.state),
+        )
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+    );
   };
 }
 
@@ -672,7 +724,9 @@ describe("resolveScanRequest", () => {
 
   it("returns fresh when no prior scan today", async () => {
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: new FakeRedeemRepo() as any,
       scanLookup: new FakeScanRepo().latestForDomainToday,
@@ -685,14 +739,20 @@ describe("resolveScanRequest", () => {
   it("returns cached when a prior scan exists (no code)", async () => {
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const reportRepo = new FakeReportRepo();
     reportRepo.rows["scan_1"] = { payloadJson: JSON.stringify({ _reportToken: "tok1" }) };
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: new FakeRedeemRepo() as any,
       scanLookup: scanRepo.latestForDomainToday,
@@ -709,17 +769,27 @@ describe("resolveScanRequest", () => {
   it("returns fresh when a valid redeem code is presented", async () => {
     const redeemRepo = new FakeRedeemRepo();
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z", expiresAt: "2026-12-01T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
     });
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "completed", status: "needs_review",
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "completed",
+      status: "needs_review",
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo: redeemRepo as any,
       scanLookup: scanRepo.latestForDomainToday,
@@ -735,11 +805,17 @@ describe("resolveScanRequest", () => {
   it("rejects an expired code", async () => {
     const redeemRepo = new FakeRedeemRepo();
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-01-01T00:00:00.000Z", expiresAt: "2026-01-02T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: "2026-01-02T00:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo: redeemRepo as any,
       scanLookup: new FakeScanRepo().latestForDomainToday,
@@ -755,14 +831,24 @@ describe("resolveScanRequest", () => {
   it("rejects a code already used for the same domain/day", async () => {
     const redeemRepo = new FakeRedeemRepo();
     await redeemRepo.createCode({
-      id: "rc_1", codeHash: "h".repeat(64), label: "l",
-      createdBy: "a", createdAt: "2026-08-03T00:00:00.000Z", expiresAt: "2026-12-01T00:00:00.000Z",
+      id: "rc_1",
+      codeHash: "h".repeat(64),
+      label: "l",
+      createdBy: "a",
+      createdAt: "2026-08-03T00:00:00.000Z",
+      expiresAt: "2026-12-01T00:00:00.000Z",
     });
     await redeemRepo.applyGrant({
-      id: "rg_1", codeId: "rc_1", domainKey, quotaDay: day, grantedAt: now,
+      id: "rg_1",
+      codeId: "rc_1",
+      domainKey,
+      quotaDay: day,
+      grantedAt: now,
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: "SL-A2K9-7X4P",
       redeemRepo: redeemRepo as any,
       scanLookup: new FakeScanRepo().latestForDomainToday,
@@ -778,12 +864,18 @@ describe("resolveScanRequest", () => {
   it("returns cached for a failed scan with status=undefined and reportUrl=null", async () => {
     const scanRepo = new FakeScanRepo();
     scanRepo.rows.push({
-      id: "scan_1", domainKey, quotaDay: day,
-      state: "failed", status: null,
-      createdAt: "2026-08-03T08:00:00.000Z", expiresAt: "2026-08-10T08:00:00.000Z",
+      id: "scan_1",
+      domainKey,
+      quotaDay: day,
+      state: "failed",
+      status: null,
+      createdAt: "2026-08-03T08:00:00.000Z",
+      expiresAt: "2026-08-10T08:00:00.000Z",
     });
     const r = await resolveScanRequest({
-      domainKey, quotaDay: day, now,
+      domainKey,
+      quotaDay: day,
+      now,
       redeemCode: null,
       redeemRepo: new FakeRedeemRepo() as any,
       scanLookup: scanRepo.latestForDomainToday,
@@ -848,8 +940,18 @@ export interface ResolveScanDeps {
 
 export type ResolveScanResult =
   | { kind: "fresh"; codeId: string | null }
-  | { kind: "cached"; originalScanId: string; state: string; status: string | undefined; reportUrl: string | null; message: string }
-  | { kind: "rejected"; reason: "INVALID_REDEEM_CODE" | "REDEEM_CODE_EXPIRED" | "REDEEM_CODE_ALREADY_USED" };
+  | {
+      kind: "cached";
+      originalScanId: string;
+      state: string;
+      status: string | undefined;
+      reportUrl: string | null;
+      message: string;
+    }
+  | {
+      kind: "rejected";
+      reason: "INVALID_REDEEM_CODE" | "REDEEM_CODE_EXPIRED" | "REDEEM_CODE_ALREADY_USED";
+    };
 
 const TERMINAL_STATES = ["completed", "partial", "failed"] as const;
 
@@ -883,8 +985,11 @@ export const resolveScanRequest = async (deps: ResolveScanDeps): Promise<Resolve
   try {
     const grantId = `rg_${crypto.randomUUID()}`;
     await deps.redeemRepo.applyGrant({
-      id: grantId, codeId: code.id,
-      domainKey: deps.domainKey, quotaDay: deps.quotaDay, grantedAt: deps.now,
+      id: grantId,
+      codeId: code.id,
+      domainKey: deps.domainKey,
+      quotaDay: deps.quotaDay,
+      grantedAt: deps.now,
     });
   } catch (cause) {
     if (cause instanceof DuplicateGrantError) {
@@ -966,6 +1071,7 @@ git commit -m "feat(workers): QuotaService.resolveScanRequest"
 ## Task 6: Contracts — extend `CreateScanInput`, add `ScanCachedResponse`
 
 **Files:**
+
 - Modify: `packages/contracts/src/scan.ts`
 - Create: `packages/contracts/src/scan-cached.ts`
 - Modify: `packages/contracts/src/index.ts`
@@ -1064,6 +1170,7 @@ git commit -m "feat(contracts): ScanCachedResponse + optional redeemCode"
 ## Task 7: Wire QuotaService into `POST /v1/scans`
 
 **Files:**
+
 - Modify: `apps/workers/src/routes/scans.ts`
 - Modify: `apps/workers/src/routes/scans.test.ts`
 
@@ -1088,7 +1195,8 @@ describe("POST /v1/scans — quota", () => {
     // First request: fresh scan.
     db.rows.push({
       sql: `INSERT INTO scans ...`.replace("...", ""),
-      firstReturn: null, allReturn: [],
+      firstReturn: null,
+      allReturn: [],
     });
     // ... too long; instead write the test outside-of-spec using the existing
     // FakeD1 harness. The easier path is to mock the D1 calls used by
@@ -1105,7 +1213,12 @@ describe("POST /v1/scans — quota", () => {
     const db = new FakeD1();
     db.rows.push({
       sql: "SELECT id, state, created_at, expires_at FROM scans WHERE url LIKE ? AND substr(created_at, 1, 10) = ? ORDER BY created_at DESC LIMIT 1",
-      firstReturn: { id: "scan_1", state: "completed", created_at: "2026-08-03T08:00:00.000Z", expires_at: "2026-08-10T08:00:00.000Z" },
+      firstReturn: {
+        id: "scan_1",
+        state: "completed",
+        created_at: "2026-08-03T08:00:00.000Z",
+        expires_at: "2026-08-10T08:00:00.000Z",
+      },
       allReturn: [],
     });
     db.rows.push({
@@ -1119,9 +1232,17 @@ describe("POST /v1/scans — quota", () => {
       new Request("https://example/v1/scans", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com", jurisdiction: "VN", category: "online_game" }),
+        body: JSON.stringify({
+          url: "https://example.com",
+          jurisdiction: "VN",
+          category: "online_game",
+        }),
       }),
-      { DB: db as unknown as D1Database, WEB_ORIGIN: "https://safelaunch.runany.dev", ENABLE_DAILY_QUOTA: "true" },
+      {
+        DB: db as unknown as D1Database,
+        WEB_ORIGIN: "https://safelaunch.runany.dev",
+        ENABLE_DAILY_QUOTA: "true",
+      },
     );
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -1138,7 +1259,11 @@ describe("POST /v1/scans — quota", () => {
       new Request("https://example/v1/scans", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com", jurisdiction: "VN", category: "online_game" }),
+        body: JSON.stringify({
+          url: "https://example.com",
+          jurisdiction: "VN",
+          category: "online_game",
+        }),
       }),
       { DB: db as unknown as D1Database, WEB_ORIGIN: "https://safelaunch.runany.dev" },
     );
@@ -1149,12 +1274,18 @@ describe("POST /v1/scans — quota", () => {
     const db = new FakeD1();
     db.rows.push({
       sql: "SELECT id, state, created_at, expires_at FROM scans WHERE url LIKE ? AND substr(created_at, 1, 10) = ? ORDER BY created_at DESC LIMIT 1",
-      firstReturn: { id: "scan_1", state: "completed", created_at: "2026-08-03T08:00:00.000Z", expires_at: "2026-08-10T08:00:00.000Z" },
+      firstReturn: {
+        id: "scan_1",
+        state: "completed",
+        created_at: "2026-08-03T08:00:00.000Z",
+        expires_at: "2026-08-10T08:00:00.000Z",
+      },
       allReturn: [],
     });
     db.rows.push({
       sql: "SELECT * FROM redeem_codes WHERE code_hash = ?",
-      firstReturn: null, allReturn: [],
+      firstReturn: null,
+      allReturn: [],
     });
     const app = new Hono<{ Bindings: RoutesEnv }>();
     app.route("/", scansRouter);
@@ -1162,9 +1293,18 @@ describe("POST /v1/scans — quota", () => {
       new Request("https://example/v1/scans", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ url: "https://example.com", jurisdiction: "VN", category: "online_game", redeemCode: "SL-AAAA-BBBB" }),
+        body: JSON.stringify({
+          url: "https://example.com",
+          jurisdiction: "VN",
+          category: "online_game",
+          redeemCode: "SL-AAAA-BBBB",
+        }),
       }),
-      { DB: db as unknown as D1Database, WEB_ORIGIN: "https://safelaunch.runany.dev", ENABLE_DAILY_QUOTA: "true" },
+      {
+        DB: db as unknown as D1Database,
+        WEB_ORIGIN: "https://safelaunch.runany.dev",
+        ENABLE_DAILY_QUOTA: "true",
+      },
     );
     expect(res.status).toBe(401);
     expect(await res.json()).toMatchObject({ code: "REDEEM_CODE_EXPIRED" });
@@ -1235,8 +1375,7 @@ const extractTurnstileToken = (request: Request): string | null => {
 
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
 
-const isTerminal = (state: string): state is ScanTerminalState =>
-  TERMINAL_SCAN_STATES.has(state);
+const isTerminal = (state: string): state is ScanTerminalState => TERMINAL_SCAN_STATES.has(state);
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
@@ -1272,7 +1411,13 @@ const scanLookup: ScanLookup = async (db, domainKey, quotaDay, terminal) => {
        ORDER BY created_at DESC LIMIT 50`,
     )
     .bind(placeholder, quotaDay)
-    .all<{ id: string; state: string; created_at: string; expires_at: string; coverage_json: string }>();
+    .all<{
+      id: string;
+      state: string;
+      created_at: string;
+      expires_at: string;
+      coverage_json: string;
+    }>();
   const rows = (inner.results ?? []).filter((r) => terminal.includes(r.state));
   if (rows.length === 0) return null;
   const top = rows[0];
@@ -1308,10 +1453,7 @@ scansRouter.post("/v1/scans", async (context) => {
   }
   const parsed = CreateScanInput.safeParse(payload);
   if (!parsed.success) {
-    return context.json(
-      { code: "INVALID_INPUT", issues: parsed.error.issues },
-      400,
-    );
+    return context.json({ code: "INVALID_INPUT", issues: parsed.error.issues }, 400);
   }
   const input = parsed.data;
 
@@ -1326,7 +1468,11 @@ scansRouter.post("/v1/scans", async (context) => {
     };
     try {
       await enforceAbuseControls(
-        { ip: clientIp, hostname: submittedHost, turnstileToken: extractTurnstileToken(context.req.raw) },
+        {
+          ip: clientIp,
+          hostname: submittedHost,
+          turnstileToken: extractTurnstileToken(context.req.raw),
+        },
         deps,
       );
     } catch (cause) {
@@ -1365,18 +1511,22 @@ scansRouter.post("/v1/scans", async (context) => {
     }
 
     if (resolveResult.kind === "cached") {
-      console.log(JSON.stringify({
-        level: "info", event: "scan.cached_served",
-        originalScanId: resolveResult.originalScanId,
-        domainKey: key, quotaDay,
-      }));
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "scan.cached_served",
+          originalScanId: resolveResult.originalScanId,
+          domainKey: key,
+          quotaDay,
+        }),
+      );
       const coverage = { fetched: [], failed: [], skipped: [] };
       const cached = {
         scanId: resolveResult.originalScanId,
         state: resolveResult.state,
         coverage,
         status: resolveResult.status,
-        createdAt: "",          // populated below in the route fetch
+        createdAt: "", // populated below in the route fetch
         expiresAt: "",
         reportUrl: resolveResult.reportUrl,
         cached: true as const,
@@ -1385,8 +1535,9 @@ scansRouter.post("/v1/scans", async (context) => {
         message: resolveResult.message,
       } satisfies ScanCachedResponse;
       // Hydrate createdAt/expiresAt from the scans row (cheap extra read).
-      const top = await context.env.DB
-        .prepare("SELECT created_at, expires_at FROM scans WHERE id = ?")
+      const top = await context.env.DB.prepare(
+        "SELECT created_at, expires_at FROM scans WHERE id = ?",
+      )
         .bind(resolveResult.originalScanId)
         .first<{ created_at: string; expires_at: string }>();
       if (top) {
@@ -1398,12 +1549,16 @@ scansRouter.post("/v1/scans", async (context) => {
 
     // resolveResult.kind === "fresh" — log if a code unlocked it.
     if (resolveResult.codeId) {
-      console.log(JSON.stringify({
-        level: "info", event: "redeem.applied",
-        codeId: resolveResult.codeId,
-        domainKey: key, quotaDay,
-        actor: "anonymous",
-      }));
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "redeem.applied",
+          codeId: resolveResult.codeId,
+          domainKey: key,
+          quotaDay,
+          actor: "anonymous",
+        }),
+      );
     }
   }
 
@@ -1421,25 +1576,37 @@ scansRouter.post("/v1/scans", async (context) => {
     expiresAt: expiresAt.toISOString(),
   });
 
-  console.log(JSON.stringify({
-    level: "info", event: "scan.created",
-    scanId, jurisdiction: input.jurisdiction, category: input.category,
-  }));
+  console.log(
+    JSON.stringify({
+      level: "info",
+      event: "scan.created",
+      scanId,
+      jurisdiction: input.jurisdiction,
+      category: input.category,
+    }),
+  );
 
   const workflow = context.env.SCAN_WORKFLOW;
   if (workflow) {
     try {
       await workflow.create({
         params: {
-          scanId, url: input.url, jurisdiction: input.jurisdiction,
-          category: input.category, analysisVersion: ANALYSIS_VERSION,
+          scanId,
+          url: input.url,
+          jurisdiction: input.jurisdiction,
+          category: input.category,
+          analysisVersion: ANALYSIS_VERSION,
         },
       });
     } catch (cause) {
-      console.log(JSON.stringify({
-        level: "warn", event: "scan.workflow_create_failed",
-        scanId, error: cause instanceof Error ? cause.message : String(cause),
-      }));
+      console.log(
+        JSON.stringify({
+          level: "warn",
+          event: "scan.workflow_create_failed",
+          scanId,
+          error: cause instanceof Error ? cause.message : String(cause),
+        }),
+      );
     }
   }
 
@@ -1508,6 +1675,7 @@ git commit -m "feat(workers): wire QuotaService into POST /v1/scans (flag-gated)
 ## Task 8: Admin redeem-codes router
 
 **Files:**
+
 - Create: `apps/workers/src/routes/admin-redeem-codes.ts`
 - Create: `apps/workers/src/routes/admin-redeem-codes.test.ts`
 - Modify: `apps/workers/src/index.ts`
@@ -1522,7 +1690,9 @@ import { adminRedeemCodesRouter } from "./admin-redeem-codes";
 // reuse FakeD1 from admin.test.ts (export it from a shared util in this PR)
 // For now, copy the existing FakeD1 class inline.
 
-class FakeD1 { /* ... */ }
+class FakeD1 {
+  /* ... */
+}
 
 describe("admin redeem codes router", () => {
   it("POST creates a code and returns plaintext once", async () => {
@@ -1532,7 +1702,10 @@ describe("admin redeem codes router", () => {
     const res = await app.fetch(
       new Request("https://example/v1/admin/redeem-codes", {
         method: "POST",
-        headers: { "content-type": "application/json", "cf-access-authenticated-user-email": "reviewer@safelaunch.app" },
+        headers: {
+          "content-type": "application/json",
+          "cf-access-authenticated-user-email": "reviewer@safelaunch.app",
+        },
         body: JSON.stringify({ label: "Pilot", expiresAt: "2026-09-01T00:00:00.000Z" }),
       }),
       { DB: db as unknown as D1Database },
@@ -1548,11 +1721,17 @@ describe("admin redeem codes router", () => {
     db.rows.push({
       sql: "SELECT * FROM redeem_codes ORDER BY created_at DESC LIMIT ? OFFSET ?",
       firstReturn: null,
-      allReturn: [{
-        id: "rc_1", code_hash: "x".repeat(64), label: "Pilot",
-        created_by: "reviewer@safelaunch.app", created_at: "2026-08-03T00:00:00.000Z",
-        expires_at: "2026-09-01T00:00:00.000Z", revoked_at: null,
-      }],
+      allReturn: [
+        {
+          id: "rc_1",
+          code_hash: "x".repeat(64),
+          label: "Pilot",
+          created_by: "reviewer@safelaunch.app",
+          created_at: "2026-08-03T00:00:00.000Z",
+          expires_at: "2026-09-01T00:00:00.000Z",
+          revoked_at: null,
+        },
+      ],
     });
     const app = new Hono<{ Bindings: { DB: D1Database } }>();
     app.route("/", adminRedeemCodesRouter);
@@ -1574,7 +1753,9 @@ describe("admin redeem codes router", () => {
       { DB: db as unknown as D1Database },
     );
     expect(res.status).toBe(200);
-    expect(db.preparedCalls.some((c: any) => c.sql.includes("UPDATE") && c.sql.includes("revoked_at"))).toBe(true);
+    expect(
+      db.preparedCalls.some((c: any) => c.sql.includes("UPDATE") && c.sql.includes("revoked_at")),
+    ).toBe(true);
   });
 });
 ```
@@ -1600,43 +1781,65 @@ export const adminRedeemCodesRouter = new Hono<{ Bindings: { DB: D1Database } }>
 
 adminRedeemCodesRouter.post("/v1/admin/redeem-codes", async (context) => {
   let body: unknown;
-  try { body = await context.req.json(); } catch { return context.json({ code: "INVALID_JSON" }, 400); }
+  try {
+    body = await context.req.json();
+  } catch {
+    return context.json({ code: "INVALID_JSON" }, 400);
+  }
   const parsed = CreateBody.safeParse(body);
-  if (!parsed.success) return context.json({ code: "INVALID_INPUT", issues: parsed.error.issues }, 400);
+  if (!parsed.success)
+    return context.json({ code: "INVALID_INPUT", issues: parsed.error.issues }, 400);
   const repo = new RedeemRepository(context.env.DB);
   const plaintext = generateRedeemCode();
   const codeHash = await hashRedeemCode(plaintext);
   const id = `rc_${crypto.randomUUID()}`;
   const now = new Date().toISOString();
   await repo.createCode({
-    id, codeHash, label: parsed.data.label,
+    id,
+    codeHash,
+    label: parsed.data.label,
     createdBy: ACTOR(context.req.raw),
-    createdAt: now, expiresAt: parsed.data.expiresAt,
+    createdAt: now,
+    expiresAt: parsed.data.expiresAt,
   });
-  console.log(JSON.stringify({
-    level: "info", event: "redeem.code_created",
-    codeId: id, codeHashPrefix: codeHash.slice(0, 8),
-    actor: ACTOR(context.req.raw), labelLength: parsed.data.label.length,
-  }));
-  return context.json({
-    id, code: plaintext, codeHashPrefix: codeHash.slice(0, 8),
-    label: parsed.data.label, expiresAt: parsed.data.expiresAt,
-    createdAt: now, createdBy: ACTOR(context.req.raw),
-  }, 200);
+  console.log(
+    JSON.stringify({
+      level: "info",
+      event: "redeem.code_created",
+      codeId: id,
+      codeHashPrefix: codeHash.slice(0, 8),
+      actor: ACTOR(context.req.raw),
+      labelLength: parsed.data.label.length,
+    }),
+  );
+  return context.json(
+    {
+      id,
+      code: plaintext,
+      codeHashPrefix: codeHash.slice(0, 8),
+      label: parsed.data.label,
+      expiresAt: parsed.data.expiresAt,
+      createdAt: now,
+      createdBy: ACTOR(context.req.raw),
+    },
+    200,
+  );
 });
 
 adminRedeemCodesRouter.get("/v1/admin/redeem-codes", async (context) => {
   const repo = new RedeemRepository(context.env.DB);
   const codes = await repo.listCodes({ limit: 100, offset: 0 });
-  return context.json(codes.map((c) => ({
-    id: c.id,
-    codeHashPrefix: c.codeHash.slice(0, 8),
-    label: c.label,
-    createdBy: c.createdBy,
-    createdAt: c.createdAt,
-    expiresAt: c.expiresAt,
-    revokedAt: c.revokedAt,
-  })));
+  return context.json(
+    codes.map((c) => ({
+      id: c.id,
+      codeHashPrefix: c.codeHash.slice(0, 8),
+      label: c.label,
+      createdBy: c.createdBy,
+      createdAt: c.createdAt,
+      expiresAt: c.expiresAt,
+      revokedAt: c.revokedAt,
+    })),
+  );
 });
 
 adminRedeemCodesRouter.delete("/v1/admin/redeem-codes/:id", async (context) => {
@@ -1697,6 +1900,7 @@ git commit -m "feat(workers): admin redeem-codes CRUD router"
 ## Task 9: Web API client — new types
 
 **Files:**
+
 - Modify: `apps/web/src/lib/api-client.ts`
 
 - [ ] **Step 1: Extend the DTOs**
@@ -1749,6 +1953,7 @@ git commit -m "feat(web): api-client types for redeemCode + ScanCachedResponse"
 ## Task 10: i18n messages
 
 **Files:**
+
 - Modify: `apps/web/src/messages/vi.json`
 - Modify: `apps/web/src/messages/en.json`
 
@@ -1816,6 +2021,7 @@ git commit -m "feat(web): i18n for quota + package stub"
 ## Task 11: ScanForm — disclaimer + redeem toggle
 
 **Files:**
+
 - Modify: `apps/web/src/components/scan-form.tsx`
 - Modify: `apps/web/src/components/scan-form.test.tsx`
 - Modify: `apps/web/src/messages/vi.json` (add `quota.disclaimer` to `ScanFormMessages` if not already covered)
@@ -1866,9 +2072,15 @@ Add a `const [redeemCode, setRedeemCode] = useState("")` and pass `redeemCode` i
 
 ```ts
 const inputSchema = z.object({
-  url: z.string().url().refine((v) => /^https?:\/\//i.test(v), { message: "https required" }),
+  url: z
+    .string()
+    .url()
+    .refine((v) => /^https?:\/\//i.test(v), { message: "https required" }),
   category: z.enum(categoryValues),
-  redeemCode: z.string().regex(/^SL-[A-Z2-9]{4}-[A-Z2-9]{4}$/).optional(),
+  redeemCode: z
+    .string()
+    .regex(/^SL-[A-Z2-9]{4}-[A-Z2-9]{4}$/)
+    .optional(),
 });
 ```
 
@@ -1911,6 +2123,7 @@ git commit -m "feat(web): ScanForm quota disclaimer + redeem toggle"
 ## Task 12: ScanProgress — cached banner
 
 **Files:**
+
 - Modify: `apps/web/src/components/scan-progress.tsx`
 - Modify: `apps/web/src/components/scan-progress.test.tsx`
 - Modify: `apps/web/src/messages/progress-vi.json`
@@ -1952,10 +2165,20 @@ if (res.status === 200) {
 
 ```tsx
 // packages/ui/src/CachedBanner.tsx (new)
-export const CachedBanner = ({ message, ctaHref, ctaLabel }: { message: string; ctaHref: string; ctaLabel: string }) => (
+export const CachedBanner = ({
+  message,
+  ctaHref,
+  ctaLabel,
+}: {
+  message: string;
+  ctaHref: string;
+  ctaLabel: string;
+}) => (
   <div role="status" className="rounded border border-amber-300 bg-amber-50 p-3 text-sm">
     <p>{message}</p>
-    <a href={ctaHref} className="underline">{ctaLabel}</a>
+    <a href={ctaHref} className="underline">
+      {ctaLabel}
+    </a>
   </div>
 );
 ```
@@ -1986,6 +2209,7 @@ git commit -m "feat(web): cached banner after daily-quota reuse"
 ## Task 13: Admin redeem-codes page
 
 **Files:**
+
 - Create: `apps/web/src/app/[locale]/admin/redeem-codes/page.tsx`
 - Create: `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.tsx`
 - Create: `apps/web/src/app/[locale]/admin/redeem-codes/redeem-codes-client.test.tsx`
@@ -2031,9 +2255,20 @@ export const RedeemCodesClient = ({ locale: _locale }: { locale: string }) => {
   return (
     <div>
       <h1>Redeem codes</h1>
-      <label>Label <input value={label} onChange={(e) => setLabel(e.target.value)} /></label>
-      <label>Expires at <input type="datetime-local" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} /></label>
-      <button onClick={create} data-testid="create-btn">Create</button>
+      <label>
+        Label <input value={label} onChange={(e) => setLabel(e.target.value)} />
+      </label>
+      <label>
+        Expires at{" "}
+        <input
+          type="datetime-local"
+          value={expiresAt}
+          onChange={(e) => setExpiresAt(e.target.value)}
+        />
+      </label>
+      <button onClick={create} data-testid="create-btn">
+        Create
+      </button>
       {latestCode && (
         <div role="alert" data-testid="latest-code">
           <code>{latestCode}</code>
@@ -2066,6 +2301,7 @@ git commit -m "feat(web): admin redeem-codes page (under Cloudflare Access)"
 ## Task 14: Feature flag plumbing
 
 **Files:**
+
 - Modify: `apps/workers/wrangler.jsonc`
 - Modify: `apps/workers/wrangler.test.jsonc` (if present; otherwise skip)
 
@@ -2075,8 +2311,8 @@ git commit -m "feat(web): admin redeem-codes page (under Cloudflare Access)"
 {
   "vars": {
     "WEB_ORIGIN": "https://safelaunch.runany.dev",
-    "ENABLE_DAILY_QUOTA": "false"
-  }
+    "ENABLE_DAILY_QUOTA": "false",
+  },
 }
 ```
 
@@ -2092,14 +2328,18 @@ Default is `false`. To enable on staging:
 
 \`\`\`bash
 pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
+
 # enter: true
+
 \`\`\`
 
 To disable:
 
 \`\`\`bash
 pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
+
 # enter: false
+
 \`\`\`
 ```
 
@@ -2115,6 +2355,7 @@ git commit -m "ops(workers): wire ENABLE_DAILY_QUOTA flag (default off)"
 ## Task 15: Verification gate
 
 **Files:**
+
 - N/A (run-only)
 
 - [ ] **Step 1: Run everything in the worktree**
@@ -2190,16 +2431,17 @@ gh pr create --title "feat: daily domain quota + anonymous redeem-code bypass" \
 
 ```markdown
 ### Compliance PR checklist
+
 - [x] Every claim cites a source (this change adds no new compliance claims).
 - [x] Affected jurisdictions enumerated; "single country" paths flagged.
-  The quota is per-host (jurisdiction-agnostic), explicitly per G6.
+      The quota is per-host (jurisdiction-agnostic), explicitly per G6.
 - [x] Scoring rubric change documented — not applicable (no scoring change).
 - [x] No PII added to logs/analytics. Only hashed fingerprints + admin
-  email (already trusted by Access).
+      email (already trusted by Access).
 - [x] AI-assisted copy is visually marked. The new VI/EN copy is hand-written
-  and is marked with the existing "compliance signal" framing.
+      and is marked with the existing "compliance signal" framing.
 - [x] Tests cover: rubric reproducibility (N/A), citation presence (N/A),
-  jurisdiction filtering (N/A), quota logic, redeem-code generation, hash,
-  grant uniqueness, admin CRUD, route integration.
+      jurisdiction filtering (N/A), quota logic, redeem-code generation, hash,
+      grant uniqueness, admin CRUD, route integration.
 - [x] Corpus `retrievedAt` updated if regulations cited changed — N/A.
 ```

@@ -151,7 +151,9 @@ const toApiClientError = async (response: Response, code: string): Promise<ApiCl
 export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
   const base = env.NEXT_PUBLIC_API_ORIGIN ? trimTrailingSlash(env.NEXT_PUBLIC_API_ORIGIN) : null;
   return {
-    createScan: async (input: CreateScanInput): Promise<CreateScanResponse | ScanCachedResponse> => {
+    createScan: async (
+      input: CreateScanInput,
+    ): Promise<CreateScanResponse | ScanCachedResponse> => {
       const response = await fetch(`${requireOrigin(base)}/v1/scans`, {
         method: "POST",
         headers: {

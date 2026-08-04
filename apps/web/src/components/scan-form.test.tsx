@@ -41,7 +41,9 @@ const viMessages = {
 } as const;
 
 type CreateScanFn = NonNullable<ScanFormProps["createScan"]>;
-const createScan = vi.fn(() => Promise.resolve({ scanId: "scan_test", state: "queued" as const })) as CreateScanFn;
+const createScan = vi.fn(() =>
+  Promise.resolve({ scanId: "scan_test", state: "queued" as const }),
+) as CreateScanFn;
 
 describe("ScanForm", () => {
   it("navigates to the live scan progress screen after the API accepts the scan", async () => {
@@ -128,9 +130,7 @@ describe("ScanForm", () => {
       domainKey: "example.com",
       message: "scan.cached.used",
     };
-    const createScanCached = vi.fn(() =>
-      Promise.resolve(cachedResponse),
-    ) as CreateScanFn;
+    const createScanCached = vi.fn(() => Promise.resolve(cachedResponse)) as CreateScanFn;
     const user = userEvent.setup();
     render(<ScanForm createScan={createScanCached} locale="vi" messages={viMessages} />);
     await user.type(screen.getByLabelText("URL website"), "https://example.com");

@@ -17,12 +17,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // on `NEXT_PUBLIC_*` being inlined into the browser bundle at build time.
   return (
     <main>
-    <ScanForm
-      locale={locale}
-      // Cast: ScanFormMessages is narrower than the full vi.json bundle.
-      messages={messagesFor(locale) as unknown as ScanFormMessages}
-      createScan={createScan}
-    />
+      <ScanForm
+        locale={locale}
+        // Cast: ScanFormMessages is narrower than the full vi.json bundle.
+        messages={messagesFor(locale) as unknown as ScanFormMessages}
+        createScan={createScan}
+      />
     </main>
   );
 }

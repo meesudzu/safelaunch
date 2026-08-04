@@ -31,34 +31,51 @@ adminRedeemCodesRouter.post("/v1/admin/redeem-codes", async (context) => {
   const now = new Date().toISOString();
   const actor = ACTOR(context.req.raw);
   await repo.createCode({
-    id, codeHash, label: parsed.data.label,
+    id,
+    codeHash,
+    label: parsed.data.label,
     createdBy: actor,
-    createdAt: now, expiresAt: parsed.data.expiresAt,
+    createdAt: now,
+    expiresAt: parsed.data.expiresAt,
   });
-  console.log(JSON.stringify({
-    level: "info", event: "redeem.code_created",
-    codeId: id, codeHashPrefix: codeHash.slice(0, 8),
-    actor, labelLength: parsed.data.label.length,
-  }));
-  return context.json({
-    id, code: plaintext, codeHashPrefix: codeHash.slice(0, 8),
-    label: parsed.data.label, expiresAt: parsed.data.expiresAt,
-    createdAt: now, createdBy: actor,
-  }, 200);
+  console.log(
+    JSON.stringify({
+      level: "info",
+      event: "redeem.code_created",
+      codeId: id,
+      codeHashPrefix: codeHash.slice(0, 8),
+      actor,
+      labelLength: parsed.data.label.length,
+    }),
+  );
+  return context.json(
+    {
+      id,
+      code: plaintext,
+      codeHashPrefix: codeHash.slice(0, 8),
+      label: parsed.data.label,
+      expiresAt: parsed.data.expiresAt,
+      createdAt: now,
+      createdBy: actor,
+    },
+    200,
+  );
 });
 
 adminRedeemCodesRouter.get("/v1/admin/redeem-codes", async (context) => {
   const repo = new RedeemRepository(context.env.DB);
   const codes = await repo.listCodes({ limit: 100, offset: 0 });
-  return context.json(codes.map((c) => ({
-    id: c.id,
-    codeHashPrefix: c.codeHash.slice(0, 8),
-    label: c.label,
-    createdBy: c.createdBy,
-    createdAt: c.createdAt,
-    expiresAt: c.expiresAt,
-    revokedAt: c.revokedAt,
-  })));
+  return context.json(
+    codes.map((c) => ({
+      id: c.id,
+      codeHashPrefix: c.codeHash.slice(0, 8),
+      label: c.label,
+      createdBy: c.createdBy,
+      createdAt: c.createdAt,
+      expiresAt: c.expiresAt,
+      revokedAt: c.revokedAt,
+    })),
+  );
 });
 
 adminRedeemCodesRouter.delete("/v1/admin/redeem-codes/:id", async (context) => {
