@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // hoisted), so we create the mock here and re-import it for assertions via
 // the resolved module.
 const { createScanMock } = vi.hoisted(() => ({
-  createScanMock: vi.fn(async () => ({ scanId: "scan_abc", state: "queued" as const })),
+  createScanMock: vi.fn(async () => {
+    await Promise.resolve();
+    return { scanId: "scan_abc", state: "queued" as const };
+  }),
 }));
 vi.mock("./actions", () => ({ createScan: createScanMock }));
 
