@@ -9,6 +9,14 @@
 This document is the handoff to the team. Items are grouped by **Tier**
 (how blocking they are) and tagged with **Owner / Effort / Reference**.
 
+## Recently shipped
+
+- **Daily domain quota + anonymous redeem-code bypass (2026-08-04).**
+  Spec at `docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`.
+  Implementation at `docs/superpowers/plans/2026-08-03-daily-domain-quota-plan.md`.
+  Gated by `ENABLE_DAILY_QUOTA` (default `false`). Enable on staging first,
+  then production, after a manual smoke run.
+
 ---
 
 ## Tier 1 — Must do before any release announcement
