@@ -139,9 +139,7 @@ reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
   }
   const now = new Date();
   if (isExpired(row.expiresAt, now)) {
-    console.log(
-      JSON.stringify({ level: "info", event: "report.expired", scanId: row.scanId }),
-    );
+    console.log(JSON.stringify({ level: "info", event: "report.expired", scanId: row.scanId }));
     return context.json({ code: "REPORT_EXPIRED" }, 410);
   }
   // Strip the private plaintext token before returning the report payload.
