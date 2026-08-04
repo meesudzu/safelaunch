@@ -326,13 +326,18 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       };
     }
 
-    // 3. fetch:<page> — one literal-named step per supported page type.
+    // 3. fetch:<page> — five hardcoded `step.do` calls, one per page type.
     //
-    // Each `step.do(name, fn)` uses a hardcoded string so Cloudflare's graph
-    // analyzer can render one node per page. If a page type is not in
-    // `requiredPages` we still spawn its step but the closure short-circuits
-    // to a benign placeholder, so the graph shows a complete picture at zero
-    // I/O cost for the unused pages.
+    // Each step name is a *literal* string so the Cloudflare dashboard graph
+    // analyzer can render a discrete node per page. Earlier attempts using a
+    // template literal (`fetch:${pageType}`) caused the analyzer to collapse
+    // all page fetches into a single `fetch:${...}` node inside an opaque
+    // "loop 1" — that bug is documented in the dashboard screenshots shared
+    // when reviewing #12.
+    //
+    // Pages absent from `requirePages` short-circuit the closure to a benign
+    // placeholder so the graph shows the full picture without spending HTTP
+    // budget on pages the consumer did not ask for.
     const requiredPages = new Set<SupportedPageType>(parsed.requirePages ?? ["about", "privacy"]);
     const timeoutPages = new Set<SupportedPageType>(parsed.timeoutPages ?? []);
     const forcedFailed = new Set<SupportedPageType>(parsed.failedPages ?? []);
@@ -342,40 +347,45 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       | { ok: false; pageType: SupportedPageType; reason: string };
     const perPageResults: PageResult[] = [];
 
-    const runFetchStep = async (pageType: SupportedPageType): Promise<void> => {
+    /**
+     * Run a `step.do(name, fn)` whose first argument is a string LITERAL —
+     * never a template — so the graph analyzer emits one node per page.
+     * Each `case` is a separate function so the analyzer still sees five
+     * distinct literal step names.
+     */
+    const fetchOne = async (pageType: SupportedPageType): Promise<PageResult> => {
       if (!requiredPages.has(pageType)) {
-        // No-op step: produce a placeholder so coverage reports the page as
-        // fetched-but-skipped. The dashboard will still render this node as a
-        // completed step.
-        perPageResults.push({
-          ok: true,
-          pageType,
-          status: 200,
-          html: new Uint8Array(),
-        });
-        return;
+        return { ok: true, pageType, status: 200, html: new Uint8Array() };
       }
-      const result = await step.do(`fetch:${pageType}`, async () =>
-        fetchSinglePagePhase(
-          {
-            fetcher: makeWorkflowFetch(),
-            pageType,
-            baseUrl: parsed.url,
-            retries: 1,
-            backoffMs: 5,
-            timeoutPages,
-            forcedFailed,
-          },
-          log,
-        ),
-      );
-      perPageResults.push(result);
+      const fetcher = makeWorkflowFetch();
+      const baseDeps = {
+        fetcher,
+        pageType,
+        baseUrl: parsed.url,
+        retries: 1,
+        backoffMs: 5,
+        timeoutPages,
+        forcedFailed,
+      };
+      switch (pageType) {
+        case "homepage":
+          // Fetched separately above; not reachable here.
+          return { ok: true, pageType, status: 200, html: new Uint8Array() };
+        case "about":
+          return await step.do("fetch:about", async () => fetchSinglePagePhase(baseDeps, log));
+        case "privacy":
+          return await step.do("fetch:privacy", async () => fetchSinglePagePhase(baseDeps, log));
+        case "contact":
+          return await step.do("fetch:contact", async () => fetchSinglePagePhase(baseDeps, log));
+        case "terms":
+          return await step.do("fetch:terms", async () => fetchSinglePagePhase(baseDeps, log));
+      }
     };
 
-    await runFetchStep("about");
-    await runFetchStep("privacy");
-    await runFetchStep("contact");
-    await runFetchStep("terms");
+    perPageResults.push(await fetchOne("about"));
+    perPageResults.push(await fetchOne("privacy"));
+    perPageResults.push(await fetchOne("contact"));
+    perPageResults.push(await fetchOne("terms"));
 
     // 4. evaluate-rules (single fan-out step — see spec §4 assumption G7).
     // extract-evidence is currently performed inside makeWorkflowEvaluator; the
