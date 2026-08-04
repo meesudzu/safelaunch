@@ -200,7 +200,6 @@ describe("reports router", () => {
   });
 });
 
-
 const runWithDbByToken = async (
   db: FakeD1Database,
   request: Request,
@@ -298,11 +297,9 @@ describe("reports router — by-token lookup", () => {
       origError(...args);
     };
     try {
-      await runWithDbByToken(
-        db,
-        new Request(`http://local/v1/reports/by-token/${token}`),
-        { tokenHash: stored },
-      );
+      await runWithDbByToken(db, new Request(`http://local/v1/reports/by-token/${token}`), {
+        tokenHash: stored,
+      });
     } finally {
       console.error = origError;
     }
