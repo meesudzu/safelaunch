@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { scansRouter } from "./routes/scans";
 import { reportsRouter } from "./routes/reports";
 import { adminRouter } from "./routes/admin";
+import { adminRedeemCodesRouter } from "./routes/admin-redeem-codes";
 import { ScanWorkflowEntrypoint } from "./workflows/scan-workflow";
 import { AbuseRateLimiter } from "./services/abuse-rate-limiter-do";
 
@@ -14,6 +15,7 @@ export type Env = {
   WEB_ORIGIN?: string;
   SCAN_WORKFLOW?: Workflow;
   ABUSE_RATE_LIMITER?: DurableObjectNamespace;
+  ENABLE_DAILY_QUOTA?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();
@@ -23,6 +25,7 @@ app.get("/v1/health", (context) => context.json({ ok: true, service: "safelaunch
 app.route("/", scansRouter);
 app.route("/", reportsRouter);
 app.route("/v1/admin", adminRouter);
+app.route("/v1/admin", adminRedeemCodesRouter);
 
 app.onError((error, context) => {
   const requestId = context.req.header("cf-ray") ?? crypto.randomUUID();

@@ -21,5 +21,21 @@
   "form.error.submit": "Could not submit the scan. Please try again.",
   "disclosure": "This report is a compliance signal based on regulations in force at the time of the scan, not legal advice. Please consult a licensed attorney for the final decision.",
   "footer.disclosure": "This report is a compliance signal, not legal advice.",
-  "footer.version": "v0.1 · SafeLaunch"
+  "footer.version": "v0.1 · SafeLaunch",
+  "quota": {
+    "disclaimer": "Each website can be scanned once per day (UTC). The extension package is being built — contact an admin to receive a redeem code.",
+    "redeem.toggle": "I have a redeem code",
+    "redeem.label": "Redeem code",
+    "redeem.placeholder": "SL-XXXX-XXXX",
+    "redeem.invalid": "Invalid or expired redeem code.",
+    "redeem.used": "Redeem code already used for this domain today.",
+    "cached.banner": "This domain was already scanned today. Showing the previous result.",
+    "cached.cta": "Open report",
+    "cached.failed": "The previous scan failed at {{time}} UTC. A redeem code is required to retry."
+  },
+  "package": {
+    "title": "Extension package",
+    "status": "Coming soon",
+    "body": "The extension package unlocks unlimited scans per day. Currently in development. For now, contact an admin to receive a redeem code."
+  }
 }

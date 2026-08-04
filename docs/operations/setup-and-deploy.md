@@ -556,7 +556,30 @@ resource scopes restricted.
 
 ## Change log
 
-- `2026-08-03` — production-only deployment; changed public domain to
-  `safelaunch.runany.dev`; removed staging and Cloudflare Pages setup; documented
-  least-privilege Cloudflare API token permissions.
-- `2026-07-30` — initial setup and deploy guide.
+- `2026-07-30` — v1 setup & deploy guide. First release will follow
+  this document step by step.
+
+---
+
+## Daily quota feature flag
+
+The `ENABLE_DAILY_QUOTA` Worker var gates the daily-domain-quota feature
+(`docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`).
+
+- Default: `"false"` (the existing `POST /v1/scans` behavior is unchanged).
+- Flip to `"true"` only after a manual smoke run on staging.
+
+```bash
+# Enable on staging:
+pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
+# enter: true
+
+# Disable (rollback):
+pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
+# enter: false
+```
+
+The first request to `POST /v1/scans` after the flag flips to `true` will
+use the new code path. No migration is required for the new tables
+(`redeem_codes`, `redeem_grants`) — they are created by D1 migration
+`0002_daily_quota.sql` which runs automatically on the next deploy.

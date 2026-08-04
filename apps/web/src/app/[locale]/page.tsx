@@ -1,4 +1,4 @@
-import { ScanForm } from "../../components/scan-form";
+import { ScanForm, type ScanFormMessages } from "../../components/scan-form";
 import viMessages from "../../messages/vi.json";
 import enMessages from "../../messages/en.json";
 import type { Locale } from "./layout";
@@ -17,7 +17,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // on `NEXT_PUBLIC_*` being inlined into the browser bundle at build time.
   return (
     <main>
-      <ScanForm locale={locale} messages={messagesFor(locale)} createScan={createScan} />
+      <ScanForm
+        locale={locale}
+        // Cast: ScanFormMessages is narrower than the full vi.json bundle.
+        messages={messagesFor(locale) as unknown as ScanFormMessages}
+        createScan={createScan}
+      />
     </main>
   );
 }
