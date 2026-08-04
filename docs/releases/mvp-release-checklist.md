@@ -32,13 +32,13 @@
 Each command below must exit 0. Paste the last 10 lines of each output
 into the PR description.
 
-| #   | Gate                     | Command                                                                     | Result              |
-| --- | ------------------------ | --------------------------------------------------------------------------- | ------------------- |
-| 1   | Lint                     | `rtk pnpm lint`                                                             | ☐ PASS              |
-| 2   | Typecheck                | `rtk pnpm typecheck`                                                        | ☐ PASS              |
-| 3   | Unit + integration tests | `rtk pnpm test`                                                             | ☐ PASS              |
-| 4   | Worker dry-run build     | `rtk pnpm -C apps/workers build`                                            | ☐ PASS              |
-| 5   | Web build                | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS              |
+| #   | Gate                     | Command                                                                     | Result |
+| --- | ------------------------ | --------------------------------------------------------------------------- | ------ |
+| 1   | Lint                     | `rtk pnpm lint`                                                             | ☐ PASS |
+| 2   | Typecheck                | `rtk pnpm typecheck`                                                        | ☐ PASS |
+| 3   | Unit + integration tests | `rtk pnpm test`                                                             | ☐ PASS |
+| 4   | Worker dry-run build     | `rtk pnpm -C apps/workers build`                                            | ☐ PASS |
+| 5   | Web build                | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS |
 
 ## 4 · Legal evaluation gates
 
