@@ -659,7 +659,7 @@ export const persistReportPhase = async (
     )
     .bind(input.scanId, tokenHash, payloadJson, expiresAt)
     .run();
-  const url = `https://web.local/vi/report/${token}`;
+  const url = `https://safelaunch.runany.dev/vi/report/${token}`;
   deps.log({
     level: "info",
     event: "scan.report_persisted",
