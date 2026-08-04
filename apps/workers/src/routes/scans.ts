@@ -79,8 +79,6 @@ export const scansRouter = new Hono<{ Bindings: RoutesEnv }>();
 
 const isQuotaEnabled = (env: RoutesEnv): boolean => env.ENABLE_DAILY_QUOTA === "true";
 
-const TERMINAL_STATES = ["completed", "partial", "failed"] as const;
-
 /**
  * Build a ScanLookup bound to the given D1. The lookup uses the URL `host`
  * (via `LIKE`) so the quota check is per-host per day, without requiring

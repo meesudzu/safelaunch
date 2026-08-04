@@ -16,7 +16,8 @@ export interface RedeemCodesClientProps {
   readonly locale: string;
 }
 
-export const RedeemCodesClient = ({ locale: _locale }: RedeemCodesClientProps) => {
+export const RedeemCodesClient = (props: RedeemCodesClientProps) => {
+  void props.locale;
   const [label, setLabel] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [latestPlaintext, setLatestPlaintext] = useState<string | null>(null);
