@@ -17,7 +17,7 @@ class FakeD1Database implements D1Database {
         this.preparedCalls.push({ sql, bindings });
         const row = this.rows.find((entry) => entry.sql === sql);
         const firstReturn = row?.firstReturn;
-        const runReturn = row?.runReturn ?? { success: true, meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false } };
+        const runReturn = row?.runReturn ?? { success: true, meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false, changes: 0 } };
         return {
           first: async <T>(): Promise<T | null> => {
             await Promise.resolve();
@@ -30,9 +30,9 @@ class FakeD1Database implements D1Database {
           all: async <T>(): Promise<D1Result<T>> => {
             await Promise.resolve();
             return {
-              results: [] as readonly T[],
+              results: [] as T[],
               success: true,
-              meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false },
+              meta: { duration: 0, size_after: 0, rows_read: 0, rows_written: 0, last_row_id: 0, changed_db: false, changes: 0 },
             };
           },
         };
@@ -44,15 +44,15 @@ class FakeD1Database implements D1Database {
   dump(): Promise<ArrayBuffer> {
     return Promise.resolve(new ArrayBuffer(0));
   }
-  batch<T>(statements: D1PreparedStatement[]): Promise<T[]> {
-    void statements;
+  batch<T>(): Promise<T[]> {
     return Promise.resolve([] as T[]);
   }
   exec(): Promise<D1ExecResult> {
     return Promise.resolve({ count: 0, duration: 0 });
   }
-  withSession<T>(): Promise<T> {
-    return Promise.resolve({} as T);
+  withSession(): D1DatabaseSession {
+    const session: Partial<D1DatabaseSession> = {};
+    return session as D1DatabaseSession;
   }
 }
 

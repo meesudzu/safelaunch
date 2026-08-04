@@ -108,8 +108,8 @@ describe("translateReport", () => {
 describe("projectMachineFields", () => {
   it("returns only the machine-safe subset of a report", () => {
     const bilingual: BilingualReport = {
-      vi: reportVi,
-      en: { ...reportVi },
+      vi: { ...reportVi, summaryLabel: "Trạng thái" },
+      en: { ...reportVi, summaryLabel: "Trạng thái" },
       summaryLabel: "Trạng thái",
     };
     const projection = projectMachineFields(bilingual.en);
