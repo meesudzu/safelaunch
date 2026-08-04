@@ -12,12 +12,7 @@ import {
 } from "./scan-workflow.phases";
 /* test file: temporary eslint disables for stub fixtures used only here */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
-import type {
-  PageFetcher,
-  ScanCoverage,
-  ScanParams,
-  SupportedPageType,
-} from "./scan-workflow";
+import type { PageFetcher, ScanCoverage, ScanParams, SupportedPageType } from "./scan-workflow";
 
 const sha256Hex = async (input: string): Promise<string> => {
   const data = new TextEncoder().encode(input);

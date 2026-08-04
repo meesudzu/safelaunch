@@ -278,14 +278,14 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // its return value so a partial failure does not replay earlier phases.
     const params: ScanWorkflowPayload = event.payload;
     const log = (entry: Record<string, unknown>) =>
-      console.log(
-        JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" }),
-      );
+      console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" }));
     const now = () => new Date().toISOString();
 
     // 1. parse-params: validate and freeze the payload.
     // eslint-disable-next-line @typescript-eslint/require-await
-    const parsed = await step.do<ScanWorkflowPayload>("parse-params", async () => ScanParamsSchema.parse(params));
+    const parsed = await step.do<ScanWorkflowPayload>("parse-params", async () =>
+      ScanParamsSchema.parse(params),
+    );
 
     // 2. fetch:homepage (must succeed for the scan to continue).
     const homepagePage = await step.do("fetch:homepage", async () => {
@@ -337,22 +337,20 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     const perPageResults: PageResult[] = [];
     for (const pageType of requiredPages) {
       if (pageType === "homepage") continue;
-      const result = (await step.do(
-        `fetch:${pageType}`,
-        () =>
-          fetchSinglePagePhase(
-            {
-              fetcher: makeWorkflowFetch(),
-              pageType,
-              baseUrl: parsed.url,
-              retries: 1,
-              backoffMs: 5,
-              timeoutPages,
-              forcedFailed,
-            },
-            log,
-          ),
-      ));
+      const result = await step.do(`fetch:${pageType}`, () =>
+        fetchSinglePagePhase(
+          {
+            fetcher: makeWorkflowFetch(),
+            pageType,
+            baseUrl: parsed.url,
+            retries: 1,
+            backoffMs: 5,
+            timeoutPages,
+            forcedFailed,
+          },
+          log,
+        ),
+      );
       perPageResults.push(result);
     }
 
@@ -361,10 +359,27 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // step boundary still exists at evaluate-rules. Splitting extraction into a
     // separate step would require reshaping ScanRunDeps.evaluate so runScan
     // tests could supply evidence — that refactor is deferred.
-    const homeRow = { type: "homepage" as const, url: parsed.url, status: homepagePage.status, html: homepagePage.html };
-    const fetchedRows = [homeRow, ...perPageResults.flatMap((r) =>
-      r.ok ? [{ type: r.pageType, url: `${parsed.url}/${r.pageType}`, status: r.status, html: r.html }] : [],
-    )];
+    const homeRow = {
+      type: "homepage" as const,
+      url: parsed.url,
+      status: homepagePage.status,
+      html: homepagePage.html,
+    };
+    const fetchedRows = [
+      homeRow,
+      ...perPageResults.flatMap((r) =>
+        r.ok
+          ? [
+              {
+                type: r.pageType,
+                url: `${parsed.url}/${r.pageType}`,
+                status: r.status,
+                html: r.html,
+              },
+            ]
+          : [],
+      ),
+    ];
 
     const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
     const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
@@ -408,24 +423,22 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     }
 
     // 7. persist-report (deterministic token, idempotent upsert)
-    const report = (await step.do(
-      "persist-report",
-      async () =>
-        persistReportPhase(
-          {
+    const report = await step.do("persist-report", async () =>
+      persistReportPhase(
+        {
+          scanId: parsed.scanId,
+          payload: {
             scanId: parsed.scanId,
-            payload: {
-              scanId: parsed.scanId,
-              state,
-              status: finalStatus,
-              coverage,
-              findings: evaluation.findings,
-              generatedAt: now(),
-            },
+            state,
+            status: finalStatus,
+            coverage,
+            findings: evaluation.findings,
+            generatedAt: now(),
           },
-          { db: this.env.DB, log, now },
-        ),
-    ));
+        },
+        { db: this.env.DB, log, now },
+      ),
+    );
 
     // 8. persist-terminal (last; same coverage shape)
     await step.do("persist-terminal", async () =>

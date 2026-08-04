@@ -7,6 +7,7 @@
 **Architecture:** Split `scan-workflow.ts` into a thin orchestrator that delegates to a new `scan-workflow.phases.ts`. The orchestrator keeps the same public `runScan(params, deps)` signature so `scan-workflow.test.ts` stays unchanged. The `ScanWorkflowEntrypoint.run()` calls each phase through `step.do(name, fn)`. The report token becomes deterministic (`sha256(scanId)`) so retries do not produce a different URL.
 
 **Tech Stack:**
+
 - Cloudflare Workflows (`WorkflowEntrypoint`, `WorkflowStep`) — `@cloudflare/workers-types`
 - Vitest + `@cloudflare/vitest-pool-workers` — testing
 - TypeScript strict, Zod
@@ -18,13 +19,13 @@
 
 ## File Structure
 
-| File                                                       | Status   | Responsibility                                                                 |
-| ---------------------------------------------------------- | -------- | ------------------------------------------------------------------------------ |
-| `apps/workers/src/workflows/scan-workflow.phases.ts`       | NEW      | Pure per-phase helpers (`fetchPhase`, `extractEvidencePhase`, `evaluatePhase`, `persistReportPhase`, `persistTerminalPhase`, `deterministicReportToken`). All take deps via params, no global state. |
-| `apps/workers/src/workflows/scan-workflow.phases.test.ts`  | NEW      | Unit tests for each phase helper, characterising current behaviour.            |
-| `apps/workers/src/workflows/scan-workflow.ts`              | MODIFY   | `runScan` becomes an orchestrator that delegates to phases (same signature). `ScanWorkflowEntrypoint.run` wraps each phase call in `step.do(name, fn)`. Token deterministic. |
-| `apps/workers/src/workflows/scan-workflow.test.ts`         | UNCHANGED| Existing tests stay; verify they pass after the refactor.                      |
-| `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts` | NEW   | Cloudflare workflow entrypoint test using a mock `step` recording names.       |
+| File                                                          | Status    | Responsibility                                                                                                                                                                                       |
+| ------------------------------------------------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/workers/src/workflows/scan-workflow.phases.ts`          | NEW       | Pure per-phase helpers (`fetchPhase`, `extractEvidencePhase`, `evaluatePhase`, `persistReportPhase`, `persistTerminalPhase`, `deterministicReportToken`). All take deps via params, no global state. |
+| `apps/workers/src/workflows/scan-workflow.phases.test.ts`     | NEW       | Unit tests for each phase helper, characterising current behaviour.                                                                                                                                  |
+| `apps/workers/src/workflows/scan-workflow.ts`                 | MODIFY    | `runScan` becomes an orchestrator that delegates to phases (same signature). `ScanWorkflowEntrypoint.run` wraps each phase call in `step.do(name, fn)`. Token deterministic.                         |
+| `apps/workers/src/workflows/scan-workflow.test.ts`            | UNCHANGED | Existing tests stay; verify they pass after the refactor.                                                                                                                                            |
+| `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts` | NEW       | Cloudflare workflow entrypoint test using a mock `step` recording names.                                                                                                                             |
 
 No other files in the repo are touched.
 
@@ -50,6 +51,7 @@ pnpm install --frozen-lockfile
 ## Task 1: Deterministic report token (RED)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.test.ts` (create with this task's failing test)
 
 - [ ] **Step 1: Write the failing test**
@@ -58,10 +60,7 @@ Create the file `apps/workers/src/workflows/scan-workflow.phases.test.ts` with:
 
 ```ts
 import { describe, expect, it } from "vitest";
-import {
-  deterministicReportToken,
-  deterministicTokenHash,
-} from "./scan-workflow.phases";
+import { deterministicReportToken, deterministicTokenHash } from "./scan-workflow.phases";
 
 describe("deterministicReportToken", () => {
   it("returns the same token for the same scanId", async () => {
@@ -100,6 +99,7 @@ Expected: FAIL with `Cannot find module './scan-workflow.phases'`.
 ## Task 2: Deterministic report token (GREEN)
 
 **Files:**
+
 - Create: `apps/workers/src/workflows/scan-workflow.phases.ts`
 
 - [ ] **Step 1: Implement**
@@ -157,6 +157,7 @@ git commit -m "feat(workflow): deterministic report token helper"
 ## Task 3: Extract `fetchPhase` helper (RED)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.test.ts` (extend)
 
 - [ ] **Step 1: Add the failing test**
@@ -245,6 +246,7 @@ Expected: FAIL — `fetchPhase` and `FetchPhaseDeps` are not exported.
 ## Task 4: Extract `fetchPhase` helper (GREEN)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.ts`
 
 - [ ] **Step 1: Add the implementation**
@@ -263,9 +265,7 @@ export interface FetchPhaseDeps {
 }
 
 export interface FetchPhaseResult {
-  homepage:
-    | { ok: true; status: number; html: Uint8Array }
-    | { ok: false; reason: string };
+  homepage: { ok: true; status: number; html: Uint8Array } | { ok: false; reason: string };
   pages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }>;
   fetched: SupportedPageType[];
   failed: SupportedPageType[];
@@ -392,6 +392,7 @@ git commit -m "feat(workflow): extract fetchPhase from runScan"
 ## Task 5: Extract `evaluatePhase` (RED + GREEN in one task — pure-ish, mechanical)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.ts`
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.test.ts`
 
@@ -409,9 +410,15 @@ const fakeCoverage: ScanCoverage = {
   skipped: [],
 };
 
-const fakePages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> = [
-  { type: "homepage", url: "https://example.com", status: 200, html: new TextEncoder().encode("") },
-];
+const fakePages: Array<{ type: SupportedPageType; url: string; status: number; html: Uint8Array }> =
+  [
+    {
+      type: "homepage",
+      url: "https://example.com",
+      status: 200,
+      html: new TextEncoder().encode(""),
+    },
+  ];
 
 describe("evaluatePhase", () => {
   it("returns the evaluator's outcome verbatim", async () => {
@@ -512,6 +519,7 @@ git commit -m "feat(workflow): extract evaluatePhase helper"
 ## Task 6: Extract `persistReportPhase` + `persistTerminalPhase` (RED + GREEN together)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.ts`
 - Modify: `apps/workers/src/workflows/scan-workflow.phases.test.ts`
 
@@ -520,11 +528,7 @@ git commit -m "feat(workflow): extract evaluatePhase helper"
 Append:
 
 ```ts
-import {
-  persistReportPhase,
-  persistTerminalPhase,
-  type PersistDeps,
-} from "./scan-workflow.phases";
+import { persistReportPhase, persistTerminalPhase, type PersistDeps } from "./scan-workflow.phases";
 import type { ScanCoverage } from "./scan-workflow";
 
 const stubDb = () => {
@@ -681,13 +685,7 @@ export const persistTerminalPhase = async (
     .prepare(
       "UPDATE scans SET state = ?, status = ?, coverage_json = ?, updated_at = ? WHERE id = ?",
     )
-    .bind(
-      input.state,
-      input.status,
-      JSON.stringify(input.coverage),
-      deps.now(),
-      input.scanId,
-    )
+    .bind(input.state, input.status, JSON.stringify(input.coverage), deps.now(), input.scanId)
     .run();
   deps.log({
     level: "info",
@@ -721,6 +719,7 @@ git commit -m "feat(workflow): deterministic token + persist phases"
 ## Task 7: Refactor `runScan` to delegate to phases; keep signature unchanged
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts`
 
 - [ ] **Step 1: Replace `runScan` body**
@@ -887,6 +886,7 @@ git commit -m "refactor(workflow): runScan delegates to phase helpers"
 ## Task 8: Entrypoint uses `step.do` (RED)
 
 **Files:**
+
 - Create: `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts`
 
 - [ ] **Step 1: Add the failing test**
@@ -963,6 +963,7 @@ Expected: FAIL — calls list does not include the named steps.
 ## Task 9: Entrypoint uses `step.do` (GREEN)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts` — the `ScanWorkflowEntrypoint.run` body
 
 - [ ] **Step 1: Rewrite `run()`**
@@ -1219,6 +1220,7 @@ In a browser, navigate to:
 `https://dash.cloudflare.com/?to=/:account/workers/workflows/view/safelaunch-api/scan-workflow`
 
 Pick the most recent instance. Expected:
+
 - The **Graph** tab shows nodes for `parse-params`, `fetch:homepage`, `fetch:about`, `fetch:privacy`, `extract-evidence`, `evaluate-rules`, `aggregate-findings`, `persist-report`, `persist-terminal`.
 - The compliance verdict in the dashboard matches the verdict returned by `GET /v1/scans/:id`.
 
@@ -1264,4 +1266,3 @@ Use the `requesting-code-review` skill (paste PR URL into a fresh subagent).
    - `persistReportPhase` input shape `{ scanId, payload }` matches step 1 in Task 9.
    - `persistTerminalPhase` input shape matches the call in Task 9.
    - `ScanWorkflowEntrypoint.run` signature unchanged in `wrangler.jsonc`.
-

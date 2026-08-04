@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ScanWorkflowEntrypoint, SCAN_WORKFLOW_NAME } from "./scan-workflow";
-import type {
-  ScanWorkflowEnv,
-  ScanWorkflowPayload,
-} from "./scan-workflow";
+import type { ScanWorkflowEnv, ScanWorkflowPayload } from "./scan-workflow";
 
 /**
  * Smoke test: we don't drive a full Workflow execution here (that requires a

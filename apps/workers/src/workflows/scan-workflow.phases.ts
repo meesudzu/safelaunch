@@ -8,7 +8,6 @@ import type {
   SupportedPageType,
 } from "./scan-workflow";
 
-
 /**
  * Pure per-phase helpers extracted from `scan-workflow.runScan`.
  *
@@ -49,7 +48,6 @@ export const deterministicTokenHash = async (scanId: string): Promise<string> =>
   return sha256Hex(token);
 };
 
-
 export interface FetchPhaseDeps {
   fetch: PageFetcher;
   log: (entry: Record<string, unknown>) => void;
@@ -66,9 +64,7 @@ export interface FetchPhasePage {
 }
 
 export type FetchPhaseResult = {
-  homepage:
-    | { ok: true; status: number; html: Uint8Array }
-    | { ok: false; reason: string };
+  homepage: { ok: true; status: number; html: Uint8Array } | { ok: false; reason: string };
   pages: FetchPhasePage[];
   fetched: SupportedPageType[];
   failed: SupportedPageType[];
@@ -171,7 +167,6 @@ export const fetchPhase = async (
   return { homepage: homepageResult, pages, fetched, failed };
 };
 
-
 export interface FetchSinglePageDeps {
   fetcher: PageFetcher;
   pageType: SupportedPageType;
@@ -216,7 +211,6 @@ export const fetchSinglePagePhase = async (
   return { ok: true, pageType: deps.pageType, status: result.status, html: result.html };
 };
 
-
 export interface EvaluatePhaseInput {
   scanId: string;
   jurisdiction: string;
@@ -245,7 +239,6 @@ export const evaluatePhase = async (
   });
   return outcome;
 };
-
 
 export interface PersistDeps {
   db: D1Database;

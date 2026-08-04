@@ -84,15 +84,15 @@ guarantees the engine offers**:
 
 This spec assumes **medium granularity**:
 
-| Phase                     | Granularity                                                |
-| ------------------------- | ---------------------------------------------------------- |
-| Bootstrap                 | one `step.do("parse-params", ...)`                         |
-| Page fetch                | one `step.do("fetch:${pageType}", ...)` **per page type**  |
-| Evidence extraction       | one `step.do("extract-evidence", ...)` (pure post-fetch)   |
-| Rule evaluation (AI)      | one `step.do("evaluate-rules", ...)` (entire fan-out)       |
-| Aggregation               | one `step.do("aggregate-findings", ...)`                   |
-| Report persistence        | one `step.do("persist-report", ...)`                       |
-| Terminal-state persistence | one `step.do("persist-terminal", ...)`                     |
+| Phase                      | Granularity                                               |
+| -------------------------- | --------------------------------------------------------- |
+| Bootstrap                  | one `step.do("parse-params", ...)`                        |
+| Page fetch                 | one `step.do("fetch:${pageType}", ...)` **per page type** |
+| Evidence extraction        | one `step.do("extract-evidence", ...)` (pure post-fetch)  |
+| Rule evaluation (AI)       | one `step.do("evaluate-rules", ...)` (entire fan-out)     |
+| Aggregation                | one `step.do("aggregate-findings", ...)`                  |
+| Report persistence         | one `step.do("persist-report", ...)`                      |
+| Terminal-state persistence | one `step.do("persist-terminal", ...)`                    |
 
 That yields ~8–12 nodes depending on `requirePages`, **single AI-evaluation node**.
 Trade-off vs. fine-grained (per-rule): AI cost does not multiply on retries and graph
@@ -144,15 +144,15 @@ and return — no further nodes, mirror of the current early-return behavior.
 
 ### 5.3 Step type matrix
 
-| Step name           | Idempotency strategy                                            | Side effects                             |
-| ------------------- | --------------------------------------------------------------- | ---------------------------------------- |
-| `parse-params`      | pure function, no side effects                                  | none                                     |
-| `fetch:${page}`     | pure retry; HTTP GET is naturally re-runnable                   | none (raw HTML not yet persisted)        |
-| `extract-evidence`  | pure on input `pages[]`                                         | none                                     |
-| `evaluate-rules`    | AI call is naturally re-runnable; cached retrieval is OK        | none                                     |
-| `aggregate-findings`| pure                                                            | none                                     |
-| `persist-report`    | DB upsert on `scan_id`, **deterministic token** (see §5.4)     | `ReportRepository.upsert`                |
-| `persist-terminal`  | DB update is idempotent on `scan_id`, idempotent state machine | `ScanRepository.updateTerminal`          |
+| Step name            | Idempotency strategy                                           | Side effects                      |
+| -------------------- | -------------------------------------------------------------- | --------------------------------- |
+| `parse-params`       | pure function, no side effects                                 | none                              |
+| `fetch:${page}`      | pure retry; HTTP GET is naturally re-runnable                  | none (raw HTML not yet persisted) |
+| `extract-evidence`   | pure on input `pages[]`                                        | none                              |
+| `evaluate-rules`     | AI call is naturally re-runnable; cached retrieval is OK       | none                              |
+| `aggregate-findings` | pure                                                           | none                              |
+| `persist-report`     | DB upsert on `scan_id`, **deterministic token** (see §5.4)     | `ReportRepository.upsert`         |
+| `persist-terminal`   | DB update is idempotent on `scan_id`, idempotent state machine | `ScanRepository.updateTerminal`   |
 
 Every step that writes to the DB **must** be idempotent because Cloudflare replays
 the entire `step.do()` body if the function throws or the workflow is restored.
@@ -200,14 +200,14 @@ when this lands.)
 
 ## 6. Required code changes (file-level)
 
-| File                                                        | Change                                                          |
-| ----------------------------------------------------------- | --------------------------------------------------------------- |
-| `apps/workers/src/workflows/scan-workflow.phases.ts`        | **NEW.** Pure helpers per phase; takes deps.                    |
-| `apps/workers/src/workflows/scan-workflow.phases.test.ts`   | **NEW.** Per-phase unit tests.                                  |
-| `apps/workers/src/workflows/scan-workflow.ts`               | Restructure `runScan` to delegate to phases. Bind `step` in `ScanWorkflowEntrypoint.run`. Make token deterministic. |
-| `apps/workers/src/workflows/scan-workflow.test.ts`          | No changes expected; rerun and pass.                            |
-| `apps/workers/wrangler.jsonc`                               | No changes.                                                     |
-| `packages/db` (`ReportRepository` / migration?)             | No changes — `upsert(scan_id)` already exists.                  |
+| File                                                      | Change                                                                                                              |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/workers/src/workflows/scan-workflow.phases.ts`      | **NEW.** Pure helpers per phase; takes deps.                                                                        |
+| `apps/workers/src/workflows/scan-workflow.phases.test.ts` | **NEW.** Per-phase unit tests.                                                                                      |
+| `apps/workers/src/workflows/scan-workflow.ts`             | Restructure `runScan` to delegate to phases. Bind `step` in `ScanWorkflowEntrypoint.run`. Make token deterministic. |
+| `apps/workers/src/workflows/scan-workflow.test.ts`        | No changes expected; rerun and pass.                                                                                |
+| `apps/workers/wrangler.jsonc`                             | No changes.                                                                                                         |
+| `packages/db` (`ReportRepository` / migration?)           | No changes — `upsert(scan_id)` already exists.                                                                      |
 
 ## 7. Compliance considerations
 
@@ -223,19 +223,20 @@ when this lands.)
 
 ## 8. Risk register
 
-| Risk                                                            | Likelihood | Impact | Mitigation                                                              |
-| --------------------------------------------------------------- | ---------- | ------ | ----------------------------------------------------------------------- |
-| AI-evaluation step is expensive on retry                        | medium     | medium | Cap retries to 2 (default Cloudflare limit is higher). Document cost.   |
-| Refactor breaks existing test suite                             | low        | high   | Run full test suite in CI before deploy. Pin test fixture.              |
-| Step names appear in Observability logs with PII concerns        | low        | low    | Names are public enum strings; reviewed per §7.                          |
-| Dashboard doesn't render graph even after deploy                 | low        | medium | Open a real instance, wait 5 minutes, check the Graph tab. Re-trigger.  |
-| Workflow binding name change accidentally regresses in prod     | low        | high   | Wrangler binding name is `SCAN_WORKFLOW` — confirmed unchanged.         |
+| Risk                                                        | Likelihood | Impact | Mitigation                                                             |
+| ----------------------------------------------------------- | ---------- | ------ | ---------------------------------------------------------------------- |
+| AI-evaluation step is expensive on retry                    | medium     | medium | Cap retries to 2 (default Cloudflare limit is higher). Document cost.  |
+| Refactor breaks existing test suite                         | low        | high   | Run full test suite in CI before deploy. Pin test fixture.             |
+| Step names appear in Observability logs with PII concerns   | low        | low    | Names are public enum strings; reviewed per §7.                        |
+| Dashboard doesn't render graph even after deploy            | low        | medium | Open a real instance, wait 5 minutes, check the Graph tab. Re-trigger. |
+| Workflow binding name change accidentally regresses in prod | low        | high   | Wrangler binding name is `SCAN_WORKFLOW` — confirmed unchanged.        |
 
 ## 9. Migration / rollout plan
 
 Three stages, sequentially:
 
 ### Stage 1 — Local + CI (no deploy)
+
 - Implement `scan-workflow.phases.ts` and unit tests.
 - Restructure `scan-workflow.ts`. Add `step.do()` wrappers.
 - `pnpm -w test`, `pnpm -w typecheck`, `pnpm -w lint` all pass.
@@ -243,6 +244,7 @@ Three stages, sequentially:
   (proves the Worker bundles, no runtime check).
 
 ### Stage 2 — Staging env (preview deploy)
+
 - Deploy to a preview Worker (`wrangler deploy --env staging` or the
   team's preview alias — confirm with user).
 - Trigger one real `POST /v1/scans` via staging API.
@@ -251,6 +253,7 @@ Three stages, sequentially:
   behavior.
 
 ### Stage 3 — Prod
+
 - Deploy to prod via the team's normal release process.
 - Watch one full scan in prod dashboard, confirm graph renders.
 - Roll forward; ready for code review + merge.
@@ -280,4 +283,3 @@ Please confirm or override before we move to the implementation plan:
 - Observability: emit step boundary events into the team's log sink
   (`apps/workers/src/observability.ts` already exists; an upgrade would
   consume `step.eventTimestamp` from `WorkflowStep`).
-
