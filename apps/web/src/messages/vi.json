@@ -21,5 +21,21 @@
   "form.error.submit": "Không thể gửi yêu cầu quét. Vui lòng thử lại.",
   "disclosure": "Báo cáo này là tín hiệu tuân thủ dựa trên các quy định hiện hành tại thời điểm quét, không phải tư vấn pháp lý. Vui lòng tham vấn luật sư có chứng chỉ cho quyết định cuối cùng.",
   "footer.disclosure": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý.",
-  "footer.version": "v0.1 · SafeLaunch"
+  "footer.version": "v0.1 · SafeLaunch",
+  "quota": {
+    "disclaimer": "Mỗi website chỉ được quét 1 lần mỗi ngày (UTC). Gói mở rộng đang hoàn thiện — liên hệ admin để nhận redeem code.",
+    "redeem.toggle": "Tôi có redeem code",
+    "redeem.label": "Redeem code",
+    "redeem.placeholder": "SL-XXXX-XXXX",
+    "redeem.invalid": "Redeem code không hợp lệ hoặc đã hết hạn.",
+    "redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
+    "cached.banner": "Domain này đã được quét hôm nay. Đây là kết quả trước đó.",
+    "cached.cta": "Mở báo cáo",
+    "cached.failed": "Quét trước đó thất bại lúc {{time}} UTC. Để quét lại, cần redeem code."
+  },
+  "package": {
+    "title": "Gói mở rộng",
+    "status": "Đang hoàn thiện",
+    "body": "Gói mở rộng cho phép quét không giới hạn trong ngày. Tính năng đang được phát triển. Hiện tại, vui lòng liên hệ admin để nhận redeem code."
+  }
 }

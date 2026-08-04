@@ -21,6 +21,21 @@ export interface CreateScanInput {
   url: string;
   jurisdiction: "VN";
   category: "online_game" | "electronic_press" | "digital_entertainment";
+  redeemCode?: string; // SL-XXXX-XXXX
+}
+
+export interface ScanCachedResponse {
+  scanId: string;
+  state: "completed" | "partial" | "failed";
+  status?: "high_risk" | "needs_review" | "no_significant_risk";
+  coverage: { fetched: string[]; failed: string[]; skipped: string[] };
+  createdAt: string;
+  expiresAt: string;
+  reportUrl: string | null;
+  cached: true;
+  quotaDay: string;
+  domainKey: string;
+  message: string;
 }
 
 export interface CreateScanResponse {
