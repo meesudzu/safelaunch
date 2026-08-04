@@ -67,6 +67,17 @@ export class ScanRepository {
       expiresAt: row.expires_at,
     };
   }
+
+  async updateTerminal(input: {
+    id: string;
+    state: string;
+    coverage: Record<string, unknown>;
+  }): Promise<void> {
+    await this.db
+      .prepare("UPDATE scans SET state = ?, coverage_json = ? WHERE id = ?")
+      .bind(input.state, JSON.stringify(input.coverage), input.id)
+      .run();
+  }
 }
 
 export interface PersistReportInput {

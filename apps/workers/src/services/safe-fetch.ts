@@ -76,7 +76,11 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
   for (let redirect = 0; redirect <= limits.redirects; redirect += 1) {
     const signal = mergeAbort(limits.durationMs);
     const start = Date.now();
-    const response = await fetchImpl(currentAddress, {
+    // Keep the validated hostname in the request URL. Fetching the resolved
+    // IP directly breaks TLS SNI and virtual-host routing for HTTPS sites;
+    // resolution is used by the URL policy as an SSRF guard, not as a dial
+    // target override.
+    const response = await fetchImpl(currentUrl, {
       method: "GET",
       redirect: "manual",
       signal,

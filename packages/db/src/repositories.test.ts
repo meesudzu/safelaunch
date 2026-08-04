@@ -81,5 +81,15 @@ describe("D1 repositories", () => {
       state: "queued",
       analysisVersion: "v1",
     });
+
+    await scans.updateTerminal({
+      id: "scan-1",
+      state: "failed",
+      coverage: { fetched: [], failed: ["homepage"], skipped: [] },
+    });
+    expect(await scans.get("scan-1")).toMatchObject({
+      state: "failed",
+      coverage: { fetched: [], failed: ["homepage"], skipped: [] },
+    });
   });
 });

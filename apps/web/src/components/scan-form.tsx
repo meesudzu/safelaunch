@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { createApiClient, type CreateScanInput, type ApiClient } from "../lib/api-client";
 
@@ -54,6 +55,7 @@ export interface ScanFormProps {
 }
 
 export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<CategoryValue | "">("");
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +82,11 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
         category: parsed.data.category,
       };
       const submit = createScan ?? createApiClient().createScan;
-      await submit(input);
+      const response = await submit(input);
+      // The API is asynchronous. Move to the progress screen immediately so
+      // the user can see queued/running/terminal state instead of remaining on
+      // the form after a successful 202 response.
+      router.push(`/${locale}/scan/${encodeURIComponent(response.scanId)}`);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : messages["form.error.submit"];
       setErrors({ submit: message });

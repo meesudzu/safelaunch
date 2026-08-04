@@ -13,6 +13,9 @@ const { createScanMock } = vi.hoisted(() => ({
   }),
 }));
 vi.mock("./actions", () => ({ createScan: createScanMock }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
 
 import HomePage from "./page";
 

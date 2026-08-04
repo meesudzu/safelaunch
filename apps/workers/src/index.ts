@@ -30,5 +30,23 @@ app.onError((error, context) => {
   return context.json({ code: "INTERNAL_ERROR", requestId }, 500);
 });
 
-export default app;
+const worker: ExportedHandler<Env> = {
+  fetch: app.fetch,
+  queue(batch) {
+    // Keep delivery explicit until the legal ingestion lifecycle is wired in.
+    // Throwing preserves messages for Cloudflare Queue retries instead of
+    // silently acknowledging and losing legal corpus updates.
+    console.error(
+      JSON.stringify({
+        level: "error",
+        event: "legal_ingestion_consumer_not_implemented",
+        queue: batch.queue,
+        messageCount: batch.messages.length,
+      }),
+    );
+    throw new Error("Legal ingestion queue consumer is not implemented");
+  },
+};
+
+export default worker;
 export { ScanWorkflowEntrypoint, AbuseRateLimiter };

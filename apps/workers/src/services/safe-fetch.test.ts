@@ -73,6 +73,7 @@ describe("fetchBoundedHtml", () => {
     });
     expect(result.status).toBe(200);
     expect(result.finalUrl).toBe("https://example.com/");
+    expect(fake.calls).toEqual(["https://example.com/"]);
     expect(new TextDecoder().decode(result.bytes)).toBe("<html></html>");
   });
 

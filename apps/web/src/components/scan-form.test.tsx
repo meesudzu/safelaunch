@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScanForm, type ScanFormProps } from "./scan-form";
 
+const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
+
 const viMessages = {
   brand: "SafeLaunch",
   "locale.switch": "VI / EN",
@@ -34,6 +39,18 @@ const createScan: ScanFormProps["createScan"] = vi.fn(() =>
 );
 
 describe("ScanForm", () => {
+  it("navigates to the live scan progress screen after the API accepts the scan", async () => {
+    pushMock.mockClear();
+    const user = userEvent.setup();
+    render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
+
+    await user.type(screen.getByLabelText("URL website"), "https://example.com");
+    await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
+
+    expect(pushMock).toHaveBeenCalledWith("/vi/scan/scan_test");
+  });
+
   it("submits the Vietnam scan contract without authentication", async () => {
     const user = userEvent.setup();
     render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);

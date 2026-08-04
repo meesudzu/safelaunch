@@ -67,6 +67,7 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
     return { token, url };
   };
   const logger = captureLogger();
+  const terminalStates: unknown[] = [];
   const deps = {
     fetch: overrides.fetch,
     evaluate:
@@ -76,10 +77,14 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
         return { status: "no_significant_risk" as const, findings: [] };
       }),
     persistReport,
+    persistTerminalState: (input: unknown) => {
+      terminalStates.push(input);
+      return Promise.resolve();
+    },
     now: () => "2026-07-29T00:00:00.000Z",
     log: logger.log,
   };
-  return { deps, logger, issued };
+  return { deps, logger, issued, terminalStates };
 };
 
 type ScanRunDeps = Parameters<typeof runScan>[1];
@@ -122,12 +127,20 @@ describe("runScan", () => {
 
   it("returns failed when the homepage fetch fails", async () => {
     const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
-    const { deps } = makeDeps({ fetch });
+    const { deps, terminalStates } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("failed");
     expect(result.status).toBe("needs_review");
     expect(result.coverage.failed).toContain("homepage");
     expect(result.reportUrl).toBeUndefined();
+    expect(terminalStates).toEqual([
+      {
+        scanId: baseParams.scanId,
+        state: "failed",
+        status: "needs_review",
+        coverage: { fetched: [], failed: ["homepage"], skipped: [] },
+      },
+    ]);
   });
 
   it("does not issue a report URL when a timeout page failed", async () => {

@@ -80,6 +80,12 @@ export interface ScanRunDeps {
     scanId: string;
     payload: Record<string, unknown>;
   }) => Promise<{ token: string; url: string } | null>;
+  persistTerminalState?: (input: {
+    scanId: string;
+    state: ScanTerminalState;
+    status: ScanTerminalStatus;
+    coverage: ScanCoverage;
+  }) => Promise<void>;
   now: () => string;
   log: (entry: Record<string, unknown>) => void;
   retryCount?: number;
@@ -185,6 +191,12 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
       at: deps.now(),
     });
     const coverage = buildCoverage([], ["homepage"], []);
+    await deps.persistTerminalState?.({
+      scanId: params.scanId,
+      state: "failed",
+      status: "needs_review",
+      coverage,
+    });
     return {
       scanId: params.scanId,
       state: "failed",
@@ -283,6 +295,12 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     status,
     coverage,
   };
+  await deps.persistTerminalState?.({
+    scanId: params.scanId,
+    state,
+    status,
+    coverage,
+  });
   if (reportUrl) result.reportUrl = reportUrl;
   return result;
 };
@@ -323,6 +341,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       fetch: makeWorkflowFetch(),
       evaluate: makeWorkflowEvaluator(this.env),
       persistReport: makeWorkflowPersistReport(this.env),
+      persistTerminalState: makeWorkflowPersistTerminalState(this.env),
       now: () => new Date().toISOString(),
       log: (entry) =>
         console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" })),
@@ -339,10 +358,31 @@ const makeWorkflowFetch = (): PageFetcher => {
   return {
     async fetch(url) {
       const { fetchBoundedHtml } = await import("../services/safe-fetch");
-      const result = await fetchBoundedHtml({ url, resolve: () => Promise.resolve([]) });
+      const result = await fetchBoundedHtml({ url, resolve: resolvePublicAddresses });
       return { status: result.status, html: result.bytes };
     },
   };
+};
+
+/** Resolve both address families without trusting the address returned by the
+ * platform fetch. The URL policy still rejects private/loopback answers. */
+const resolvePublicAddresses = async (hostname: string): Promise<readonly string[]> => {
+  const answers = await Promise.all(
+    (["A", "AAAA"] as const).map(async (type) => {
+      const endpoint = new URL("https://cloudflare-dns.com/dns-query");
+      endpoint.searchParams.set("name", hostname);
+      endpoint.searchParams.set("type", type);
+      const response = await fetch(endpoint, {
+        headers: { accept: "application/dns-json" },
+      });
+      if (!response.ok) throw new Error(`dns-over-https returned ${response.status}`);
+      const body: { Answer?: Array<{ type: number; data: string }> } = await response.json();
+      return (body.Answer ?? [])
+        .filter((answer) => (type === "A" ? answer.type === 1 : answer.type === 28))
+        .map((answer) => answer.data);
+    }),
+  );
+  return answers.flat();
 };
 
 const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] => {
@@ -614,6 +654,15 @@ const makeWorkflowPersistReport = (env: ScanWorkflowEnv): ScanRunDeps["persistRe
     });
     const url = `https://web.local/vi/report/${token}`;
     return { token, url };
+  };
+};
+
+const makeWorkflowPersistTerminalState = (
+  env: ScanWorkflowEnv,
+): NonNullable<ScanRunDeps["persistTerminalState"]> => {
+  return async ({ scanId, state, coverage }) => {
+    const { ScanRepository } = await import("@safelaunch/db");
+    await new ScanRepository(env.DB).updateTerminal({ id: scanId, state, coverage });
   };
 };
 
