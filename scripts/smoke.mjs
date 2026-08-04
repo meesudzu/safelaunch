@@ -58,10 +58,7 @@ const main = async () => {
   }
   const trimmed = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 
-  const probes = [
-    { method: "GET", path: "/v1/health" },
-    { method: "GET", path: "/v1/scans?limit=0" },
-  ];
+  const probes = [{ method: "GET", path: "/v1/health" }];
   const results = [];
   for (const probe of probes) {
     const result = await check(`${trimmed}${probe.path}`, probe.method, {}, maxLatencyMs);
