@@ -17,11 +17,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   // on `NEXT_PUBLIC_*` being inlined into the browser bundle at build time.
   return (
     <main>
-      <ScanForm
-        locale={locale}
-        messages={messagesFor(locale)}
-        createScan={createScan}
-      />
+      <ScanForm locale={locale} messages={messagesFor(locale)} createScan={createScan} />
     </main>
   );
 }
