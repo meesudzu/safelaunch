@@ -13,7 +13,8 @@ export const generateRedeemCode = (): string => {
   crypto.getRandomValues(bytes);
   let payload = "";
   for (let i = 0; i < PAYLOAD_LENGTH; i++) {
-    payload += ALPHABET[bytes[i] % ALPHABET.length];
+    const byte = bytes[i] ?? 0;
+    payload += ALPHABET[byte % ALPHABET.length];
   }
   return `${PREFIX}${payload.slice(0, 4)}-${payload.slice(4, 8)}`;
 };
