@@ -42,7 +42,7 @@ jobs:
       - name: Export D1 snapshot
         run: |
           mkdir -p artifacts/db-snapshot
-           pnpm exec wrangler d1 export DB --output=artifacts/db-snapshot/db.sql --env production
+          pnpm -C apps/workers exec wrangler d1 export DB --output=artifacts/db-snapshot/db.sql --env production
       - name: Upload D1 snapshot (redacted)
         uses: actions/upload-artifact@v4
         with:
@@ -69,16 +69,16 @@ jobs:
           version: 10.13.1
       - run: pnpm install --frozen-lockfile
       - name: Apply forward-only D1 migrations
-        run: pnpm exec wrangler d1 migrations apply DB --remote --env production
+        run: pnpm -C apps/workers exec wrangler d1 migrations apply DB --remote --env production
       - name: Deploy API Worker
-        run: pnpm exec wrangler deploy --env production
+        run: pnpm -C apps/workers exec wrangler deploy --env production
       - name: Deploy Web Worker (OpenNext)
         run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy --env production
       - name: Gradual traffic shift (10 / 50 / 100)
         run: |
           for share in 10 50 100; do
             echo "shifting ${share}% traffic to ${DEPLOY_COMMIT}"
-             pnpm exec wrangler versions deploy --percentage ${share} --comment "traffic-${share}%"
+            pnpm -C apps/workers exec wrangler versions deploy --percentage ${share} --comment "traffic-${share}%"
             sleep 60
           done
       - name: Smoke
