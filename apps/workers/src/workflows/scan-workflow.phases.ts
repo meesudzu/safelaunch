@@ -247,7 +247,7 @@ export interface PersistDeps {
 }
 
 const REPORT_TTL_SECONDS = 7 * 24 * 60 * 60;
-const WEB_REPORT_BASE = "https://web.local/vi/report";
+const WEB_REPORT_BASE = "https://safelaunch.runany.dev/vi/report";
 
 /**
  * Persists the report payload idempotently. Uses the deterministic token
