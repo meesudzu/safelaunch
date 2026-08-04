@@ -57,8 +57,8 @@ describe("citation sources", () => {
     expect(contact?.citations[0]).toMatchObject({
       provisionId: "vn-pd-2025-contact-channel",
       source: "Luật An toàn thông tin mạng 2015",
-      excerpt: expect.any(String),
     });
+    expect(contact?.citations[0]?.excerpt).toBeTypeOf("string");
   });
 });
 
