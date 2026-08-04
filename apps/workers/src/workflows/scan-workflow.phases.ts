@@ -172,6 +172,51 @@ export const fetchPhase = async (
 };
 
 
+export interface FetchSinglePageDeps {
+  fetcher: PageFetcher;
+  pageType: SupportedPageType;
+  baseUrl: string;
+  retries: number;
+  backoffMs: number;
+  timeoutPages: Set<SupportedPageType>;
+  forcedFailed: Set<SupportedPageType>;
+}
+
+/**
+ * Fetches a single page. Used by the Workflow entrypoint to give each page
+ * fetch its own `step.do` boundary so the dashboard can show one node per
+ * page and the runtime retries only the failing page.
+ */
+export const fetchSinglePagePhase = async (
+  deps: FetchSinglePageDeps,
+  log: (entry: Record<string, unknown>) => void,
+): Promise<
+  | { ok: true; pageType: SupportedPageType; status: number; html: Uint8Array }
+  | { ok: false; pageType: SupportedPageType; reason: string }
+> => {
+  if (deps.forcedFailed.has(deps.pageType) || deps.timeoutPages.has(deps.pageType)) {
+    return { ok: false, pageType: deps.pageType, reason: "skipped" };
+  }
+  const url = `${deps.baseUrl.replace(/\/$/, "")}/${deps.pageType}`;
+  const result = await fetchWithRetries(deps.fetcher, url, {
+    pageType: deps.pageType,
+    timeoutPages: deps.timeoutPages,
+    retries: deps.retries,
+    backoffMs: deps.backoffMs,
+  });
+  if (!result.ok) {
+    log({
+      level: "warn",
+      event: "scan.page_fetch_failed",
+      pageType: deps.pageType,
+      reason: result.reason,
+    });
+    return { ok: false, pageType: deps.pageType, reason: result.reason };
+  }
+  return { ok: true, pageType: deps.pageType, status: result.status, html: result.html };
+};
+
+
 export interface EvaluatePhaseInput {
   scanId: string;
   jurisdiction: string;

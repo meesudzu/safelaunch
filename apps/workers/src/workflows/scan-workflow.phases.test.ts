@@ -10,6 +10,8 @@ import {
   type FetchPhaseDeps,
   type PersistDeps,
 } from "./scan-workflow.phases";
+/* test file: temporary eslint disables for stub fixtures used only here */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/require-await, @typescript-eslint/no-unused-vars */
 import type {
   PageFetcher,
   ScanCoverage,
