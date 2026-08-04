@@ -6,11 +6,7 @@
   "compatibility_flags": ["nodejs_compat"],
 
   "vars": {
-    "WEB_ORIGIN": "https://safelaunch.runany.dev",
-    // ENABLE_DAILY_QUOTA: gates the daily-domain-quota feature on POST /v1/scans.
-    // Default is "false" so the existing behavior is byte-for-byte unchanged.
-    // Set to "true" via `wrangler secret put ENABLE_DAILY_QUOTA` after a smoke run.
-    "ENABLE_DAILY_QUOTA": "false"
+    "WEB_ORIGIN": "https://safelaunch.runany.dev"
   },
   "observability": { "enabled": true, "head_sampling_rate": 1 },
 

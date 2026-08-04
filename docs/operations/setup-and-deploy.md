@@ -563,20 +563,27 @@ resource scopes restricted.
 
 ## Daily quota feature flag
 
-The `ENABLE_DAILY_QUOTA` Worker var gates the daily-domain-quota feature
-(`docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`).
+The `ENABLE_DAILY_QUOTA` Worker **secret** gates the daily-domain-quota
+feature (`docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`).
 
-- Default: `"false"` (the existing `POST /v1/scans` behavior is unchanged).
+- Default: secret unset (treated as `"false"`, so the existing
+  `POST /v1/scans` behavior is unchanged).
 - Flip to `"true"` only after a manual smoke run on staging.
 
+The flag lives as a **secret** (not a `vars` entry) because the binding
+name `ENABLE_DAILY_QUOTA` cannot coexist as both a var and a secret (CF
+returns error `10053`). This keeps the value out of the public
+`wrangler.jsonc`.
+
 ```bash
-# Enable on staging:
-pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
-# enter: true
+# Enable (run from apps/workers):
+echo "true" | pnpm exec wrangler secret put ENABLE_DAILY_QUOTA
 
 # Disable (rollback):
-pnpm exec wrangler secret put ENABLE_DAILY_QUOTA --env staging
-# enter: false
+echo "false" | pnpm exec wrangler secret put ENABLE_DAILY_QUOTA
+
+# Verify (no value shown, just the key list):
+pnpm exec wrangler secret list
 ```
 
 The first request to `POST /v1/scans` after the flag flips to `true` will
