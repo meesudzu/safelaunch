@@ -20,13 +20,9 @@ concurrency:
 jobs:
   test:
     name: test (pre-deploy gate)
-    # NOTE: ci.yml is now a reusable workflow (`on: workflow_call`) with no
-    # declared inputs, so we can't pass `with: ref:` here. For `release: published`,
-    # actions/checkout defaults to the released SHA; for `workflow_dispatch`, it
-    # checks out the workflow's branch tip. If we later need to gate deploys on
-    # an arbitrary ref, add `ref` to ci.yml's `workflow_call.inputs` and pipe it
-    # into the checkout steps.
     uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ github.event.inputs.ref || github.sha }}
 
   backup:
     name: D1 backup (export)
@@ -38,6 +34,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
       - uses: pnpm/action-setup@v5
         with:
           version: 10.13.1
@@ -67,36 +65,32 @@ jobs:
       SAFELAUNCH_RULESET: ${{ github.event.inputs.ruleset || format('{0}', github.sha) }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.ref || github.sha }}
       - uses: pnpm/action-setup@v5
         with:
           version: 10.13.1
       - run: pnpm install --frozen-lockfile
+      - name: Eval gate (release blocker)
+        run: pnpm -C packages/ai test -- eval-runner
       - name: Apply forward-only D1 migrations
         run: pnpm -C apps/workers exec wrangler d1 migrations apply DB --remote
       - name: Deploy API Worker
         run: pnpm -C apps/workers exec wrangler deploy
       - name: Deploy Web Worker (OpenNext)
         run: pnpm -C apps/web exec opennextjs-cloudflare build && pnpm -C apps/web exec opennextjs-cloudflare deploy
-      - name: Gradual traffic shift (10 / 50 / 100)
-        run: |
-          for share in 10 50 100; do
-            echo "shifting ${share}% traffic to ${DEPLOY_COMMIT}"
-            pnpm -C apps/workers exec wrangler versions deploy --percentage ${share} --comment "traffic-${share}%"
-            sleep 60
-          done
       - name: Smoke
         id: smoke
         run: node scripts/smoke.mjs --base-url "$PRODUCTION_URL"
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
-      - name: Eval gate (release blocker)
-        run: pnpm -C packages/ai test -- eval-runner
       - name: Latency probe
         run: node scripts/check-latency.mjs --base-url "$PRODUCTION_URL" --samples 50
         env:
           PRODUCTION_URL: ${{ secrets.PRODUCTION_URL }}
       - name: Record deployment audit
         run: |
+          mkdir -p artifacts
           cat <<EOF > artifacts/deployment.json
           {
             "commit": "${DEPLOY_COMMIT}",

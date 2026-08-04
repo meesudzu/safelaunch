@@ -55,17 +55,15 @@ workflow:
 2. **Exports a D1 snapshot** to `artifacts/db-snapshot/db.sql` and
    uploads it as a 90-day artifact. **This is your rollback anchor.**
 3. **Applies forward-only D1 migrations** to the production database.
-4. **Deploys the API Worker** to production.
-5. **Deploys the Web Worker** (OpenNext) to production.
-6. **Shifts traffic gradually** — 10 %, then 50 %, then 100 % with a
-   60 s pause between each step. The Worker version is pinned by a
-   percentage rollout, not a flip.
+4. **Runs the eval gate** before any production deployment to catch rubric
+   regressions.
+5. **Deploys the API Worker** to production.
+6. **Deploys the Web Worker** (OpenNext) to production.
 7. **Runs smoke** against `https://api.safelaunch.app`.
-8. **Runs the eval gate** again to catch rubric regressions.
-9. **Runs the latency probe** with 50 samples.
-10. **Records the deployment audit** to
-    `artifacts/deployment.json` — commit, ruleset, prompt version, model,
-    corpus version, timestamp. This artifact lives for 365 days.
+8. **Runs the latency probe** with 50 samples.
+9. **Records the deployment audit** to
+   `artifacts/deployment.json` — commit, ruleset, prompt version, model,
+   corpus version, timestamp. This artifact lives for 365 days.
 
 ## 4 · Verification (release captain)
 
