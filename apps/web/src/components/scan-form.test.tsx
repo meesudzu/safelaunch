@@ -40,9 +40,7 @@ const viMessages = {
   "quota.redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
 } as const;
 
-const createScan: ScanFormProps["createScan"] = vi.fn(() =>
-  Promise.resolve({ scanId: "scan_test", state: "queued" as const }),
-);
+const createScan = vi.fn(() => Promise.resolve({ scanId: "scan_test", state: "queued" as const })) as NonNullable<ScanFormProps["createScan"]>;
 
 describe("ScanForm", () => {
   it("navigates to the live scan progress screen after the API accepts the scan", async () => {
@@ -113,6 +111,30 @@ describe("ScanForm", () => {
     render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
     await user.click(screen.getByText("Tôi có redeem code"));
     expect(screen.getByTestId("redeem-input")).toBeInTheDocument();
+  });
+
+  it("renders the cached banner when the API returns a cached payload", async () => {
+    const createScanCached: ScanFormProps["createScan"] = vi.fn(() =>
+      Promise.resolve({
+        scanId: "scan_cached",
+        state: "completed",
+        status: "needs_review",
+        coverage: { fetched: [], failed: [], skipped: [] },
+        createdAt: "2026-08-03T10:00:00.000Z",
+        expiresAt: "2026-08-10T10:00:00.000Z",
+        reportUrl: "https://example.com/report/tok1",
+        cached: true,
+        quotaDay: "2026-08-03",
+        domainKey: "example.com",
+        message: "scan.cached.used",
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ScanForm createScan={createScanCached} locale="vi" messages={viMessages} />);
+    await user.type(screen.getByLabelText("URL website"), "https://example.com");
+    await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
+    expect(await screen.findByTestId("cached-banner")).toBeInTheDocument();
   });
 
   it("submits the redeem code when present", async () => {
