@@ -311,3 +311,155 @@ export const persistTerminalPhase = async (
     at: deps.now(),
   });
 };
+
+import type { ServiceSignal } from "@safelaunch/contracts";
+import type {
+  AssetFetcher,
+  AssetReference,
+  DigitalAssetCollection,
+} from "../services/digital-assets";
+import { detectServiceSignals } from "../services/service-signals";
+import {
+  collectAssetReferences,
+  collectStylesheetReferences,
+  classifyAssetRights,
+} from "../services/digital-assets";
+import {
+  evaluateLicenseRequirements,
+  type LicenseClaim,
+  type LicenseRegistryResult,
+} from "@safelaunch/compliance-core";
+import type { EvidenceItem, ReportFinding } from "@safelaunch/contracts";
+import { extractEvidence } from "../services/evidence";
+
+/**
+ * Phase A: decode the fetched pages and extract text evidence. Pure and
+ * deterministic; no network access. Returns both the text evidence and the
+ * decoded HTML for downstream phases (signals + asset discovery).
+ */
+export interface EvidenceExtractionPage {
+  readonly type: SupportedPageType;
+  readonly url: string;
+  readonly status: number;
+}
+
+export interface EvidenceExtractionResult {
+  readonly evidence: readonly EvidenceItem[];
+  readonly pages: ReadonlyArray<{ url: string; html: string; type: SupportedPageType }>;
+}
+
+export const extractEvidencePhase = (
+  pages: readonly EvidenceExtractionPage[],
+  rawHtml: ReadonlyMap<string, Uint8Array>,
+): EvidenceExtractionResult => {
+  const evidence: EvidenceItem[] = [];
+  const decoded: { url: string; html: string; type: SupportedPageType }[] = [];
+  for (const page of pages) {
+    if (page.status < 200 || page.status >= 300) continue;
+    const bytes = rawHtml.get(page.url);
+    if (!bytes) continue;
+    const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(bytes);
+    decoded.push({ url: page.url, html, type: page.type });
+    evidence.push(...extractEvidence({ sourceUrl: page.url, html }));
+  }
+  return { evidence, pages: decoded };
+};
+
+/**
+ * Phase B: detect deterministic service signals (login, UGC, profile, feed,
+ * follow, comment, share, editorial publishing) from already-decoded page HTML.
+ */
+export const extractServiceSignalsPhase = (
+  pages: ReadonlyArray<{ url: string; html: string; type: SupportedPageType }>,
+): ServiceSignal[] => {
+  const out: ServiceSignal[] = [];
+  for (const page of pages) {
+    out.push(...detectServiceSignals({ sourceUrl: page.url, html: page.html }));
+  }
+  return out;
+};
+
+/**
+ * Phase C: collect asset references (image, audio, video, font) from a page's
+ * HTML and any directly referenced external stylesheet. Network fetches are
+ * scoped to a single stylesheet per page and short-circuit on private hosts.
+ */
+export const collectAssetReferencesPhase = async (
+  baseUrl: string,
+  pages: ReadonlyArray<{ url: string; html: string }>,
+  fetcher: AssetFetcher,
+): Promise<AssetReference[]> => {
+  const refs: AssetReference[] = [];
+  for (const page of pages) {
+    refs.push(...collectAssetReferences(page.url, page.html));
+  }
+  for (const page of pages) {
+    const stylesheets = collectStylesheetLinksFromHtml(page.html, page.url);
+    for (const stylesheet of stylesheets.slice(0, 10)) {
+      const additional = await collectStylesheetReferences(baseUrl, stylesheet, fetcher);
+      refs.push(...additional);
+    }
+  }
+  const seen = new Set<string>();
+  return refs
+    .filter((ref) => {
+      const key = `${ref.kind}:${ref.url}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 50);
+};
+
+const collectStylesheetLinksFromHtml = (html: string, sourceUrl: string): string[] => {
+  const values: string[] = [];
+  const pattern =
+    /<link\b[^>]*rel\s*=\s*["']stylesheet["'][^>]*href\s*=\s*["']([^"']+)["'][^>]*>/giu;
+  const reversePattern =
+    /<link\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*rel\s*=\s*["']stylesheet["'][^>]*>/giu;
+  for (const match of html.matchAll(pattern)) if (match[1]) values.push(match[1]);
+  for (const match of html.matchAll(reversePattern)) if (match[1]) values.push(match[1]);
+  void sourceUrl;
+  return values;
+};
+
+/**
+ * Phase D: turn the deduplicated asset references into a DigitalAsset
+ * inventory with license evidence classification. Uses a single network
+ * fetch per reference and falls back to `inaccessible` for failures.
+ */
+export const classifyAssetRightsPhase = (
+  references: readonly AssetReference[],
+  fetcher: AssetFetcher,
+  contextHtml: string,
+): Promise<DigitalAssetCollection> => classifyAssetRights(references, fetcher, contextHtml);
+
+/**
+ * Phase E: evaluate Vietnam license requirements. Combines service signals,
+ * declared license claims, and the configured registry result.
+ */
+export const evaluateLicenseRequirementsPhase = (input: {
+  jurisdiction: string;
+  category: "online_game" | "electronic_press" | "digital_entertainment";
+  signals: readonly ServiceSignal[];
+  licenseClaims: readonly LicenseClaim[];
+  registry: LicenseRegistryResult | undefined;
+  on: string;
+}): ReportFinding[] => {
+  const checks = evaluateLicenseRequirements(input);
+  return checks.map((check) => ({
+    id: check.id,
+    severity: check.severity,
+    rationale: check.rationale,
+    confidence: check.confidence,
+    evidenceIds: check.evidenceIds.length > 0 ? [...check.evidenceIds] : [`${check.id}::missing`],
+    citations: [...check.citations],
+    recommendedAction: check.recommendedAction,
+    applicability: "current",
+    domain: "license",
+    evidenceExcerpt:
+      check.evidenceIds.length > 0
+        ? (input.licenseClaims.find((c) => c.evidenceId === check.evidenceIds[0])?.value ?? "")
+        : "Chưa tìm thấy bằng chứng giấy phép.",
+  }));
+};

@@ -7,6 +7,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "pnpm -r --if-present lint",
     "test": "pnpm -r --if-present test",
+    "check:workflow-graph": "node apps/workers/scripts/check-step-graph.mjs",
     "test:e2e": "playwright test"
   },
   "devDependencies": {

@@ -46,7 +46,7 @@ export const MAX_ASSETS = 50;
 export const MAX_ASSET_BYTES = 2_000_000;
 
 const COPYRIGHT_CITATION: LegalCitation = {
-  provisionId: "vn-digital-rights-review",
+  provisionId: "vn-ip-law-2022",
   source: "Luật Sở hữu trí tuệ 2022",
   url: "https://vbpl.vn/van-ban/trung-uong/luat-so-huu-tri-tue-2022",
   retrievedAt: "2026-08-05T00:00:00.000Z",
@@ -153,6 +153,11 @@ const addReferences = (
   }
 };
 
+/**
+ * Collect asset references from a single page of HTML, plus inline stylesheet
+ * URLs. This is a pure deterministic phase: it does not perform any network
+ * fetch and runs in O(html-length).
+ */
 export const collectAssetReferences = (sourceUrl: string, html: string): AssetReference[] => {
   const refs: AssetReference[] = [];
   addReferences(refs, sourceUrl, sourceUrl, "image", [
@@ -246,49 +251,53 @@ const isFlagged = (evidence: AssetLicenseEvidence): boolean =>
   evidence === "inaccessible" ||
   evidence === "conflicting";
 
-export const collectDigitalAssets = async (input: {
-  sourceUrl: string;
-  html: string;
-  fetcher: AssetFetcher;
-}): Promise<DigitalAssetCollection> => {
-  let refs = collectAssetReferences(input.sourceUrl, input.html);
-  // Follow only directly referenced stylesheets, and only one level deep. This
-  // covers @font-face and CSS background URLs without turning the scan into a
-  // site crawler.
-  const stylesheets = stylesheetValues(input.html)
-    .map((rawUrl) => absoluteUrl(input.sourceUrl, rawUrl))
-    .filter((url): url is URL => url !== null && isAllowedAssetUrl(url));
-  for (const stylesheet of stylesheets.slice(0, 10)) {
-    try {
-      const result = await input.fetcher.fetch(redactAssetUrl(stylesheet));
-      if (result.status < 200 || result.status >= 300 || result.bytes.byteLength > MAX_ASSET_BYTES)
-        continue;
-      const css = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(result.bytes);
-      refs = [...refs, ...collectAssetReferences(redactAssetUrl(stylesheet), css)];
-    } catch {
-      // The stylesheet itself is coverage metadata; an inaccessible stylesheet
-      // is reported through the page/asset coverage rather than logged with a URL.
-    }
+/**
+ * Phase 2: extend the reference set with asset references discovered in any
+ * directly referenced external stylesheet. Returns the additional references
+ * only; the caller is responsible for merging. Catches all network and
+ * decode errors and returns an empty list — the dashboard step always
+ * succeeds even when the stylesheet fetch fails.
+ */
+export const collectStylesheetReferences = async (
+  baseUrl: string,
+  stylesheetUrl: string,
+  fetcher: AssetFetcher,
+): Promise<AssetReference[]> => {
+  const resolved = absoluteUrl(baseUrl, stylesheetUrl);
+  if (!resolved || !isAllowedAssetUrl(resolved)) return [];
+  const redacted = redactAssetUrl(resolved);
+  try {
+    const result = await fetcher.fetch(redacted);
+    if (result.status < 200 || result.status >= 300) return [];
+    if (result.bytes.byteLength > MAX_ASSET_BYTES) return [];
+    const css = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(result.bytes);
+    return collectAssetReferences(redacted, css);
+  } catch {
+    return [];
   }
-  const seenReferences = new Set<string>();
-  refs = refs
-    .filter((ref) => {
-      const key = `${ref.kind}:${ref.url}`;
-      if (seenReferences.has(key)) return false;
-      seenReferences.add(key);
-      return true;
-    })
-    .slice(0, MAX_ASSETS);
+};
+
+/**
+ * Phase 3: turn a deduplicated list of asset references into
+ * `DigitalAsset` records, with bounded fetches and SSRF guards. Each call
+ * resolves at most one `fetchBoundedResource` invocation per reference and
+ * never logs raw URLs, query tokens, or PII.
+ */
+export const classifyAssetRights = async (
+  references: readonly AssetReference[],
+  fetcher: AssetFetcher,
+  contextHtml: string = "",
+): Promise<DigitalAssetCollection> => {
   const assets: DigitalAsset[] = [];
   const findings: AssetFinding[] = [];
-  for (const ref of refs) {
-    const parsed = absoluteUrl(input.sourceUrl, ref.url);
+  for (const ref of references) {
+    const parsed = absoluteUrl(ref.sourceUrl, ref.url);
     if (!parsed || !isAllowedAssetUrl(parsed)) continue;
     const redactedUrl = redactAssetUrl(parsed);
     const id = assetId(ref.kind, redactedUrl);
-    const evidence = licenseEvidenceFor(input.html, parsed.hostname);
+    const evidence = licenseEvidenceFor(contextHtml, parsed.hostname);
     try {
-      const result = await input.fetcher.fetch(redactedUrl);
+      const result = await fetcher.fetch(redactedUrl);
       if (result.bytes.byteLength > MAX_ASSET_BYTES) throw new Error("asset exceeds size limit");
       const asset: DigitalAsset = {
         id,
@@ -354,4 +363,37 @@ export const collectDigitalAssets = async (input: {
   const byKind: Record<string, number> = {};
   for (const asset of assets) byKind[asset.kind] = (byKind[asset.kind] ?? 0) + 1;
   return { assets, findings, summary: { total: assets.length, byKind, flagged: findings.length } };
+};
+
+/**
+ * Convenience helper that runs all three phases sequentially for a single
+ * page. Kept for callers (and tests) that want the previous single-call API.
+ */
+export const collectDigitalAssets = async (input: {
+  sourceUrl: string;
+  html: string;
+  fetcher: AssetFetcher;
+}): Promise<DigitalAssetCollection> => {
+  const refs = collectAssetReferences(input.sourceUrl, input.html);
+  const stylesheets = stylesheetValues(input.html)
+    .map((rawUrl) => absoluteUrl(input.sourceUrl, rawUrl))
+    .filter((url): url is URL => url !== null && isAllowedAssetUrl(url));
+  for (const stylesheet of stylesheets.slice(0, 10)) {
+    const additional = await collectStylesheetReferences(
+      input.sourceUrl,
+      stylesheet.toString(),
+      input.fetcher,
+    );
+    refs.push(...additional);
+  }
+  const seen = new Set<string>();
+  const deduped = refs
+    .filter((ref) => {
+      const key = `${ref.kind}:${ref.url}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, MAX_ASSETS);
+  return classifyAssetRights(deduped, input.fetcher, input.html);
 };

@@ -19,6 +19,11 @@ import {
   fetchSinglePagePhase,
   persistReportPhase,
   persistTerminalPhase,
+  extractEvidencePhase,
+  extractServiceSignalsPhase,
+  collectAssetReferencesPhase,
+  classifyAssetRightsPhase,
+  evaluateLicenseRequirementsPhase,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
 import {
@@ -444,6 +449,50 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       failed: Array.from(new Set<SupportedPageType>(["homepage", ...faileds])),
       skipped: [],
     };
+    const rawHtml = new Map<string, Uint8Array>();
+    for (const row of fetchedRows) rawHtml.set(row.url, row.html);
+    const evidencePhase = await step.do("extract:evidence", async () => {
+      const result = extractEvidencePhase(
+        fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+        rawHtml,
+      );
+      return await Promise.resolve(result);
+    });
+    const serviceSignals = await step.do("extract:service-signals", async () => {
+      const result = extractServiceSignalsPhase(evidencePhase.pages);
+      return await Promise.resolve(result);
+    });
+    const assetFetcher = makeWorkflowAssetFetcher();
+    const assetRefs = await step.do("scan-assets:references", async () => {
+      const result = collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher);
+      return await Promise.resolve(result);
+    });
+    const assetInventory = await step.do("classify:asset-rights", async () => {
+      const result = classifyAssetRightsPhase(
+        assetRefs,
+        assetFetcher,
+        evidencePhase.pages.map((p) => p.html).join("\n"),
+      );
+      return await Promise.resolve(result);
+    });
+    const licenseClaims = evidencePhase.evidence
+      .filter((item) => item.type === "license_claim")
+      .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
+    const registry = await new InMemoryLicenseRegistry().lookup({
+      jurisdiction: parsed.jurisdiction,
+      licenseType: "online_game",
+    });
+    const licenseChecks = await step.do("evaluate:license-requirements", async () => {
+      const result = evaluateLicenseRequirementsPhase({
+        jurisdiction: parsed.jurisdiction,
+        category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
+        signals: serviceSignals,
+        licenseClaims,
+        registry,
+        on: new Date().toISOString().slice(0, 10),
+      });
+      return await Promise.resolve(result);
+    });
     const evaluation = await step.do("evaluate-rules", () =>
       evaluatePhase(
         {
@@ -489,9 +538,9 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
             status: finalStatus,
             coverage,
             findings: evaluation.findings,
-            serviceSignals: evaluation.serviceSignals,
-            licenseChecks: evaluation.licenseChecks,
-            assetInventory: evaluation.assetInventory,
+            serviceSignals,
+            licenseChecks,
+            assetInventory,
             generatedAt: now(),
           },
         },
@@ -516,6 +565,19 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     };
   }
 }
+
+const makeWorkflowAssetFetcher = (): AssetFetcher => ({
+  async fetch(url) {
+    const { fetchBoundedResource } = await import("../services/safe-fetch");
+    const result = await fetchBoundedResource({ url, resolve: resolvePublicAddresses });
+    return {
+      status: result.status,
+      bytes: result.bytes,
+      contentType: result.contentType,
+      finalUrl: result.finalUrl,
+    };
+  },
+});
 
 const makeWorkflowFetch = (): PageFetcher => {
   // Lazy import avoids a circular reference when this file is imported from
@@ -639,7 +701,10 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       category,
       signals: serviceSignals,
       licenseClaims,
-      registry: await new InMemoryLicenseRegistry().lookup({ jurisdiction, licenseType: "online_game" }),
+      registry: await new InMemoryLicenseRegistry().lookup({
+        jurisdiction,
+        licenseType: "online_game",
+      }),
       on: new Date().toISOString().slice(0, 10),
     });
 
