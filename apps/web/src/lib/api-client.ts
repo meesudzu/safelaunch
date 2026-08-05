@@ -177,6 +177,30 @@ export interface PendingLegalDocumentDto {
   }>;
 }
 
+export interface AuditEventDto {
+  id: string;
+  createdAt: string;
+  actor: string;
+  documentTitle: string;
+  jurisdiction: string;
+  decision: "approved" | "rejected" | "pending";
+  reason: string;
+}
+
+export interface AuditEventsResponseDto {
+  events: AuditEventDto[];
+  nextCursor: string | null;
+}
+
+export interface AuditEventsQuery {
+  from?: string;
+  to?: string;
+  actor?: string;
+  decision?: "approved" | "rejected" | "pending";
+  cursor?: string;
+  limit?: number;
+}
+
 export interface ReviewSubmissionDto {
   decision: "approve" | "reject";
   reason: string;
@@ -259,6 +283,24 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "LIST_PENDING_FAILED");
       }
       return (await response.json()) as PendingDocumentSummary[];
+    },
+    listAuditEvents: async (query: AuditEventsQuery = {}): Promise<AuditEventsResponseDto> => {
+      const params = new URLSearchParams();
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.actor) params.set("actor", query.actor);
+      if (query.decision) params.set("decision", query.decision);
+      if (query.cursor) params.set("cursor", query.cursor);
+      if (query.limit) params.set("limit", String(query.limit));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/audit${suffix}`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "LIST_AUDIT_FAILED");
+      }
+      return (await response.json()) as AuditEventsResponseDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(

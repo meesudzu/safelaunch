@@ -80,6 +80,89 @@ const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
 };
 
 describe("admin router", () => {
+  describe("GET /v1/admin/audit", () => {
+    it("lists review events with default pagination and date filters", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT e.id, e.created_at, e.actor, e.decision, e.reason, d.title AS document_title, d.jurisdiction FROM legal_review_events e LEFT JOIN legal_documents d ON d.id = e.document_id WHERE e.created_at >= ? ORDER BY e.created_at DESC, e.id DESC LIMIT ?",
+        firstReturn: null,
+        allReturn: [
+          {
+            id: "evt-2",
+            created_at: "2026-08-05T02:00:00.000Z",
+            actor: "reviewer@safelaunch.app",
+            decision: "approve",
+            reason: "Đủ căn cứ",
+            document_title: "Nghị định kiểm thử",
+            jurisdiction: "VN",
+          },
+        ],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/audit"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        events: Array<{
+          id: string;
+          createdAt: string;
+          actor: string;
+          documentTitle: string;
+          jurisdiction: string;
+          decision: string;
+          reason: string;
+        }>;
+        nextCursor: string | null;
+      }>(response);
+      expect(body.events).toEqual([
+        {
+          id: "evt-2",
+          createdAt: "2026-08-05T02:00:00.000Z",
+          actor: "reviewer@safelaunch.app",
+          documentTitle: "Nghị định kiểm thử",
+          jurisdiction: "VN",
+          decision: "approved",
+          reason: "Đủ căn cứ",
+        },
+      ]);
+      expect(body.nextCursor).toBeNull();
+      expect(db.preparedCalls[0]?.bindings).toHaveLength(2);
+      expect(typeof db.preparedCalls[0]?.bindings[0]).toBe("string");
+      expect(db.preparedCalls[0]?.bindings[1]).toBe(51);
+    });
+
+    it("applies actor, decision, date, and cursor filters", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT e.id, e.created_at, e.actor, e.decision, e.reason, d.title AS document_title, d.jurisdiction FROM legal_review_events e LEFT JOIN legal_documents d ON d.id = e.document_id WHERE e.created_at >= ? AND e.created_at <= ? AND e.actor = ? AND e.decision = ? AND (e.created_at < ? OR (e.created_at = ? AND e.id < ?)) ORDER BY e.created_at DESC, e.id DESC LIMIT ?",
+        firstReturn: null,
+        allReturn: [],
+      });
+
+      const cursor = Buffer.from(
+        JSON.stringify({ createdAt: "2026-08-04T02:00:00.000Z", id: "evt-3" }),
+      ).toString("base64url");
+      const response = await runWithDb(
+        db,
+        new Request(
+          `http://local/v1/admin/audit?from=2026-08-01T00%3A00%3A00.000Z&to=2026-08-05T00%3A00%3A00.000Z&actor=reviewer%40safelaunch.app&decision=rejected&cursor=${cursor}&limit=10`,
+        ),
+      );
+
+      expect(response.status).toBe(200);
+      expect(db.preparedCalls[0]?.bindings).toEqual([
+        "2026-08-01T00:00:00.000Z",
+        "2026-08-05T00:00:00.000Z",
+        "reviewer@safelaunch.app",
+        "reject",
+        "2026-08-04T02:00:00.000Z",
+        "2026-08-04T02:00:00.000Z",
+        "evt-3",
+        11,
+      ]);
+    });
+  });
+
   describe("GET /v1/admin/legal/pending", () => {
     it("returns pending documents mapped to camelCase", async () => {
       const db = new FakeD1();

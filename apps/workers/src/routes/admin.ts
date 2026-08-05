@@ -52,6 +52,17 @@ interface AuditRow {
   created_at: string;
 }
 
+interface AuditListRow extends AuditRow {
+  id: string;
+  document_title: string | null;
+  jurisdiction: string | null;
+}
+
+interface AuditCursor {
+  createdAt: string;
+  id: string;
+}
+
 const RESOLVED_ACTOR = (request: Request): string => {
   // Cloudflare Access forwards the authenticated user's email as a header.
   // In local dev (no Access app), fall back to a stable placeholder so
@@ -60,6 +71,68 @@ const RESOLVED_ACTOR = (request: Request): string => {
 };
 
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
+
+adminRouter.get("/audit", async (context) => {
+  const query = context.req.query();
+  const limit = clampLimit(query.limit);
+  const from = pickString(query.from) ?? daysAgoIso(7);
+  const to = pickString(query.to);
+  const actor = pickString(query.actor);
+  const decision = toStoredDecision(pickString(query.decision));
+  const cursor = query.cursor ? decodeCursor(query.cursor) : null;
+  if (query.cursor && !cursor) {
+    return context.json({ code: "INVALID_CURSOR" }, 400);
+  }
+  if (query.decision && !decision) {
+    return context.json({ code: "INVALID_DECISION" }, 400);
+  }
+
+  const filters = ["e.created_at >= ?"];
+  const bindings: unknown[] = [from];
+  if (to) {
+    filters.push("e.created_at <= ?");
+    bindings.push(to);
+  }
+  if (actor) {
+    filters.push("e.actor = ?");
+    bindings.push(actor);
+  }
+  if (decision) {
+    filters.push("e.decision = ?");
+    bindings.push(decision);
+  }
+  if (cursor) {
+    filters.push("(e.created_at < ? OR (e.created_at = ? AND e.id < ?))");
+    bindings.push(cursor.createdAt, cursor.createdAt, cursor.id);
+  }
+  bindings.push(limit + 1);
+
+  const result = await context.env.DB.prepare(
+    "SELECT e.id, e.created_at, e.actor, e.decision, e.reason, d.title AS document_title, d.jurisdiction " +
+      "FROM legal_review_events e LEFT JOIN legal_documents d ON d.id = e.document_id " +
+      `WHERE ${filters.join(" AND ")} ` +
+      "ORDER BY e.created_at DESC, e.id DESC LIMIT ?",
+  )
+    .bind(...bindings)
+    .all<AuditListRow>();
+
+  const rows = result.results ?? [];
+  const pageRows = rows.slice(0, limit);
+  const nextRow = rows.length > limit ? pageRows[pageRows.length - 1] : null;
+
+  return context.json({
+    events: pageRows.map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      actor: row.actor,
+      documentTitle: row.document_title ?? "Unknown document",
+      jurisdiction: row.jurisdiction ?? "unknown",
+      decision: toPublicDecision(row.decision),
+      reason: row.reason,
+    })),
+    nextCursor: nextRow ? encodeCursor({ createdAt: nextRow.created_at, id: nextRow.id }) : null,
+  });
+});
 
 adminRouter.get("/legal/pending", async (context) => {
   const result = await context.env.DB.prepare(
@@ -226,6 +299,51 @@ const pickString = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const daysAgoIso = (days: number): string => {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString();
+};
+
+const clampLimit = (raw: string | undefined): number => {
+  const parsed = Number.parseInt(raw ?? "", 10);
+  if (!Number.isFinite(parsed)) return 50;
+  return Math.min(Math.max(parsed, 1), 100);
+};
+
+const toStoredDecision = (decision: string | null): "approve" | "reject" | null => {
+  if (decision === "approved" || decision === "approve") return "approve";
+  if (decision === "rejected" || decision === "reject") return "reject";
+  return null;
+};
+
+const toPublicDecision = (decision: string): "approved" | "rejected" | "pending" => {
+  if (decision === "approve" || decision === "approved") return "approved";
+  if (decision === "reject" || decision === "rejected") return "rejected";
+  return "pending";
+};
+
+const encodeCursor = (cursor: AuditCursor): string =>
+  btoa(JSON.stringify(cursor)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+
+const decodeCursor = (raw: string): AuditCursor | null => {
+  try {
+    const padded = raw.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(raw.length / 4) * 4, "=");
+    const parsed = JSON.parse(atob(padded)) as unknown;
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      typeof (parsed as AuditCursor).createdAt === "string" &&
+      typeof (parsed as AuditCursor).id === "string"
+    ) {
+      return parsed as AuditCursor;
+    }
+  } catch {
+    // fall through
+  }
+  return null;
 };
 
 const parseCategories = (raw: string): string[] => {
