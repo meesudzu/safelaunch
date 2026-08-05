@@ -9,8 +9,10 @@ import type {
 import { extractEvidence } from "../services/evidence";
 import {
   collectDigitalAssets,
+  collectAssetReferences,
   type AssetFetcher,
   type AssetFinding,
+  type AssetReference,
 } from "../services/digital-assets";
 import { detectServiceSignals } from "../services/service-signals";
 import {
@@ -26,6 +28,7 @@ import {
   evaluateLicenseRequirementsPhase,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
+import { EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
 import {
   runRules,
   verifyFinding,
@@ -69,6 +72,15 @@ export const ScanCoverageSchema = z.object({
   fetched: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
   failed: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
   skipped: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
+  /**
+   * Phases that produced no signal because the step exhausted its retries
+   * (typically a Worker CPU time limit or a step timeout). Surfaced on the
+   * scan report so operators and end users can tell a clean "completed"
+   * scan from one where, e.g., digital-rights classification was skipped.
+   * Backward-compatible: old payloads that omit this field are normalized
+   * to an empty array in the routes layer.
+   */
+  degradedPhases: z.array(z.string()),
 });
 export type ScanCoverage = z.infer<typeof ScanCoverageSchema>;
 
@@ -134,6 +146,7 @@ const buildCoverage = (
   fetched: SupportedPageType[],
   failed: SupportedPageType[],
   skipped: SupportedPageType[],
+  degradedPhases: readonly string[] = [],
 ): ScanCoverage => {
   const seen = new Set<SupportedPageType>();
   const dedupe = (list: SupportedPageType[]): SupportedPageType[] => {
@@ -149,7 +162,24 @@ const buildCoverage = (
     fetched: dedupe(fetched),
     failed: dedupe(failed),
     skipped: dedupe(skipped),
+    degradedPhases: Array.from(new Set(degradedPhases)),
   };
+};
+
+/**
+ * Heuristic: returns true when the evidence pages contain at least one
+ * asset reference candidate (font preload, @font-face url, etc.) so we
+ * can distinguish "page really has no assets" from "the loop died
+ * before producing any output". Used only to flag a degraded phase, not
+ * to change compliance findings.
+ */
+const pageHasAssetCandidates = (
+  pages: ReadonlyArray<{ url: string; html: string }>,
+): boolean => {
+  for (const page of pages) {
+    if (collectAssetReferences(page.url, page.html).length > 0) return true;
+  }
+  return false;
 };
 
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
@@ -449,7 +479,12 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // Previously this branch hard-coded `"homepage"` into the failed list,
     // causing the scan dashboard to render "Đã quét: homepage" AND
     // "Không thể quét: homepage" simultaneously.
-    const coverage: ScanCoverage = buildCoverage(["homepage", ...fetcheds], faileds, []);
+    const coverage: ScanCoverage = buildCoverage(
+      ["homepage", ...fetcheds],
+      faileds,
+      [],
+      degradedPhases,
+    );
     const rawHtml = new Map<string, Uint8Array>();
     for (const row of fetchedRows) rawHtml.set(row.url, row.html);
     const evidencePhase = await step.do("phase-2:extract-evidence", async () => {
@@ -464,18 +499,45 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       return await Promise.resolve(result);
     });
     const assetFetcher = makeWorkflowAssetFetcher();
-    const assetRefs = await step.do("phase-4:scan-assets-references", async () => {
-      const result = collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher);
-      return await Promise.resolve(result);
+    // Phases 4 and 5 do network fetches (stylesheet download + per-asset
+    // probe). On a busy page the loop can blow past the per-Worker CPU
+    // budget even with individual 8s timeouts, so the runtime retries
+    // 5 times and still throws — taking 5+ minutes before the user sees
+    // a failure. The fallback wrapper turns that into a warning +
+    // empty result so phases 6-10 still run. Operators can spot the
+    // degraded scans via the `scan.step_fallback` log entries or the
+    // new `coverage.degradedPhases` field on the persisted report.
+    const degradedPhases: string[] = [];
+    const assetRefs = await runStepWithFallback({
+      step,
+      name: "phase-4:scan-assets-references",
+      fallback: [] as AssetReference[],
+      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
+      log,
+      fn: () => collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher),
     });
-    const assetInventory = await step.do("phase-5:classify-asset-rights", async () => {
-      const result = classifyAssetRightsPhase(
-        assetRefs,
-        assetFetcher,
-        evidencePhase.pages.map((p) => p.html).join("\n"),
-      );
-      return await Promise.resolve(result);
+    if (assetRefs.length === 0 && pageHasAssetCandidates(evidencePhase.pages)) {
+      // Empty list could be correct OR could be a silent failure. Flag
+      // the phase as degraded only when the page had candidates the
+      // loop should have surfaced (heuristic below).
+      degradedPhases.push("phase-4:scan-assets-references");
+    }
+    const assetInventory = await runStepWithFallback({
+      step,
+      name: "phase-5:classify-asset-rights",
+      fallback: EMPTY_DIGITAL_ASSET_COLLECTION,
+      config: { retries: { limit: 2, delay: 5_000, backoff: "constant" }, timeout: "3 minutes" },
+      log,
+      fn: () =>
+        classifyAssetRightsPhase(
+          assetRefs,
+          assetFetcher,
+          evidencePhase.pages.map((p) => p.html).join("\n"),
+        ),
     });
+    if (assetInventory === EMPTY_DIGITAL_ASSET_COLLECTION) {
+      degradedPhases.push("phase-5:classify-asset-rights");
+    }
     const licenseClaims = evidencePhase.evidence
       .filter((item) => item.type === "license_claim")
       .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
@@ -515,11 +577,14 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
 
     let state: ScanTerminalState;
-    if (coverage.failed.length === 0) {
+    if (coverage.failed.length === 0 && coverage.degradedPhases.length === 0) {
       state = "completed";
     } else if (coverage.fetched.length === 0) {
       state = "failed";
     } else {
+      // Either a page failed OR a phase was skipped (e.g. asset
+      // classification timed out). Both are surfaced as `partial` so the
+      // dashboard flags the scan for human review.
       state = "partial";
     }
 

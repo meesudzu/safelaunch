@@ -138,7 +138,7 @@ describe("runScan", () => {
         scanId: baseParams.scanId,
         state: "failed",
         status: "needs_review",
-        coverage: { fetched: [], failed: ["homepage"], skipped: [] },
+        coverage: { fetched: [], failed: ["homepage"], skipped: [], degradedPhases: [] },
       },
     ]);
   });
