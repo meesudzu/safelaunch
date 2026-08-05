@@ -42,15 +42,15 @@ distinguishing behaviors, any combination of which qualifies:
 
 The current gates miss real social-network patterns:
 
-| Observed signals                           | Current  | Per regulation |
-| ------------------------------------------ | -------- | -------------- |
-| `login`                                    | false ✓  | false ✓        |
-| `login` + `ugc`                            | false    | false          |
-| `login` + `ugc` + `public_profile`         | true ✓   | true ✓         |
-| `login` + `ugc` + `comment`                | true ✓   | true ✓         |
-| `login` + `public_profile` + `comment`     | **false** | **true** ✗   |
-| `login` + `content_feed` + `comment`       | **false** | **true** ✗   |
-| `login` + `public_profile` + `follow`      | **false** | **true** ✗   |
+| Observed signals                       | Current   | Per regulation |
+| -------------------------------------- | --------- | -------------- |
+| `login`                                | false ✓   | false ✓        |
+| `login` + `ugc`                        | false     | false          |
+| `login` + `ugc` + `public_profile`     | true ✓    | true ✓         |
+| `login` + `ugc` + `comment`            | true ✓    | true ✓         |
+| `login` + `public_profile` + `comment` | **false** | **true** ✗     |
+| `login` + `content_feed` + `comment`   | **false** | **true** ✗     |
+| `login` + `public_profile` + `follow`  | **false** | **true** ✗     |
 
 A pure forum (criteria 3 + 4) or a social-discovery app (criteria 1 + 3)
 would not be flagged today, yet both fall squarely inside the licensing
@@ -98,12 +98,12 @@ explicitly cited **Nghị định 72/2013/NĐ-CP** and
 // Login/registration alone is identity only — not a community behavior —
 // so it is intentionally excluded from the count.
 const SOCIAL_NETWORK_BEHAVIORS: readonly ServiceSignalKind[] = [
-  "public_profile",     // criterion 1: Tạo trang cá nhân
-  "ugc",                // criterion 2: Tự do đăng tải nội dung
-  "follow_or_friend",   // criterion 3: Tương tác đa chiều (theo dõi/kết bạn)
-  "comment",            // criterion 3: Tương tác đa chiều (bình luận)
-  "share",              // criterion 3: Tương tác đa chiều (chia sẻ)
-  "content_feed",       // criterion 4: Tạo diễn đàn / Hội nhóm
+  "public_profile", // criterion 1: Tạo trang cá nhân
+  "ugc", // criterion 2: Tự do đăng tải nội dung
+  "follow_or_friend", // criterion 3: Tương tác đa chiều (theo dõi/kết bạn)
+  "comment", // criterion 3: Tương tác đa chiều (bình luận)
+  "share", // criterion 3: Tương tác đa chiều (chia sẻ)
+  "content_feed", // criterion 4: Tạo diễn đàn / Hội nhóm
 ];
 
 const SOCIAL_NETWORK_MIN_DISTINCT_KINDS = 2;
@@ -139,7 +139,7 @@ UI can paraphrase it with attribution.
 ### 4.3 Updated rationale
 
 `rationaleFor(...)` for `required_unavailable` (the common no-license
-state) is rewritten to explain *both* why login alone is insufficient
+state) is rewritten to explain _both_ why login alone is insufficient
 and why the gate fires.
 
 ### 4.4 Workflow-doc updates
@@ -153,21 +153,21 @@ description, and add the citation pointer to the amending decree.
 
 New unit tests in `packages/compliance-core/src/licensing.test.ts`:
 
-| Signals                                     | Expected |
-| ------------------------------------------- | -------- |
-| `[login]`                                   | false    |
-| `[login, public_profile]`                   | false    |
-| `[login, ugc]`                              | false    |
-| `[login, public_profile, ugc]`              | true     |
-| `[login, ugc, comment]`                     | true     |
-| `[login, ugc, share]`                       | true     |
-| `[login, ugc, follow_or_friend]`            | true     |
-| `[login, ugc, content_feed]`                | true     |
+| Signals                                     | Expected   |
+| ------------------------------------------- | ---------- |
+| `[login]`                                   | false      |
+| `[login, public_profile]`                   | false      |
+| `[login, ugc]`                              | false      |
+| `[login, public_profile, ugc]`              | true       |
+| `[login, ugc, comment]`                     | true       |
+| `[login, ugc, share]`                       | true       |
+| `[login, ugc, follow_or_friend]`            | true       |
+| `[login, ugc, content_feed]`                | true       |
 | `[login, public_profile, comment]`          | true (NEW) |
 | `[login, public_profile, follow_or_friend]` | true (NEW) |
 | `[login, content_feed, comment]`            | true (NEW) |
 | `[login, content_feed, share]`              | true (NEW) |
-| `[login, editorial_publishing, ugc]`        | true     |
+| `[login, editorial_publishing, ugc]`        | true       |
 
 Existing tests (`login` alone, `ugc` + `public_profile`, declared/verified
 license, registry wiring) keep their assertions unchanged.

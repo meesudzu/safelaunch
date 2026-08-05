@@ -66,9 +66,9 @@ describe("license requirements", () => {
 
   it("flags a social-discovery pattern (profile + follow) as a social network", () => {
     // Criterion 1 (profile) + criterion 3 (interaction) per the decree.
-    expect(
-      hasSocialNetworkSignals([signal("public_profile"), signal("follow_or_friend")]),
-    ).toBe(true);
+    expect(hasSocialNetworkSignals([signal("public_profile"), signal("follow_or_friend")])).toBe(
+      true,
+    );
   });
 
   it("does not flag a single community behavior as a social network", () => {
@@ -85,15 +85,9 @@ describe("license requirements", () => {
   it("counts editorial publishing plus UGC as a social-network gate", () => {
     // An editorial press product that also enables user publishing is a
     // social network per the decree.
+    expect(hasSocialNetworkSignals([signal("editorial_publishing"), signal("ugc")])).toBe(false); // editorial_publishing is not in the social-network set
     expect(
-      hasSocialNetworkSignals([signal("editorial_publishing"), signal("ugc")]),
-    ).toBe(false); // editorial_publishing is not in the social-network set
-    expect(
-      hasSocialNetworkSignals([
-        signal("editorial_publishing"),
-        signal("ugc"),
-        signal("comment"),
-      ]),
+      hasSocialNetworkSignals([signal("editorial_publishing"), signal("ugc"), signal("comment")]),
     ).toBe(true);
   });
 
