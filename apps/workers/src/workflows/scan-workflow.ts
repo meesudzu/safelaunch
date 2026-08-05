@@ -444,11 +444,12 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
     const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
-    const coverage: ScanCoverage = {
-      fetched: ["homepage", ...fetcheds],
-      failed: Array.from(new Set<SupportedPageType>(["homepage", ...faileds])),
-      skipped: [],
-    };
+    // Delegate to `buildCoverage` so the dedupe contract is enforced: a page
+    // that is already in `fetched` is dropped from `failed` and `skipped`.
+    // Previously this branch hard-coded `"homepage"` into the failed list,
+    // causing the scan dashboard to render "Đã quét: homepage" AND
+    // "Không thể quét: homepage" simultaneously.
+    const coverage: ScanCoverage = buildCoverage(["homepage", ...fetcheds], faileds, []);
     const rawHtml = new Map<string, Uint8Array>();
     for (const row of fetchedRows) rawHtml.set(row.url, row.html);
     const evidencePhase = await step.do("phase-2:extract-evidence", async () => {

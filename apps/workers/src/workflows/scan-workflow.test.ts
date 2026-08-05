@@ -189,6 +189,17 @@ describe("runScan", () => {
     expect(result.coverage.skipped).toEqual([]);
   });
 
+  it("never puts 'homepage' in coverage.failed when homepage fetch succeeded", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps } = makeDeps({ fetch });
+    const result = await runScan({ ...baseParams, failedPages: ["privacy"] }, deps);
+    expect(result.coverage.fetched).toContain("homepage");
+    expect(result.coverage.failed).not.toContain("homepage");
+    // No page may appear in both lists.
+    const overlap = result.coverage.fetched.filter((p) => result.coverage.failed.includes(p));
+    expect(overlap).toEqual([]);
+  });
+
   it("isolates the coverage fields so subsequent runs do not pollute state", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
     const { deps } = makeDeps({ fetch });

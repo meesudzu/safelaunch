@@ -9,6 +9,7 @@ import type {
   ScanCoverage,
   ServiceSignal,
 } from "@safelaunch/contracts";
+import { isApprovedCitationUrl } from "../lib/citation-hosts";
 
 export interface ReportMessages {
   readonly brand: string;
@@ -34,6 +35,7 @@ export interface ReportMessages {
   readonly "finding.source": string;
   readonly "finding.retrieved_at": string;
   readonly "finding.provision_link": string;
+  readonly "finding.source_link_unavailable": string;
   readonly "upcoming.banner": string;
   readonly "expiry.label": string;
   readonly disclaimer: string;
@@ -44,6 +46,7 @@ export interface ReportMessages {
   readonly "asset.inventory.title": string;
   readonly "asset.inventory.summary": string;
   readonly "asset.inventory.flagged": string;
+  readonly "asset.inventory.scope"?: string;
 }
 
 export interface ReportFindingCard extends ReportFinding {
@@ -326,6 +329,11 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
               {messages["asset.inventory.flagged"] ?? "Cần kiểm tra license"}:{" "}
               {report.assetInventory.summary.flagged}
             </p>
+            {messages["asset.inventory.scope"] ? (
+              <p className="mt-1 text-xs italic text-ink-soft">
+                {messages["asset.inventory.scope"]}
+              </p>
+            ) : null}
             <ul className="mt-3 flex flex-col gap-3 text-xs">
               {report.assetInventory.assets.slice(0, 25).map((asset) => (
                 <li
@@ -476,14 +484,24 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
               {messages["finding.retrieved_at"]}
             </dt>
             <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
-            <a
-              href={citation.url}
-              rel="noopener noreferrer"
-              target="_blank"
-              className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-            >
-              {messages["finding.provision_link"]}
-            </a>
+            {isApprovedCitationUrl(citation.url) ? (
+              <a
+                data-testid={`provision-link-${finding.id}`}
+                href={citation.url}
+                rel="noopener noreferrer"
+                target="_blank"
+                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+              >
+                {messages["finding.provision_link"]}
+              </a>
+            ) : (
+              <p
+                data-testid={`provision-link-unavailable-${finding.id}`}
+                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
+              >
+                {messages["finding.source_link_unavailable"]}
+              </p>
+            )}
           </div>
         ) : null}
 
