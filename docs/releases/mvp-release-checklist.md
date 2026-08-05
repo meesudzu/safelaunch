@@ -9,7 +9,7 @@
 
 - **Release candidate commit:** `____________________________` (paste the
   green CI SHA)
-- **Ruleset / corpus version:** `vn-mvp-v1` (frozen for the MVP)
+- **Ruleset / corpus version:** `vn-mvp-v2-licensing-digital-rights-strict` (current strict rubric)
 - **Model identifier:** `____________________________`
 - **Release captain:** `____________________________`
 - **Date (UTC):** `____________________________`
@@ -103,7 +103,7 @@ Signed: ____________________________
 Role:   Release captain
 Date:   ____________ (UTC)
 Commit: ____________
-Ruleset: vn-mvp-v1
+Ruleset: vn-mvp-v2-licensing-digital-rights-strict
 ```
 
 ## 9 · Post-release checklist (within 24 h)

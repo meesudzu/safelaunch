@@ -37,5 +37,11 @@
     "title": "Gói mở rộng",
     "status": "Đang hoàn thiện",
     "body": "Gói mở rộng cho phép quét không giới hạn trong ngày. Tính năng đang được phát triển. Hiện tại, vui lòng liên hệ admin để nhận redeem code."
-  }
+  },
+  "service.signals.title": "Đặc tính dịch vụ đã phát hiện",
+  "license.checks.title": "Kiểm tra giấy phép",
+  "asset.inventory.title": "Inventory tài sản số",
+  "asset.inventory.summary": "Tài sản được site tham chiếu",
+  "asset.inventory.flagged": "Cần kiểm tra license",
+  "status.high_risk": "Phát hiện tín hiệu rủi ro cao"
 }

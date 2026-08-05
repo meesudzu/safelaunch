@@ -10,7 +10,7 @@
 1. **Confirm the green build.** The release commit is the latest `main`
    tip where `.github/workflows/ci.yml` finished green. Copy the commit
    SHA — it goes into the deployment audit and the production PR.
-2. **Verify the ruleset / corpus version.** The `vn-mvp-v1` ruleset is
+2. **Verify the ruleset / corpus version.** The `vn-mvp-v2-licensing-digital-rights-strict` ruleset is
    frozen; any rubric change requires a fresh benchmark set + re-baseline.
 3. **Open the release PR.** Use the release-checklist template (see
    `docs/releases/mvp-release-checklist.md`); paste the CI green URL.

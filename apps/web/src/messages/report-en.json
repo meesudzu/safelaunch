@@ -7,7 +7,7 @@
   "coverage.fetched": "Fetched",
   "coverage.failed": "Failed",
   "coverage.skipped": "Skipped",
-  "status.high_risk": "Serious findings detected",
+  "status.high_risk": "High-risk signals detected",
   "status.needs_review": "Requires expert review",
   "status.no_significant_risk": "No significant risk detected",
   "finding.severity.high": "High",
@@ -26,5 +26,10 @@
   "expiry.label": "Report expires on",
   "disclaimer": "This report is a compliance signal, not legal advice. Please consult a licensed attorney for the final decision.",
   "footer.disclosure": "This report is a compliance signal, not legal advice.",
-  "footer.version": "v0.1 · SafeLaunch"
+  "footer.version": "v0.1 · SafeLaunch",
+  "service.signals.title": "Detected service characteristics",
+  "license.checks.title": "License checks",
+  "asset.inventory.title": "Digital asset inventory",
+  "asset.inventory.summary": "Assets referenced by the site",
+  "asset.inventory.flagged": "Assets requiring license review"
 }

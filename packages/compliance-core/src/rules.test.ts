@@ -47,7 +47,7 @@ const baseInput: RuleInput = {
 
 describe("RUBRIC_VERSION", () => {
   it("matches the MVP release plan", () => {
-    expect(RUBRIC_VERSION).toBe("vn-mvp-v1");
+    expect(RUBRIC_VERSION).toBe("vn-mvp-v2-licensing-digital-rights-strict");
   });
 });
 
