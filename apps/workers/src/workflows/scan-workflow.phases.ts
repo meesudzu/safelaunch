@@ -1,3 +1,4 @@
+import type { PageUrlMap } from "../services/page-url-discovery";
 import type {
   EvaluateOutcome,
   PageFetcher,
@@ -175,6 +176,13 @@ export interface FetchSinglePageDeps {
   backoffMs: number;
   timeoutPages: Set<SupportedPageType>;
   forcedFailed: Set<SupportedPageType>;
+  /**
+   * Per-page-type URL overrides produced by `discover:page-urls` after
+   * parsing the homepage footer. When an entry exists for `pageType`,
+   * it takes precedence over the legacy `${baseUrl}/${pageType}` URL.
+   * Missing entries fall back to the legacy pattern (back-compat).
+   */
+  urlOverrides?: PageUrlMap;
 }
 
 /**
@@ -192,7 +200,12 @@ export const fetchSinglePagePhase = async (
   if (deps.forcedFailed.has(deps.pageType) || deps.timeoutPages.has(deps.pageType)) {
     return { ok: false, pageType: deps.pageType, reason: "skipped" };
   }
-  const url = `${deps.baseUrl.replace(/\/$/, "")}/${deps.pageType}`;
+  // F2: prefer a discovered URL (from the homepage footer parser) when
+  // present; fall back to the legacy `${baseUrl}/${pageType}` pattern.
+  // This lets us handle sites whose about/privacy/terms/contact pages
+  // live at non-English slugs (e.g. /gioi-thieu instead of /about).
+  const urlOverride = deps.urlOverrides?.[deps.pageType];
+  const url = urlOverride ?? `${deps.baseUrl.replace(/\/$/, "")}/${deps.pageType}`;
   const result = await fetchWithRetries(deps.fetcher, url, {
     pageType: deps.pageType,
     timeoutPages: deps.timeoutPages,
@@ -389,15 +402,63 @@ export const extractEvidencePhase = (
 ): EvidenceExtractionResult => {
   const evidence: EvidenceItem[] = [];
   const decoded: { url: string; html: string; type: SupportedPageType }[] = [];
+  // Suppress noisy logs when the user did not pass a logger (the workflow
+  // entrypoint always passes one; unit tests usually don't).
+  const log = (entry: Record<string, unknown>) => {
+    if (extractEvidenceLogger) extractEvidenceLogger(entry);
+  };
   for (const page of pages) {
     if (page.status < 200 || page.status >= 300) continue;
     const bytes = rawHtml.get(page.url);
     if (!bytes) continue;
-    const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(bytes);
-    decoded.push({ url: page.url, html, type: page.type });
-    evidence.push(...extractEvidence({ sourceUrl: page.url, html }));
+    let html: string;
+    try {
+      html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(bytes);
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "evidence.page_decode_failed",
+        pageType: page.type,
+        sourceUrl: page.url,
+        reason: cause instanceof Error ? cause.message : String(cause),
+      });
+      continue;
+    }
+    try {
+      evidence.push(...extractEvidence({ sourceUrl: page.url, html }));
+      // Only expose the page to downstream phases (which also call
+      // extractEvidence / detectServiceSignals) if extraction succeeded.
+      // Otherwise a poisoned page could blow up phase-3 too.
+      decoded.push({ url: page.url, html, type: page.type });
+    } catch (cause) {
+      // F2: a single page blowing up (oversized HTML, regex backtracking,
+      // adversarial content, etc.) must NOT abort the entire phase. Log
+      // and skip; downstream phases still get evidence from the pages
+      // that did survive. This is defense in depth on top of the
+      // chunked sanitization in `services/evidence.ts`.
+      log({
+        level: "warn",
+        event: "evidence.page_skipped",
+        pageType: page.type,
+        sourceUrl: page.url,
+        reason: cause instanceof Error ? cause.message : String(cause),
+      });
+    }
   }
   return { evidence, pages: decoded };
+};
+
+/**
+ * Optional logger used by {@link extractEvidencePhase} when a page is
+ * skipped. Set by the workflow entrypoint so step-level observability
+ * surfaces the skip; tests can ignore it.
+ */
+let extractEvidenceLogger: ((entry: Record<string, unknown>) => void) | undefined;
+
+export const setExtractEvidenceLogger = (
+  logger: ((entry: Record<string, unknown>) => void) | undefined,
+): void => {
+  extractEvidenceLogger = logger;
 };
 
 /**

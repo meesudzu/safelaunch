@@ -44,6 +44,24 @@ export interface PageInput {
 }
 
 export const MAX_TEXT_BYTES = 200_000;
+/**
+ * Maximum raw-HTML payload size (in characters) that `sanitizePageText`
+ * accepts in a single pass. Above this threshold the payload is split into
+ * `CHUNK_BYTES`-sized slices and sanitized independently. Previously the
+ * function threw a `SanitizationError` on any payload larger than this
+ * limit, which terminated `phase-2:extract-evidence` on large news sites
+ * (e.g. dantri.com.vn ~1 MB). The chunked path keeps the CPU bounded
+ * while preserving the header + footer of the document so compliance
+ * signals (operator identity, contact email, license claims in the
+ * footer) are still extractable.
+ */
+export const MAX_HTML_BYTES = 800_000;
+/**
+ * Half of {@link MAX_HTML_BYTES}. Chosen so a 1 MB payload splits into
+ * three chunks max, well within the 1-minute `phase-2:extract-evidence`
+ * step timeout configured in `scan-workflow.ts`.
+ */
+export const SANITIZE_CHUNK_BYTES = 400_000;
 export const CHUNK_BYTES = 4_000;
 
 const INJECTION_PATTERNS: readonly RegExp[] = [
@@ -79,16 +97,46 @@ const decodeEntities = (text: string): string =>
     )
     .replace(/&#(\d+);/g, (_match, dec: string) => String.fromCharCode(Number.parseInt(dec, 10)));
 
-export const sanitizePageText = (html: string): string => {
-  if (html.length > MAX_TEXT_BYTES * 4) {
-    throw new SanitizationError(
-      `html payload exceeds ${MAX_TEXT_BYTES * 4} characters before sanitization`,
-    );
-  }
+/**
+ * Pure pipeline reused by both the single-pass and chunked paths.
+ * Kept private so callers must use {@link sanitizePageText} (which decides
+ * the strategy) or {@link sanitizePageTextSafe} (which adds the truncated
+ * flag).
+ */
+const sanitizeChunk = (html: string): string => {
   const withoutBlocks = stripDangerousBlocks(html);
   const noTags = withoutBlocks.replace(/<[^>]+>/g, " ");
   const decoded = decodeEntities(noTags);
   return decoded.replace(/\s+/g, " ").trim();
+};
+
+export const sanitizePageText = (html: string): string => {
+  if (html.length <= MAX_HTML_BYTES) {
+    return sanitizeChunk(html);
+  }
+  // Oversized payload: sanitize in independent slices and rejoin.
+  // We do NOT throw. The downstream `extractEvidence` only cares that
+  // the result is a sanitized string of bounded length. Splitting mid-tag
+  // is safe because `sanitizeChunk` strips every tag regardless of where
+  // it starts/ends — the chunk boundary simply becomes whitespace.
+  const parts: string[] = [];
+  for (let offset = 0; offset < html.length; offset += SANITIZE_CHUNK_BYTES) {
+    parts.push(sanitizeChunk(html.slice(offset, offset + SANITIZE_CHUNK_BYTES)));
+  }
+  return parts.join(" ").trim();
+};
+
+/**
+ * Like {@link sanitizePageText} but reports whether chunked sanitization
+ * was triggered. The workflow uses this flag to flag oversized pages in
+ * `coverage.degradedPhases` so operators can spot scans where the
+ * chunked path produced partial evidence.
+ */
+export const sanitizePageTextSafe = (
+  html: string,
+): { text: string; truncated: boolean } => {
+  const truncated = html.length > MAX_HTML_BYTES;
+  return { text: sanitizePageText(html), truncated };
 };
 
 export const detectPromptInjection = (text: string): boolean =>

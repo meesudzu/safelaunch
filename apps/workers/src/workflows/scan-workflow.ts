@@ -31,6 +31,7 @@ import {
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
 import { EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
+import { discoverPageUrls, type PageUrlMap } from "../services/page-url-discovery";
 import {
   runRules,
   verifyFinding,
@@ -435,6 +436,42 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       | { ok: false; pageType: SupportedPageType; reason: string };
     const perPageResults: PageResult[] = [];
 
+    // F2: parse the homepage footer to discover the actual URLs of the
+    // about / privacy / terms / contact pages. Most sites use non-English
+    // slugs (e.g. /gioi-thieu, /chinh-sach-bao-mat) so the legacy
+    // `${baseUrl}/${pageType}` URL pattern 404s. We expose a new
+    // `discover:page-urls` step so the dashboard shows the discovery
+    // and so a malformed homepage HTML falls back to the legacy URLs
+    // (via `runStepWithFallback`).
+    const pageUrlMap: PageUrlMap = await runStepWithFallback({
+      step,
+      name: "discover:page-urls",
+      fallback: {},
+      config: {
+        retries: { limit: 1, delay: 1_000, backoff: "constant" },
+        timeout: "20 seconds",
+      },
+      log,
+      fn: () => {
+        const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
+          homepagePage.html,
+        );
+        return Promise.resolve(discoverPageUrls(parsed.url, html));
+      },
+    });
+    {
+      const discovered = Object.keys(pageUrlMap) as SupportedPageType[];
+      const fallback = (["about", "privacy", "terms", "contact"] as const).filter(
+        (t) => requiredPages.has(t) && !pageUrlMap[t],
+      );
+      log({
+        level: "info",
+        event: "scan.page_urls_discovered",
+        discovered,
+        fallback,
+      });
+    }
+
     const makeBaseDeps = (pageType: SupportedPageType) => ({
       fetcher: makeWorkflowFetch(),
       pageType,
@@ -443,6 +480,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       backoffMs: 5,
       timeoutPages,
       forcedFailed,
+      urlOverrides: pageUrlMap,
     });
 
     perPageResults.push(

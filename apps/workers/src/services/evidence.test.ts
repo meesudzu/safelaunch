@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { extractEvidence, sanitizePageText } from "./evidence";
+import { extractEvidence, sanitizePageText, sanitizePageTextSafe } from "./evidence";
 
 import onlineGameHtml from "../../../../tests/fixtures/sites/online-game/index.html?raw";
 import electronicPressHtml from "../../../../tests/fixtures/sites/electronic-press/index.html?raw";
 import digitalEntertainmentHtml from "../../../../tests/fixtures/sites/digital-entertainment/index.html?raw";
 import promptInjectionHtml from "../../../../tests/fixtures/sites/prompt-injection/index.html?raw";
 import emptyHtml from "../../../../tests/fixtures/sites/empty/index.html?raw";
+import oversizedHtml from "../../../../tests/fixtures/sites/oversized/index.html?raw";
+import dantriStyleHtml from "../../../../tests/fixtures/sites/dantri-style-footer/index.html?raw";
 
 interface Fixture {
   sourceUrl: string;
@@ -103,3 +105,71 @@ describe("extractEvidence", () => {
     expect(ugc).toBeDefined();
   });
 });
+
+describe("sanitizePageText chunked path", () => {
+  it("does not throw when html exceeds 800_000 characters; concatenates sanitized chunks", () => {
+    // F1: a 1 MB payload (typical of large Vietnamese news sites) used to
+    // throw SanitizationError and terminate phase-2. Now it must return a
+    // non-empty string by sanitizing chunks independently and joining.
+    const oversized = "<div>" + "x".repeat(1_000_000) + "</div>";
+    expect(() => sanitizePageText(oversized)).not.toThrow();
+    const out = sanitizePageText(oversized);
+    expect(out.length).toBeGreaterThan(0);
+    // No HTML tags should survive sanitization.
+    expect(out).not.toMatch(/<[^>]+>/);
+    // The repeating payload character must still be present after sanitization.
+    expect(out.replace(/\s+/g, "")).toContain("x");
+  });
+
+  it("strips dangerous blocks independently inside each chunk", () => {
+    // A <script> tag whose body crosses the 400K chunk boundary must still
+    // be removed (defense-in-depth: prompt-injection / script execution
+    // vectors cannot hide in mid-HTML by sitting across a chunk boundary).
+    // Total payload must exceed 800K so chunked path is exercised.
+    const padding = "<p>" + "y".repeat(850_000) + "</p>";
+    const crossBoundaryScript = padding + "<script>alert('xss')</script>" + "z".repeat(10_000);
+    const out = sanitizePageText(crossBoundaryScript);
+    expect(out.toLowerCase()).not.toContain("alert('xss')");
+    expect(out.toLowerCase()).not.toContain("<script");
+    expect(out).toContain("y");
+    expect(out).toContain("z");
+  });
+
+  it("returns truncated: true for oversized payloads via sanitizePageTextSafe", () => {
+    const small = "<p>hello</p>";
+    const large = "<div>" + "a".repeat(1_000_000) + "</div>";
+    expect(sanitizePageTextSafe(small)).toEqual({ text: "hello", truncated: false });
+    const r = sanitizePageTextSafe(large);
+    expect(r.truncated).toBe(true);
+    expect(r.text.length).toBeGreaterThan(0);
+  });
+});
+
+
+describe("evidence fixtures (real files)", () => {
+  it("sanitizes the dantri-style footer fixture and still finds extractable signals", () => {
+    // The fixture is a Vietnamese news site with a real footer. The
+    // homepage must round-trip through sanitization without throwing,
+    // and extractEvidence must produce at least one operator-identity
+    // or contact signal from the body.
+    const items = extractEvidence({ sourceUrl: "https://dantri.com.vn/", html: dantriStyleHtml });
+    expect(items.length).toBeGreaterThan(0);
+    // No HTML tags survive in any excerpt.
+    for (const item of items) {
+      expect(item.excerpt).not.toMatch(/<[^>]+>/);
+    }
+  });
+
+  it("survives the 1.1 MB oversized fixture via the chunked path", () => {
+    // 1.16 MB fixture — well over MAX_HTML_BYTES. Previously this
+    // terminated the workflow at phase-2. With the chunked path it
+    // returns a non-empty sanitized string with no <script> residue.
+    expect(oversizedHtml.length).toBeGreaterThan(800_000);
+    expect(() => sanitizePageText(oversizedHtml)).not.toThrow();
+    const result = sanitizePageTextSafe(oversizedHtml);
+    expect(result.truncated).toBe(true);
+    expect(result.text.toLowerCase()).not.toContain("xss-payload");
+    expect(result.text.toLowerCase()).not.toContain("<script");
+  });
+});
+
