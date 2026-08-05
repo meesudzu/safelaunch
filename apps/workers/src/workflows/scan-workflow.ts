@@ -173,9 +173,7 @@ const buildCoverage = (
  * before producing any output". Used only to flag a degraded phase, not
  * to change compliance findings.
  */
-const pageHasAssetCandidates = (
-  pages: ReadonlyArray<{ url: string; html: string }>,
-): boolean => {
+const pageHasAssetCandidates = (pages: ReadonlyArray<{ url: string; html: string }>): boolean => {
   for (const page of pages) {
     if (collectAssetReferences(page.url, page.html).length > 0) return true;
   }
