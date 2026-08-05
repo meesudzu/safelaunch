@@ -189,8 +189,6 @@ describe("runScan", () => {
     expect(result.coverage.skipped).toEqual([]);
   });
 
-
-
   it("never puts 'homepage' in coverage.failed when homepage fetch succeeded", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
     const { deps } = makeDeps({ fetch });

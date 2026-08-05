@@ -87,7 +87,7 @@ src/
 - `COPYRIGHT_CITATION.url` (in `digital-assets.ts`): replace `https://vbpl.vn/van-ban/trung-uong/luat-so-huu-tri-tue-2022` with a vbpl.vn search URL that always 200s: `https://vbpl.vn/tim-kiem?SearchIn=all&q=Lu%E1%BA%ADt%20S%E1%BB%9F%20h%E1%BB%AFu%20tr%C3%AD%20tu%E1%BB%87%202022`.
 - Workflow `coverage` build (around line 447-451 of `scan-workflow.ts`): use the existing `buildCoverage` helper instead of building the object ad-hoc, so the dedupe contract is enforced. Specifically:
   - `fetched`: `["homepage", ...fetcheds]`
-  - `failed`: `Array.from(new Set(faileds))`  ← **drop the bogus `"homepage"` prepending**
+  - `failed`: `Array.from(new Set(faileds))` ← **drop the bogus `"homepage"` prepending**
   - `skipped`: `[]`
 
 ### 5.2 Frontend (apps/web)
@@ -114,19 +114,19 @@ Coverage is still stored as `coverage_json` TEXT in the `scans` table. The shape
 
 ## 6. Test plan
 
-| File | New / Update | Case |
-|------|--------------|------|
-| `apps/workers/src/services/digital-assets.test.ts` | UPDATE | "collects only font references, dropping image/audio/video" |
-| same | UPDATE | "drops CSS background-image (image kind) from collected refs" |
-| `apps/workers/src/services/digital-assets.test.ts` | NEW | "uses vbpl.vn search URL for COPYRIGHT_CITATION" |
-| `apps/workers/src/workflows/scan-workflow.test.ts` | NEW | "coverage does not include 'homepage' in failed when homepage succeeded" |
-| `apps/web/src/components/scan-progress.test.tsx` | NEW | "does not render the same page in both fetched and failed lists" |
-| `apps/web/src/components/report-view.test.tsx` | NEW | "renders link when citation URL host is in approved list" |
-| same | NEW | "renders text fallback when citation URL host is unapproved" |
-| same | NEW | "renders text fallback when citation URL is malformed" |
-| `apps/web/src/components/report-view.test.tsx` | UPDATE | Add `asset.inventory.scope` to test fixtures |
-| `apps/web/messages/report-vi.json` | UPDATE | Add `asset.inventory.scope` |
-| `apps/web/messages/report-en.json` | UPDATE | Add `asset.inventory.scope` |
+| File                                               | New / Update | Case                                                                     |
+| -------------------------------------------------- | ------------ | ------------------------------------------------------------------------ |
+| `apps/workers/src/services/digital-assets.test.ts` | UPDATE       | "collects only font references, dropping image/audio/video"              |
+| same                                               | UPDATE       | "drops CSS background-image (image kind) from collected refs"            |
+| `apps/workers/src/services/digital-assets.test.ts` | NEW          | "uses vbpl.vn search URL for COPYRIGHT_CITATION"                         |
+| `apps/workers/src/workflows/scan-workflow.test.ts` | NEW          | "coverage does not include 'homepage' in failed when homepage succeeded" |
+| `apps/web/src/components/scan-progress.test.tsx`   | NEW          | "does not render the same page in both fetched and failed lists"         |
+| `apps/web/src/components/report-view.test.tsx`     | NEW          | "renders link when citation URL host is in approved list"                |
+| same                                               | NEW          | "renders text fallback when citation URL host is unapproved"             |
+| same                                               | NEW          | "renders text fallback when citation URL is malformed"                   |
+| `apps/web/src/components/report-view.test.tsx`     | UPDATE       | Add `asset.inventory.scope` to test fixtures                             |
+| `apps/web/messages/report-vi.json`                 | UPDATE       | Add `asset.inventory.scope`                                              |
+| `apps/web/messages/report-en.json`                 | UPDATE       | Add `asset.inventory.scope`                                              |
 
 ## 7. Compliance checklist (per safelaunch-compliance skill)
 

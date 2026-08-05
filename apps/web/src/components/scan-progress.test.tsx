@@ -134,5 +134,4 @@ describe("ScanProgress", () => {
     // 'privacy' stays in failed (not in fetched).
     expect(list.textContent?.includes("! privacy")).toBe(true);
   });
-
 });

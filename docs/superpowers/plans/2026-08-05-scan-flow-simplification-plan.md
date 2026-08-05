@@ -39,6 +39,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 5. **REFACTOR** — none expected; if helper signatures can be tightened, do so without changing behavior. Re-run test.
 
 **Files touched:**
+
 - `apps/workers/src/services/digital-assets.ts`
 - `apps/workers/src/services/digital-assets.test.ts`
 
@@ -55,6 +56,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 5. Run `pnpm --filter web test apps/web/src/components/report-view.test.tsx` — must pass.
 
 **Files touched:**
+
 - `apps/web/messages/report-vi.json`
 - `apps/web/messages/report-en.json`
 - `apps/web/src/components/report-view.tsx`
@@ -79,6 +81,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 5. **REFACTOR** — keep the diff minimal. Re-run test.
 
 **Files touched:**
+
 - `apps/workers/src/workflows/scan-workflow.ts`
 - `apps/workers/src/workflows/scan-workflow.test.ts`
 
@@ -97,6 +100,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 5. **REFACTOR** — extract helper `dedupeCoverage(coverage)` for readability; re-run test.
 
 **Files touched:**
+
 - `apps/web/src/components/scan-progress.tsx`
 - `apps/web/src/components/scan-progress.test.tsx`
 
@@ -131,6 +135,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 10. **REFACTOR** — keep helpers tiny. Re-run.
 
 **Files touched (new + edit):**
+
 - `apps/web/src/lib/citation-hosts.ts` (NEW)
 - `apps/web/src/lib/citation-hosts.test.ts` (NEW)
 - `apps/web/src/components/report-view.tsx`
@@ -150,6 +155,7 @@ Each task lists the file(s) touched and the test command that must pass before m
 4. Re-run — must pass.
 
 **Files touched:**
+
 - `apps/workers/src/services/digital-assets.ts`
 - `apps/workers/src/services/digital-assets.test.ts`
 
@@ -170,6 +176,7 @@ rtk pnpm --filter web lint
 All must succeed with zero new failures. If a pre-existing test fails unrelated to this change, document it in the PR description but do not regress this change.
 
 Smoke-check the live report page:
+
 - `apps/web/src/app/[locale]/report/[token]/page.tsx` still renders without changes.
 
 ---
@@ -184,9 +191,9 @@ Smoke-check the live report page:
 
 ## Risk register
 
-| Risk | Likelihood | Mitigation |
-|------|------------|------------|
-| Existing report payloads with `image`/`audio`/`video` assets no longer display | Low | Enum preserved; UI simply skips rendering when inventory array is empty for new scans. |
-| Search URL for IP law changes (vbpl.vn refactors) | Low | Search URL has been stable since 2010. Even if it breaks, the UI guard from C1 hides the link. |
-| Workflow change regresses a downstream consumer of `coverage` | Low | `coverage` shape unchanged; only the contents of the `failed` array differ for the `homepage` entry. |
-| UI dedupe breaks a legitimate "homepage failed" message | Low | Backend fix removes the bug; UI dedupe is a safety net. If homepage actually fails, the workflow returns early with `state: "failed"` and never reaches the dedupe branch. |
+| Risk                                                                           | Likelihood | Mitigation                                                                                                                                                                 |
+| ------------------------------------------------------------------------------ | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Existing report payloads with `image`/`audio`/`video` assets no longer display | Low        | Enum preserved; UI simply skips rendering when inventory array is empty for new scans.                                                                                     |
+| Search URL for IP law changes (vbpl.vn refactors)                              | Low        | Search URL has been stable since 2010. Even if it breaks, the UI guard from C1 hides the link.                                                                             |
+| Workflow change regresses a downstream consumer of `coverage`                  | Low        | `coverage` shape unchanged; only the contents of the `failed` array differ for the `homepage` entry.                                                                       |
+| UI dedupe breaks a legitimate "homepage failed" message                        | Low        | Backend fix removes the bug; UI dedupe is a safety net. If homepage actually fails, the workflow returns early with `state: "failed"` and never reaches the dedupe branch. |
