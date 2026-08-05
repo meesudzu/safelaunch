@@ -27,14 +27,10 @@ export default async function LegalQueuePage() {
     }
   }
   return (
-    <main className="bg-bg text-ink font-sans">
-      <header className="border-b border-rule px-6 py-5">
-        <h1 className="font-serif text-2xl font-semibold">{messages.title}</h1>
-      </header>
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-ink-soft">
-          {messages["list.title"]}
-        </h2>
+    <main className="mx-auto max-w-4xl px-6 py-10">
+      <h1 className="font-serif text-2xl font-semibold">{messages["list.title"]}</h1>
+      <div className="mt-6">
+        <h2 className="sr-only">{messages["list.title"]}</h2>
         {error ? (
           <p
             role="alert"
@@ -76,9 +72,6 @@ export default async function LegalQueuePage() {
           </ul>
         )}
       </div>
-      <footer className="border-t border-rule px-6 py-4 text-xs text-ink-soft">
-        {messages["footer.disclosure"]}
-      </footer>
     </main>
   );
 }

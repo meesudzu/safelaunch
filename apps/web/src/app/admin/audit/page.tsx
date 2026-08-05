@@ -68,11 +68,9 @@ export default async function AuditPage({ searchParams }: AuditPageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-bg text-ink font-sans">
-      <header className="border-b border-rule px-6 py-5">
-        <h1 className="font-serif text-2xl font-semibold">{messages["audit.title"]}</h1>
-      </header>
-      <div className="mx-auto max-w-6xl px-6 py-8">
+    <main className="mx-auto max-w-6xl px-6 py-8">
+      <h1 className="mb-6 font-serif text-2xl font-semibold">{messages["audit.title"]}</h1>
+      <div>
         <form
           method="get"
           className="grid gap-4 rounded-md border border-rule bg-surface p-4 md:grid-cols-5"

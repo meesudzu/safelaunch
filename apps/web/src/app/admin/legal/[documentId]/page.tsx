@@ -60,41 +60,37 @@ export default async function LegalReviewPage({
   }
   if (accessDenied) {
     return (
-      <main className="bg-bg text-ink font-sans">
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="font-serif text-2xl font-semibold">{messages.title}</h1>
-          <p
-            role="alert"
-            data-testid="admin-error"
-            className="mt-4 rounded-sm border border-error bg-error/10 p-3 text-sm text-error"
-          >
-            {messages["review.access_required"]}
-          </p>
-          <a
-            href="/admin/legal"
-            className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-          >
-            {messages["review.back"]}
-          </a>
-        </div>
+      <main className="mx-auto max-w-2xl px-6 py-16">
+        <h1 className="font-serif text-2xl font-semibold">{messages.title}</h1>
+        <p
+          role="alert"
+          data-testid="admin-error"
+          className="mt-4 rounded-sm border border-error bg-error/10 p-3 text-sm text-error"
+        >
+          {messages["review.access_required"]}
+        </p>
+        <a
+          href="/admin/legal"
+          className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+        >
+          {messages["review.back"]}
+        </a>
       </main>
     );
   }
   if (notFound || !document) {
     return (
-      <main className="bg-bg text-ink font-sans">
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="font-serif text-2xl font-semibold">{messages["review.title"]}</h1>
-          <p data-testid="document-not-found" className="mt-4 text-sm text-ink-soft">
-            {messages["review.not_found"]}
-          </p>
-          <a
-            href="/admin/legal"
-            className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-          >
-            {messages["review.back"]}
-          </a>
-        </div>
+      <main className="mx-auto max-w-2xl px-6 py-16">
+        <h1 className="font-serif text-2xl font-semibold">{messages["review.title"]}</h1>
+        <p data-testid="document-not-found" className="mt-4 text-sm text-ink-soft">
+          {messages["review.not_found"]}
+        </p>
+        <a
+          href="/admin/legal"
+          className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+        >
+          {messages["review.back"]}
+        </a>
       </main>
     );
   }
@@ -107,16 +103,16 @@ export default async function LegalReviewPage({
   }
 
   return (
-    <main>
-      <header className="border-b border-rule px-6 py-5">
+    <main className="mx-auto max-w-4xl px-6 py-10">
+      <div className="mb-6">
         <a
           href="/admin/legal"
           className="text-xs font-semibold uppercase tracking-wider text-accent hover:underline"
         >
           {messages["review.back"]}
         </a>
-      </header>
-      <div className="mx-auto max-w-4xl px-6 py-10">
+      </div>
+      <div>
         <LegalReviewForm
           messages={{
             title: messages["review.title"],
@@ -138,9 +134,6 @@ export default async function LegalReviewPage({
           submit={submitReviewAction}
         />
       </div>
-      <footer className="border-t border-rule px-6 py-4 text-xs text-ink-soft">
-        {messages["footer.disclosure"]}
-      </footer>
     </main>
   );
 }
