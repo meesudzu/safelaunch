@@ -24,7 +24,7 @@ class FakeD1 {
     const stmt = {
       bind: (...bindings: unknown[]) => {
         this.preparedCalls.push({ sql, bindings });
-        const row = this.rows.find((entry) => entry.sql === sql);
+        const row = this.rows.find((entry) => entry.sql === sql || sql.includes(entry.sql));
         const first = row?.firstReturn ?? null;
         const all = row?.allReturn ?? [];
         return {
@@ -80,6 +80,64 @@ const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
 };
 
 describe("admin router", () => {
+  describe("GET /v1/admin/audit", () => {
+    it("returns normalized events and a stable next cursor", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT e.id, e.document_id, e.actor, e.decision, e.reason, e.created_at",
+        firstReturn: null,
+        allReturn: Array.from({ length: 51 }, (_, index) => ({
+          id: `evt-${String(index).padStart(2, "0")}`,
+          document_id: `doc-${index}`,
+          actor: "reviewer@safelaunch.test",
+          decision: index === 0 ? "approve" : "rejected",
+          reason: `Reason ${index}`,
+          created_at: new Date(Date.UTC(2026, 7, 5, 12, 0, 0) - index * 1_000).toISOString(),
+          document_title: index === 0 ? "Test law" : null,
+          jurisdiction: index === 0 ? "VN" : null,
+        })),
+      });
+      const response = await runWithDb(
+        db,
+        new Request(
+          "http://local/v1/admin/audit?from=2026-08-01T00%3A00%3A00.000Z&actor=reviewer%40safelaunch.test&decision=approved",
+        ),
+      );
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        items: Array<{ decision: string; documentTitle: string | null }>;
+        nextCursor: string | null;
+        window: { from: string; to: string | null };
+      }>(response);
+      expect(body.items).toHaveLength(50);
+      expect(body.items[0]).toMatchObject({ decision: "approved", documentTitle: "Test law" });
+      expect(body.nextCursor).toBeTypeOf("string");
+      expect(body.window).toEqual({ from: "2026-08-01T00:00:00.000Z", to: null });
+      expect(db.preparedCalls[0]?.bindings).toEqual([
+        "2026-08-01T00:00:00.000Z",
+        "reviewer@safelaunch.test",
+        "approved",
+        "approve",
+        51,
+      ]);
+    });
+
+    it("rejects invalid filters and cursors", async () => {
+      const db = new FakeD1();
+      const badDecision = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/audit?decision=delete"),
+      );
+      expect(badDecision.status).toBe(400);
+      const badCursor = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/audit?cursor=not-a-cursor"),
+      );
+      expect(badCursor.status).toBe(400);
+      expect(db.preparedCalls).toHaveLength(0);
+    });
+  });
+
   describe("GET /v1/admin/legal/pending", () => {
     it("returns pending documents mapped to camelCase", async () => {
       const db = new FakeD1();

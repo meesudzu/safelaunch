@@ -52,6 +52,51 @@ interface AuditRow {
   created_at: string;
 }
 
+interface AuditListRow extends AuditRow {
+  id: string;
+  document_id: string;
+  document_title: string | null;
+  jurisdiction: string | null;
+}
+
+type AuditDecision = "approved" | "rejected" | "pending";
+
+const AUDIT_PAGE_SIZE = 50;
+
+const normalizeDecision = (decision: string): AuditDecision => {
+  if (decision === "approve" || decision === "approved") return "approved";
+  if (decision === "reject" || decision === "rejected") return "rejected";
+  return "pending";
+};
+
+const encodeAuditCursor = (row: Pick<AuditListRow, "created_at" | "id">): string =>
+  btoa(JSON.stringify({ createdAt: row.created_at, id: row.id }))
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+
+const decodeAuditCursor = (raw: string): { createdAt: string; id: string } | null => {
+  try {
+    const base64 = raw.replaceAll("-", "+").replaceAll("_", "/");
+    const parsed = JSON.parse(atob(base64)) as { createdAt?: unknown; id?: unknown };
+    if (
+      typeof parsed.createdAt !== "string" ||
+      Number.isNaN(Date.parse(parsed.createdAt)) ||
+      typeof parsed.id !== "string" ||
+      parsed.id.length === 0 ||
+      parsed.id.length > 256
+    ) {
+      return null;
+    }
+    return { createdAt: parsed.createdAt, id: parsed.id };
+  } catch {
+    return null;
+  }
+};
+
+const validIsoDate = (value: string): boolean =>
+  value.length <= 64 && !Number.isNaN(Date.parse(value));
+
 const RESOLVED_ACTOR = (request: Request): string => {
   // Cloudflare Access forwards the authenticated user's email as a header.
   // In local dev (no Access app), fall back to a stable placeholder so
@@ -60,6 +105,88 @@ const RESOLVED_ACTOR = (request: Request): string => {
 };
 
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
+
+adminRouter.get("/audit", async (context) => {
+  const query = context.req.query();
+  const fromInput = query.from ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString();
+  const toInput = query.to;
+  const actor = query.actor?.trim();
+  const decision = query.decision as AuditDecision | undefined;
+  const cursor = query.cursor ? decodeAuditCursor(query.cursor) : null;
+
+  if (
+    !validIsoDate(fromInput) ||
+    (toInput !== undefined && !validIsoDate(toInput)) ||
+    (actor !== undefined && (actor.length === 0 || actor.length > 320)) ||
+    (decision !== undefined && !["approved", "rejected", "pending"].includes(decision)) ||
+    (query.cursor !== undefined && cursor === null)
+  ) {
+    return context.json({ code: "INVALID_AUDIT_FILTERS" }, 400);
+  }
+
+  const from = new Date(fromInput).toISOString();
+  const to = toInput === undefined ? undefined : new Date(toInput).toISOString();
+  if (to !== undefined && from > to) {
+    return context.json({ code: "INVALID_AUDIT_FILTERS" }, 400);
+  }
+
+  const conditions = ["e.created_at >= ?"];
+  const bindings: unknown[] = [from];
+  if (to !== undefined) {
+    conditions.push("e.created_at <= ?");
+    bindings.push(to);
+  }
+  if (actor !== undefined) {
+    conditions.push("e.actor = ?");
+    bindings.push(actor);
+  }
+  if (decision !== undefined) {
+    if (decision === "approved") {
+      conditions.push("e.decision IN (?, ?)");
+      bindings.push("approved", "approve");
+    } else if (decision === "rejected") {
+      conditions.push("e.decision IN (?, ?)");
+      bindings.push("rejected", "reject");
+    } else {
+      conditions.push("e.decision = ?");
+      bindings.push("pending");
+    }
+  }
+  if (cursor !== null) {
+    conditions.push("(e.created_at < ? OR (e.created_at = ? AND e.id < ?))");
+    bindings.push(cursor.createdAt, cursor.createdAt, cursor.id);
+  }
+  bindings.push(AUDIT_PAGE_SIZE + 1);
+
+  const sql = `SELECT e.id, e.document_id, e.actor, e.decision, e.reason, e.created_at,
+    d.title AS document_title, d.jurisdiction
+    FROM legal_review_events e
+    LEFT JOIN legal_documents d ON d.id = e.document_id
+    WHERE ${conditions.join(" AND ")}
+    ORDER BY e.created_at DESC, e.id DESC
+    LIMIT ?`;
+  const result = await context.env.DB.prepare(sql)
+    .bind(...bindings)
+    .all<AuditListRow>();
+  const rows = result.results ?? [];
+  const page = rows.slice(0, AUDIT_PAGE_SIZE);
+  const last = page.at(-1);
+
+  return context.json({
+    items: page.map((row) => ({
+      id: row.id,
+      documentId: row.document_id,
+      actor: row.actor,
+      decision: normalizeDecision(row.decision),
+      reason: row.reason,
+      createdAt: row.created_at,
+      documentTitle: row.document_title,
+      jurisdiction: row.jurisdiction,
+    })),
+    nextCursor: rows.length > AUDIT_PAGE_SIZE && last ? encodeAuditCursor(last) : null,
+    window: { from, to: to ?? null },
+  });
+});
 
 adminRouter.get("/legal/pending", async (context) => {
   const result = await context.env.DB.prepare(

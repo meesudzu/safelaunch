@@ -182,6 +182,31 @@ export interface ReviewSubmissionDto {
   reason: string;
 }
 
+export interface AdminAuditEventDto {
+  id: string;
+  documentId: string;
+  actor: string;
+  decision: "approved" | "rejected" | "pending";
+  reason: string;
+  createdAt: string;
+  documentTitle: string | null;
+  jurisdiction: string | null;
+}
+
+export interface AdminAuditPageDto {
+  items: AdminAuditEventDto[];
+  nextCursor: string | null;
+  window: { from: string; to: string | null };
+}
+
+export interface AdminAuditFilters {
+  from?: string;
+  to?: string;
+  actor?: string;
+  decision?: AdminAuditEventDto["decision"];
+  cursor?: string;
+}
+
 export interface ApiClientEnv {
   readonly NEXT_PUBLIC_API_ORIGIN?: string | undefined;
 }
@@ -259,6 +284,28 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "LIST_PENDING_FAILED");
       }
       return (await response.json()) as PendingDocumentSummary[];
+    },
+    listAdminAudit: async (filters: AdminAuditFilters = {}): Promise<AdminAuditPageDto> => {
+      const params = new URLSearchParams();
+      const entries: Array<[keyof AdminAuditFilters, string | undefined]> = [
+        ["from", filters.from],
+        ["to", filters.to],
+        ["actor", filters.actor],
+        ["decision", filters.decision],
+        ["cursor", filters.cursor],
+      ];
+      for (const [key, value] of entries) {
+        if (value) params.set(key, value);
+      }
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/audit${suffix}`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "LIST_ADMIN_AUDIT_FAILED");
+      }
+      return (await response.json()) as AdminAuditPageDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(
