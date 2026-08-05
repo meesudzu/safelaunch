@@ -67,6 +67,68 @@ Mục tiêu trải nghiệm của MVP là hoàn tất một lượt quét trong 
 
 ---
 
+## 2. Chiến lược kinh doanh
+
+### Vị thế sản phẩm
+
+SafeLaunch dịch chuyển hoạt động tuân thủ về trước thời điểm phát hành. Khác với tư vấn luật ad-hoc hoặc công cụ đơn jurisdiction, sản phẩm phủ nhiều hệ pháp lý trong cùng một lượt quét — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC. Mỗi phát hiện kèm trích dẫn nguồn luật với article, URL và ngày truy xuất, neo vào bằng chứng thực từ website chứ không suy đoán. Hệ thống thu thập tối thiểu — chỉ host đã chuẩn hoá và ngày UTC, không IP, không email, không cookie — để quota công bằng và bảo vệ quyền riêng tư.
+
+### Khách hàng mục tiêu
+
+Founder hoặc product manager tại Việt Nam chuẩn bị ra mắt sản phẩm số thuộc ba nhóm MVP — trò chơi điện tử trực tuyến, báo điện tử hoặc giải trí số — cần biết điểm nào trên site có thể vi phạm trước khi công bố. SafeLaunch cung cấp báo cáo song ngữ Việt–Anh trong khoảng 60 giây, kèm trích dẫn nguồn luật để nhóm tự xử lý phần lớn vấn đề.
+
+Legal hoặc ops lead tại doanh nghiệp nhỏ và vừa thường phải review nhiều site cùng lúc và dễ sót chi tiết khi làm thủ công. SafeLaunch chạy lại được trên cùng một URL, dùng rules engine có xác minh bắt buộc nên kết quả ổn định giữa các lượt.
+
+Agency hoặc reseller hỗ trợ nhiều khách hàng mỗi tuần cần cách phân bổ quota công bằng giữa các domain. SafeLaunch áp dụng quota 1 lượt mỗi domain trong ngày UTC và admin có thể cấp redeem code để mở rộng cho từng trường hợp cần quét lại.
+
+### Giá trị theo nhóm
+
+| Nhóm khách hàng   | Pain point                                              | Cách SafeLaunch giải quyết                                                                                                                |
+| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt  | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                                     |
+| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót        | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                              |
+| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần            | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts`         |
+
+### Mô hình thương mại hoá
+
+Ba giai đoạn, không kèm số liệu cụ thể.
+
+Hiện tại (MVP) — miễn phí với quota 1 lượt mỗi domain trong ngày UTC. Admin có thể cấp redeem code để mở rộng quota khi cần quét lại hoặc hỗ trợ khách hàng; cơ chế đã chạy trong mã nguồn tại `apps/workers/src/services/redeem-codes.ts` và có giao diện quản trị tại `apps/web/src/app/[locale]/admin/redeem-codes/page.tsx`.
+
+Sắp tới — gói trả phí mở rộng, hiện là UI stub với tên "Gói mở rộng / Extension package". Mô hình giá và phạm vi đang được thiết kế, chưa công bố.
+
+Cam kết dài hạn:
+
+- Không bán dữ liệu scan.
+- Không nhúng quảng cáo vào báo cáo.
+- Không thu thập IP hoặc email tuỳ vị để theo dõi cá nhân.
+
+### Ranh giới cạnh tranh
+
+| Cách tiếp cận hiện có                       | Cách SafeLaunch làm                                                                                                       |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Tự review thủ công trước khi ra mắt         | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật                                              |
+| Tư vấn luật ad-hoc từng dự án               | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                                                        |
+| Công cụ nước ngoài đơn jurisdiction          | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC                                  |
+| Thu thập IP và cookie để chống abuse         | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`                                      |
+
+### Cam kết với khách hàng
+
+SafeLaunch sẽ:
+
+- Trích dẫn nguồn luật với article, URL và ngày truy xuất cho mỗi phát hiện.
+- Trả báo cáo song ngữ Việt–Anh.
+- Neo phát hiện vào bằng chứng thực từ website, không suy đoán.
+- Mặc định đa jurisdiction; một jurisdiction duy nhất chỉ khi người dùng yêu cầu.
+- Báo rõ khi bằng chứng chưa đủ và đề xuất bước tiếp theo.
+
+SafeLaunch sẽ không:
+
+- Đưa ý kiến pháp lý có tính quyết định thay chuyên gia.
+- Bán dữ liệu scan hoặc báo cáo.
+- Nhúng quảng cáo vào báo cáo.
+- Theo dõi cá nhân qua IP, email hoặc cookie tuỳ vị.
+
 ## 2. Phạm vi MVP
 
 ### Jurisdiction và nhóm sản phẩm
