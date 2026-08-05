@@ -42,7 +42,9 @@ describe("license requirements", () => {
       status: "required_unavailable",
       severity: "high",
     });
-    expect(checks[0]?.citations[0]?.url).toBe("https://vbpl.vn/");
+    expect(checks[0]?.citations[0]?.url).toBe(
+      "https://vbpl.vn/van-ban/trung-uong/luat-an-toan-thong-tin-mang-2015",
+    );
   });
 
   it("marks a declared and verified license as pass", () => {

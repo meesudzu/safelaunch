@@ -27,6 +27,7 @@ import {
   aggregateFindings,
   RUBRIC_VERSION,
   evaluateLicenseRequirements,
+  InMemoryLicenseRegistry,
 } from "@safelaunch/compliance-core";
 import {
   retrieveLegalContext,
@@ -638,7 +639,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       category,
       signals: serviceSignals,
       licenseClaims,
-      registry: undefined,
+      registry: await new InMemoryLicenseRegistry().lookup({ jurisdiction, licenseType: "online_game" }),
       on: new Date().toISOString().slice(0, 10),
     });
 

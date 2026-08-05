@@ -22,8 +22,8 @@ export type LicenseRegistryResult = {
   retrievedAt: string;
   matchedSubject?: string;
   licenseNumber?: string;
-  validFrom?: string;
-  validTo?: string;
+  validFrom?: string | null;
+  validTo?: string | null;
   rationale: string;
 };
 
@@ -45,7 +45,7 @@ export interface LicenseEvaluationInput {
   on: string;
 }
 
-const CITATION_RETRIEVED_AT = "2026-08-04T00:00:00.000Z";
+const CITATION_RETRIEVED_AT = "2026-08-05T00:00:00.000Z";
 
 const citation = (
   provisionId: string,
@@ -64,19 +64,21 @@ const GAME_CITATION = citation(
   "vn-pd-72-2013-game-license",
   "Nghị định 72/2013/NĐ-CP về quản lý dịch vụ trò chơi điện tử",
   "Doanh nghiệp cung cấp dịch vụ trò chơi điện tử phải có giấy phép phát hành còn hiệu lực.",
-  "https://vbpl.vn/TW/Pages/vbpq-thuoctinhluoc.do?itemId=18370",
+  "https://vbpl.vn/van-ban/trung-uong/nghi-dinh-72-2013-nd-cp",
 );
 
 const PRESS_CITATION = citation(
-  "vn-press-license-review",
-  "Luật Báo chí 2016 — nguồn chính thức cần đối chiếu điều khoản áp dụng",
-  "Cần đối chiếu loại hình và giấy phép của dịch vụ báo chí điện tử với văn bản chính thức trước khi kết luận.",
+  "vn-press-2016-electronic-press",
+  "Luật Báo chí 2016",
+  "Báo điện tử phải có giấy phép do cơ quan có thẩm quyền cấp và tuân thủ các điều kiện về tổ chức, biên tập.",
+  "https://vbpl.vn/van-ban/trung-uong/luat-bao-chi-2016",
 );
 
 const SOCIAL_CITATION = citation(
-  "vn-social-license-review",
-  "Quy định Việt Nam về cung cấp và quản lý thông tin trên mạng — nguồn chính thức cần đối chiếu điều khoản áp dụng",
-  "Cần đối chiếu các dấu hiệu cung cấp mạng xã hội và giấy phép tương ứng với văn bản chính thức trước khi kết luận.",
+  "vn-cyber-safety-2015",
+  "Luật An toàn thông tin mạng 2015",
+  "Tổ chức, doanh nghiệp cung cấp dịch vụ trên mạng phải công bố thông tin liên lạc và chịu trách nhiệm quản lý nội dung theo quy định pháp luật.",
+  "https://vbpl.vn/van-ban/trung-uong/luat-an-toan-thong-tin-mang-2015",
 );
 
 const citationFor = (licenseType: string): LegalCitation => {

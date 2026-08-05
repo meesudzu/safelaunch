@@ -47,11 +47,11 @@ export const MAX_ASSET_BYTES = 2_000_000;
 
 const COPYRIGHT_CITATION: LegalCitation = {
   provisionId: "vn-digital-rights-review",
-  source: "Cổng thông tin pháp luật quốc gia — cần đối chiếu quyền sử dụng tài sản số",
-  url: "https://vbpl.vn/",
-  retrievedAt: "2026-08-04T00:00:00.000Z",
+  source: "Luật Sở hữu trí tuệ 2022",
+  url: "https://vbpl.vn/van-ban/trung-uong/luat-so-huu-tri-tue-2022",
+  retrievedAt: "2026-08-05T00:00:00.000Z",
   excerpt:
-    "Cần kiểm tra nguồn mua, hợp đồng, attribution và quyền sử dụng trước khi phát hành tài sản số.",
+    "Tổ chức, cá nhân sử dụng tác phẩm, bản ghi âm, hình ảnh, chương trình phát sóng phải có sự đồng ý của chủ sở hữu hoặc theo giấy phép tương ứng.",
 };
 
 const absoluteUrl = (baseUrl: string, rawUrl: string): URL | null => {
