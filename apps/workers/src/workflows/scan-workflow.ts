@@ -1,12 +1,41 @@
 import { z } from "zod";
-import type { EvidenceItem, ReportFinding } from "@safelaunch/contracts";
+import type {
+  DigitalAsset,
+  EvidenceItem,
+  LicenseCheck,
+  ReportFinding,
+  ServiceSignal,
+} from "@safelaunch/contracts";
 import { extractEvidence } from "../services/evidence";
+import {
+  collectDigitalAssets,
+  collectAssetReferences,
+  type AssetFetcher,
+  type AssetFinding,
+  type AssetReference,
+} from "../services/digital-assets";
+import { detectServiceSignals } from "../services/service-signals";
+import {
+  evaluatePhase,
+  fetchPhase,
+  fetchSinglePagePhase,
+  persistReportPhase,
+  persistTerminalPhase,
+  extractEvidencePhase,
+  extractServiceSignalsPhase,
+  collectAssetReferencesPhase,
+  classifyAssetRightsPhase,
+  evaluateLicenseRequirementsPhase,
+} from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
+import { EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
 import {
   runRules,
   verifyFinding,
   aggregateFindings,
   RUBRIC_VERSION,
+  evaluateLicenseRequirements,
+  InMemoryLicenseRegistry,
 } from "@safelaunch/compliance-core";
 import {
   retrieveLegalContext,
@@ -43,6 +72,15 @@ export const ScanCoverageSchema = z.object({
   fetched: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
   failed: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
   skipped: z.array(z.enum(SUPPORTED_PAGE_TYPES)),
+  /**
+   * Phases that produced no signal because the step exhausted its retries
+   * (typically a Worker CPU time limit or a step timeout). Surfaced on the
+   * scan report so operators and end users can tell a clean "completed"
+   * scan from one where, e.g., digital-rights classification was skipped.
+   * Backward-compatible: old payloads that omit this field are normalized
+   * to an empty array in the routes layer.
+   */
+  degradedPhases: z.array(z.string()),
 });
 export type ScanCoverage = z.infer<typeof ScanCoverageSchema>;
 
@@ -57,6 +95,13 @@ export interface PageFetcher {
 export interface EvaluateOutcome {
   status: ScanTerminalStatus;
   findings: ReportFinding[];
+  serviceSignals?: ServiceSignal[];
+  licenseChecks?: LicenseCheck[];
+  assetInventory?: {
+    assets: DigitalAsset[];
+    findings: AssetFinding[];
+    summary: { total: number; byKind: Record<string, number>; flagged: number };
+  };
 }
 
 export interface ScanResult {
@@ -80,6 +125,12 @@ export interface ScanRunDeps {
     scanId: string;
     payload: Record<string, unknown>;
   }) => Promise<{ token: string; url: string } | null>;
+  persistTerminalState?: (input: {
+    scanId: string;
+    state: ScanTerminalState;
+    status: ScanTerminalStatus;
+    coverage: ScanCoverage;
+  }) => Promise<void>;
   updateState: (input: {
     scanId: string;
     state: ScanTerminalState;
@@ -100,6 +151,7 @@ const buildCoverage = (
   fetched: SupportedPageType[],
   failed: SupportedPageType[],
   skipped: SupportedPageType[],
+  degradedPhases: readonly string[] = [],
 ): ScanCoverage => {
   const seen = new Set<SupportedPageType>();
   const dedupe = (list: SupportedPageType[]): SupportedPageType[] => {
@@ -150,11 +202,22 @@ const fetchWithRetries = async (
   return { ok: false, reason };
 };
 
+/**
+ * Heuristic: returns true when the evidence pages contain at least one
+ * asset reference candidate (font preload, @font-face url, etc.) so we
+ * can distinguish "page really has no assets" from "the loop died
+ * before producing any output". Used only to flag a degraded phase, not
+ * to change compliance findings.
+ */
+const pageHasAssetCandidates = (pages: ReadonlyArray<{ url: string; html: string }>): boolean => {
+  for (const page of pages) {
+    if (collectAssetReferences(page.url, page.html).length > 0) return true;
+  }
+  return false;
+};
+
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
   const params = ScanParamsSchema.parse(rawParams);
-  const requestedPages = requiredPages(params);
-  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
-  const forcedFailed = new Set<SupportedPageType>(params.failedPages ?? []);
   const retryCount = deps.retryCount ?? 1;
   const retryBackoffMs = deps.retryBackoffMs ?? 5;
 
@@ -164,7 +227,7 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     scanId: params.scanId,
     jurisdiction: params.jurisdiction,
     category: params.category,
-    requestedPages,
+    requestedPages: requiredPages(params),
     at: deps.now(),
   });
 
@@ -181,15 +244,15 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     retries: retryCount,
     backoffMs: retryBackoffMs,
   });
-  if (!homepage.ok) {
-    deps.log({
-      level: "error",
-      event: "scan.homepage_failed",
-      scanId: params.scanId,
-      reason: homepage.reason,
-      at: deps.now(),
-    });
+
+  if (!fetchResult.homepage.ok) {
     const coverage = buildCoverage([], ["homepage"], []);
+    await deps.persistTerminalState?.({
+      scanId: params.scanId,
+      state: "failed",
+      status: "needs_review",
+      coverage,
+    });
     await deps.updateState({ scanId: params.scanId, state: "failed", coverage });
     return {
       scanId: params.scanId,
@@ -198,43 +261,23 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
       coverage,
     };
   }
-  fetched.push("homepage");
-  pages.push({ type: "homepage", url: params.url, status: homepage.status, html: homepage.html });
 
-  for (const pageType of requestedPages) {
-    if (pageType === "homepage") continue;
-    if (forcedFailed.has(pageType) || timeoutPages.has(pageType)) {
-      failed.push(pageType);
-      continue;
-    }
-    const pageUrl = `${params.url.replace(/\/$/, "")}/${pageType}`;
-    const result = await fetchWithRetries(deps.fetch, pageUrl, {
-      pageType,
-      timeoutPages,
-      retries: retryCount,
-      backoffMs: retryBackoffMs,
-    });
-    if (!result.ok) {
-      failed.push(pageType);
-      continue;
-    }
-    fetched.push(pageType);
-    pages.push({ type: pageType, url: pageUrl, status: result.status, html: result.html });
-  }
-
-  const coverage = buildCoverage(fetched, failed, skipped);
-  const evaluation = await deps.evaluate({
-    scanId: params.scanId,
-    jurisdiction: params.jurisdiction,
-    category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
-    pages,
-    coverage,
-  });
+  const coverage = buildCoverage(fetchResult.fetched, fetchResult.failed, []);
+  const evaluation = await evaluatePhase(
+    {
+      scanId: params.scanId,
+      jurisdiction: params.jurisdiction,
+      category: params.category as "online_game" | "electronic_press" | "digital_entertainment",
+      pages: fetchResult.pages,
+      coverage,
+    },
+    { evaluate: deps.evaluate, log: deps.log },
+  );
 
   let state: ScanTerminalState;
-  if (failed.length === 0) {
+  if (fetchResult.failed.length === 0) {
     state = "completed";
-  } else if (failed.includes("homepage") || fetched.length === 0) {
+  } else if (fetchResult.failed.includes("homepage") || fetchResult.fetched.length === 0) {
     state = "failed";
   } else {
     state = "partial";
@@ -246,7 +289,8 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     status = "needs_review";
   }
 
-  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => failed.includes(p));
+  const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
+  const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => fetchResult.failed.includes(p));
   let reportUrl: string | undefined;
   if (state !== "failed" && timeoutPagesFailed.length === 0) {
     const issued = await deps.persistReport({
@@ -257,6 +301,9 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
         status,
         coverage,
         findings: evaluation.findings,
+        serviceSignals: evaluation.serviceSignals,
+        licenseChecks: evaluation.licenseChecks,
+        assetInventory: evaluation.assetInventory,
         generatedAt: deps.now(),
       },
     });
@@ -291,6 +338,12 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
     status,
     coverage,
   };
+  await deps.persistTerminalState?.({
+    scanId: params.scanId,
+    state,
+    status,
+    coverage,
+  });
   if (reportUrl) result.reportUrl = reportUrl;
   return result;
 };
@@ -320,18 +373,16 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 > {
   async run(
     event: Readonly<WorkflowEvent<ScanWorkflowPayload>>,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    _step: WorkflowStep,
+    step: WorkflowStep,
   ): Promise<ScanResult> {
-    // Each `step.do` invocation captures a unit of work that the Workflow
-    // runtime retries and persists independently. The wrapper delegates the
-    // actual logic to `runScan` so the same code path is exercised by tests.
+    // Each `step.do(name, fn)` becomes one node on the Cloudflare dashboard
+    // Graph. The runtime retries the closure on transient failure and memoizes
+    // its return value so a partial failure does not replay earlier phases.
     const params: ScanWorkflowPayload = event.payload;
     return runScan(params, {
       fetch: makeWorkflowFetch(),
       evaluate: makeWorkflowEvaluator(this.env),
       persistReport: makeWorkflowPersistReport(this.env),
-      updateState: makeWorkflowUpdateState(this.env),
       now: () => new Date().toISOString(),
       log: (entry) =>
         console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" })),
@@ -355,6 +406,27 @@ const makeWorkflowFetch = (): PageFetcher => {
   };
 };
 
+/** Resolve both address families without trusting the address returned by the
+ * platform fetch. The URL policy still rejects private/loopback answers. */
+const resolvePublicAddresses = async (hostname: string): Promise<readonly string[]> => {
+  const answers = await Promise.all(
+    (["A", "AAAA"] as const).map(async (type) => {
+      const endpoint = new URL("https://cloudflare-dns.com/dns-query");
+      endpoint.searchParams.set("name", hostname);
+      endpoint.searchParams.set("type", type);
+      const response = await fetch(endpoint, {
+        headers: { accept: "application/dns-json" },
+      });
+      if (!response.ok) throw new Error(`dns-over-https returned ${response.status}`);
+      const body: { Answer?: Array<{ type: number; data: string }> } = await response.json();
+      return (body.Answer ?? [])
+        .filter((answer) => (type === "A" ? answer.type === 1 : answer.type === 28))
+        .map((answer) => answer.data);
+    }),
+  );
+  return answers.flat();
+};
+
 const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] => {
   const legalRepo = new LegalRepository(env.DB);
   const aiBinding = env.AI;
@@ -363,13 +435,17 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
   return async (input): Promise<EvaluateOutcome> => {
     const { scanId, jurisdiction, category, pages, coverage } = input;
 
-    // 1. Extract evidence from every fetched HTML page.
+    // 1. Extract text evidence and deterministic service signals from every fetched page.
     const evidence: EvidenceItem[] = [];
+    const serviceSignals: ServiceSignal[] = [];
+    const pageHtml: Array<{ url: string; html: string }> = [];
     for (const page of pages) {
       if (page.status < 200 || page.status >= 300) continue;
       try {
         const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(page.html);
+        pageHtml.push({ url: page.url, html });
         evidence.push(...extractEvidence({ sourceUrl: page.url, html }));
+        serviceSignals.push(...detectServiceSignals({ sourceUrl: page.url, html }));
       } catch (cause) {
         // sanitizePageText may throw SanitizationError; we log and continue.
         console.log(
@@ -384,7 +460,69 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       }
     }
 
-    // 2. Deterministic rubric: filter out rules whose evidence type doesn't
+    // 2. Inspect referenced assets and resolve license requirements. Registry
+    //    adapters are optional; absent adapters deliberately produce a strict
+    //    high-risk signal rather than claiming a license was verified.
+    const assetFetcher: AssetFetcher = {
+      fetch: async (url) => {
+        const { fetchBoundedResource } = await import("../services/safe-fetch");
+        const result = await fetchBoundedResource({ url, resolve: resolvePublicAddresses });
+        return {
+          status: result.status,
+          bytes: result.bytes,
+          contentType: result.contentType,
+          finalUrl: result.finalUrl,
+        };
+      },
+    };
+    const assetCollections = [];
+    for (const page of pageHtml) {
+      assetCollections.push(
+        await collectDigitalAssets({ sourceUrl: page.url, html: page.html, fetcher: assetFetcher }),
+      );
+    }
+    const assets = assetCollections.flatMap((collection) => collection.assets);
+    const assetFindings = assetCollections.flatMap((collection) => collection.findings);
+    const assetSeen = new Set<string>();
+    const dedupedAssets = assets.filter((asset) => {
+      if (assetSeen.has(asset.id)) return false;
+      assetSeen.add(asset.id);
+      return true;
+    });
+    const assetInventory = {
+      assets: dedupedAssets,
+      findings: assetFindings.filter(
+        (finding, index, all) =>
+          all.findIndex((candidate) => candidate.id === finding.id) === index,
+      ),
+      summary: {
+        total: dedupedAssets.length,
+        byKind: dedupedAssets.reduce<Record<string, number>>((counts, asset) => {
+          counts[asset.kind] = (counts[asset.kind] ?? 0) + 1;
+          return counts;
+        }, {}),
+        flagged: assetFindings.filter(
+          (finding, index, all) =>
+            all.findIndex((candidate) => candidate.id === finding.id) === index,
+        ).length,
+      },
+    };
+    const licenseClaims = evidence
+      .filter((item) => item.type === "license_claim")
+      .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
+    const licenseChecks = evaluateLicenseRequirements({
+      jurisdiction,
+      category,
+      signals: serviceSignals,
+      licenseClaims,
+      registry: await new InMemoryLicenseRegistry().lookup({
+        jurisdiction,
+        licenseType: "online_game",
+      }),
+      on: new Date().toISOString().slice(0, 10),
+    });
+
+    // 3. Deterministic rubric: filter out rules whose evidence type doesn't
     //    appear at all. runRules already applies coverage semantics
     //    (`present` / `absent` / `unknown`) per the rubric.
     const ruleResults = runRules({
@@ -403,6 +541,41 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
     //    We only spin up the AI/Vectorize dependencies if we actually need
     //    them — most rule outcomes are already decided by the rubric.
     const findings: ReportFinding[] = [];
+    for (const check of licenseChecks) {
+      findings.push({
+        id: check.id,
+        severity: check.severity,
+        rationale: check.rationale,
+        confidence: check.confidence,
+        evidenceIds:
+          check.evidenceIds.length > 0 ? [...check.evidenceIds] : [`${check.id}::missing`],
+        citations: [...check.citations],
+        recommendedAction: check.recommendedAction,
+        applicability: "current",
+        domain: "license",
+        evidenceExcerpt:
+          check.evidenceIds.length > 0
+            ? (evidence.find((item) => item.id === check.evidenceIds[0])?.excerpt ?? "")
+            : "Chưa tìm thấy bằng chứng giấy phép.",
+      });
+    }
+    for (const assetFinding of assetInventory.findings) {
+      const asset = assetInventory.assets.find(
+        (candidate) => candidate.id === assetFinding.assetId,
+      );
+      findings.push({
+        id: assetFinding.id,
+        severity: assetFinding.severity,
+        rationale: assetFinding.rationale,
+        confidence: assetFinding.confidence,
+        evidenceIds: assetFinding.evidenceIds,
+        citations: assetFinding.citations,
+        recommendedAction: assetFinding.recommendedAction,
+        applicability: assetFinding.applicability,
+        domain: assetFinding.domain,
+        evidenceExcerpt: asset ? `${asset.kind} · ${asset.url} · ${asset.licenseEvidence}` : "",
+      });
+    }
     const needsRag = ruleResults.some((r) => r.outcome === "unknown");
     const retrievalDeps: RetrievalDeps | null =
       needsRag && aiBinding && vectorIndex
@@ -417,6 +590,9 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
         : null;
 
     for (const rule of ruleResults) {
+      // The typed license check above replaces the legacy game-license rule so
+      // a scan emits one actionable license result rather than two duplicates.
+      if (rule.ruleId === "license-claim-game") continue;
       if (rule.outcome === "present") {
         findings.push({
           id: `${rule.ruleId}::pass`,

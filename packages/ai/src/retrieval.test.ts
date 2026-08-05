@@ -18,7 +18,10 @@ class FakeVectorIndex {
     public readonly calls: { vector: readonly number[]; options: unknown }[] = [],
   ) {}
 
-  async query(vector: readonly number[], options: unknown): Promise<{
+  async query(
+    vector: readonly number[],
+    options: unknown,
+  ): Promise<{
     matches: FakeVectorMatch[];
     count: number;
   }> {
@@ -37,8 +40,11 @@ class FakeLegalRepository {
     on: string;
   }): Promise<readonly RetrievableProvision[]> {
     await Promise.resolve();
-    return this.provisions.filter((provision) =>
-      provision.title.length > 0 && input.jurisdiction === "VN" && input.category === "online_game",
+    return this.provisions.filter(
+      (provision) =>
+        provision.title.length > 0 &&
+        input.jurisdiction === "VN" &&
+        input.category === "online_game",
     );
   }
 }
@@ -67,10 +73,12 @@ const makeDeps = (overrides: {
 }): RetrievalDeps => ({
   legal: overrides.legal,
   vector: overrides.vector,
-  embed: overrides.embed ?? (async (): Promise<number[]> => {
-    await Promise.resolve();
-    return [0.1, 0.2, 0.3];
-  }),
+  embed:
+    overrides.embed ??
+    (async (): Promise<number[]> => {
+      await Promise.resolve();
+      return [0.1, 0.2, 0.3];
+    }),
   topK: overrides.topK ?? 12,
   limit: overrides.limit ?? 6,
 });
@@ -156,7 +164,11 @@ describe("retrieveLegalContext", () => {
       await Promise.resolve();
       return [0.4, 0.5, 0.6];
     };
-    const deps: RetrievalDeps = makeDeps({ vector, legal: new FakeLegalRepository(eligible), embed });
+    const deps: RetrievalDeps = makeDeps({
+      vector,
+      legal: new FakeLegalRepository(eligible),
+      embed,
+    });
     await retrieveLegalContext(baseQuery, deps);
     expect(vector.calls).toHaveLength(1);
     expect(vector.calls[0]?.vector).toEqual([0.4, 0.5, 0.6]);

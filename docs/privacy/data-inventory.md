@@ -24,39 +24,39 @@ written to logs.
 
 ## 2 · Per-field inventory
 
-| Field | Purpose | Storage | Retention | Access | Deletion path |
-| --- | --- | --- | --- | --- | --- |
-| `scans.id` (UUID) | Public scan identifier | D1 `scans` | 7 days from `created_at` | None externally; opaque token-gated report endpoint | `purgeExpired` cron → `DELETE FROM scans WHERE expires_at < ?` |
-| `scans.url` (string) | The website the user submitted | D1 `scans` | 7 days | Same as above | `purgeExpired` |
-| `scans.jurisdiction`, `scans.category` | Scan parameters | D1 `scans` | 7 days | Same | `purgeExpired` |
-| `scans.coverage_json` | Which pages were scanned | D1 `scans` | 7 days | Same | `purgeExpired` |
-| `scans.analysis_version` | Rubric + model version used | D1 `scans` | 7 days | Same | `purgeExpired` |
-| `scans.expires_at` | TTL anchor | D1 `scans` | Computed | Same | n/a (drives deletion) |
-| `scan_pages.*` | Per-page R2 pointer + hash | D1 `scan_pages` | 7 days | Same | `DELETE FROM scan_pages WHERE scan_id IN (...)` |
-| `evidence_items.*` | Typed facts extracted from the page | D1 `evidence_items` | 7 days | Same | `DELETE FROM evidence_items WHERE scan_id IN (...)` |
-| `findings.*` | AI-proposed verdicts | D1 `findings` | 7 days | Same | `DELETE FROM findings WHERE scan_id IN (...)` |
-| `finding_citations.*` | Provision links per finding | D1 `finding_citations` | 7 days | Same | `DELETE FROM finding_citations WHERE finding_id IN (...)` |
-| `reports.payload_json` | Bilingual report payload | D1 `reports` | 7 days | Only with the **private** one-time token | `DELETE FROM reports WHERE expires_at < ?` |
-| `reports.token_hash` | SHA-256 of the private report token | D1 `reports` | 7 days | n/a (one-way) | `purgeExpired` |
-| R2 objects under `scans/<scanId>/<page>.html` | Page snapshots used during the scan | R2 `ARTIFACTS` | 7 days | None externally | `purgeExpired` deletes the prefix once the scan is expired |
-| `legal_documents.*`, `legal_provisions.*` | The legal corpus (vbpl.vn derived) | D1 `legal_*` | Indefinite (corpus is public source) | Cloudflare Access-gated admin console | Manual re-ingest replaces; never deleted from inside the cron |
-| Aggregated metrics (counters, P50/P95 latency) | Capacity + UX | D1 (proposed) / Worker Analytics | Indefinite | Operator dashboard | n/a — never includes PII |
+| Field                                          | Purpose                             | Storage                          | Retention                            | Access                                              | Deletion path                                                  |
+| ---------------------------------------------- | ----------------------------------- | -------------------------------- | ------------------------------------ | --------------------------------------------------- | -------------------------------------------------------------- |
+| `scans.id` (UUID)                              | Public scan identifier              | D1 `scans`                       | 7 days from `created_at`             | None externally; opaque token-gated report endpoint | `purgeExpired` cron → `DELETE FROM scans WHERE expires_at < ?` |
+| `scans.url` (string)                           | The website the user submitted      | D1 `scans`                       | 7 days                               | Same as above                                       | `purgeExpired`                                                 |
+| `scans.jurisdiction`, `scans.category`         | Scan parameters                     | D1 `scans`                       | 7 days                               | Same                                                | `purgeExpired`                                                 |
+| `scans.coverage_json`                          | Which pages were scanned            | D1 `scans`                       | 7 days                               | Same                                                | `purgeExpired`                                                 |
+| `scans.analysis_version`                       | Rubric + model version used         | D1 `scans`                       | 7 days                               | Same                                                | `purgeExpired`                                                 |
+| `scans.expires_at`                             | TTL anchor                          | D1 `scans`                       | Computed                             | Same                                                | n/a (drives deletion)                                          |
+| `scan_pages.*`                                 | Per-page R2 pointer + hash          | D1 `scan_pages`                  | 7 days                               | Same                                                | `DELETE FROM scan_pages WHERE scan_id IN (...)`                |
+| `evidence_items.*`                             | Typed facts extracted from the page | D1 `evidence_items`              | 7 days                               | Same                                                | `DELETE FROM evidence_items WHERE scan_id IN (...)`            |
+| `findings.*`                                   | AI-proposed verdicts                | D1 `findings`                    | 7 days                               | Same                                                | `DELETE FROM findings WHERE scan_id IN (...)`                  |
+| `finding_citations.*`                          | Provision links per finding         | D1 `finding_citations`           | 7 days                               | Same                                                | `DELETE FROM finding_citations WHERE finding_id IN (...)`      |
+| `reports.payload_json`                         | Bilingual report payload            | D1 `reports`                     | 7 days                               | Only with the **private** one-time token            | `DELETE FROM reports WHERE expires_at < ?`                     |
+| `reports.token_hash`                           | SHA-256 of the private report token | D1 `reports`                     | 7 days                               | n/a (one-way)                                       | `purgeExpired`                                                 |
+| R2 objects under `scans/<scanId>/<page>.html`  | Page snapshots used during the scan | R2 `ARTIFACTS`                   | 7 days                               | None externally                                     | `purgeExpired` deletes the prefix once the scan is expired     |
+| `legal_documents.*`, `legal_provisions.*`      | The legal corpus (vbpl.vn derived)  | D1 `legal_*`                     | Indefinite (corpus is public source) | Cloudflare Access-gated admin console               | Manual re-ingest replaces; never deleted from inside the cron  |
+| Aggregated metrics (counters, P50/P95 latency) | Capacity + UX                       | D1 (proposed) / Worker Analytics | Indefinite                           | Operator dashboard                                  | n/a — never includes PII                                       |
 
-## 3 · What is *not* collected
+## 3 · What is _not_ collected
 
 - No account, email, name, or password.
 - No third-party tracking cookies, no Google Analytics, no Facebook pixel.
 - No browser fingerprinting, no device fingerprinting.
-- No raw HTTP bodies from the *user's* browser (only the URL they submitted).
+- No raw HTTP bodies from the _user's_ browser (only the URL they submitted).
 - No persistent Cloudflare Access JWT in the browser; Access cookies are scoped to admin paths and never logged.
 
 ## 4 · Access matrix
 
-| Reader | Can read |
-| --- | --- |
-| Anonymous visitor (no auth) | The scan submission endpoint, the report endpoint with a valid one-time token, the homepage. Nothing else. |
-| Cloudflare Access (admin role) | `/admin/legal` queue + per-document review. Identity is server-derived from the validated JWT; the browser never sees the raw JWT and the form cannot supply an actor. |
-| Worker Observability (logs / Workers Analytics) | The structured event stream emitted by `toLogEvent`. URL path, IP, body, and token are absent by construction. |
+| Reader                                          | Can read                                                                                                                                                               |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anonymous visitor (no auth)                     | The scan submission endpoint, the report endpoint with a valid one-time token, the homepage. Nothing else.                                                             |
+| Cloudflare Access (admin role)                  | `/admin/legal` queue + per-document review. Identity is server-derived from the validated JWT; the browser never sees the raw JWT and the form cannot supply an actor. |
+| Worker Observability (logs / Workers Analytics) | The structured event stream emitted by `toLogEvent`. URL path, IP, body, and token are absent by construction.                                                         |
 
 ## 5 · Retention schedule
 

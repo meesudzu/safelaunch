@@ -11,9 +11,6 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "routes": [
-    { "pattern": "safelaunch.runany.dev", "custom_domain": true }
-  ],
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1

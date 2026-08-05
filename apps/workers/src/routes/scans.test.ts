@@ -297,4 +297,35 @@ describe("scans router", () => {
     const body = (await response.json()) as { reportUrl?: string };
     expect(body.reportUrl).toBeUndefined();
   });
+
+  it("normalizes coverage to the canonical shape even when the DB stores '{}'", async () => {
+    // Bug repro: ScanRepository.create() inserts coverage_json='{}'. The
+    // route must still return the canonical {fetched, failed, skipped}
+    // shape so the client never sees `.fetched === undefined`.
+    const db = new FakeD1Database();
+    db.rows.push({
+      sql: "SELECT * FROM scans WHERE id = ?",
+      firstReturn: {
+        id: "scan_queued",
+        url: "https://game.test/",
+        jurisdiction: "VN",
+        category: "online_game",
+        state: "queued",
+        coverage_json: "{}",
+        analysis_version: "vn-mvp-v1",
+        created_at: "2026-07-29T00:00:00.000Z",
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+    const response = await runWithDb(db, new Request("http://local/v1/scans/scan_queued"));
+    expect(response.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { coverage?: unknown };
+    expect(body.coverage).toBeDefined();
+    const coverage = body.coverage as { fetched?: unknown; failed?: unknown; skipped?: unknown };
+    expect(coverage.fetched).toEqual([]);
+    expect(coverage.failed).toEqual([]);
+    expect(coverage.skipped).toEqual([]);
+  });
 });

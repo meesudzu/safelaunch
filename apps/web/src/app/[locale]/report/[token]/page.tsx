@@ -1,11 +1,14 @@
-import { ReportView, type ReportPayload, type ReportMessages } from "../../../../components/report-view";
+import {
+  ReportView,
+  type ReportPayload,
+  type ReportMessages,
+} from "../../../../components/report-view";
 import reportVi from "../../../../messages/report-vi.json";
 import reportEn from "../../../../messages/report-en.json";
 import { createApiClient, type ReportPayloadDto } from "../../../../lib/api-client";
 import type { Locale } from "../../../../lib/locale";
 
-const messagesFor = (locale: Locale): ReportMessages =>
-  locale === "vi" ? reportVi : reportEn;
+const messagesFor = (locale: Locale): ReportMessages => (locale === "vi" ? reportVi : reportEn);
 
 const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
   scanId: dto.scanId,
@@ -22,12 +25,16 @@ const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
     citations: finding.citations,
     recommendedAction: finding.recommendedAction,
     applicability: finding.applicability,
-    evidenceExcerpt: finding.evidenceExcerpt,
-    upcomingEffectiveAt: finding.upcomingEffectiveAt,
+    evidenceExcerpt: finding.evidenceExcerpt ?? "",
+    upcomingEffectiveAt: finding.upcomingEffectiveAt ?? null,
+    domain: finding.domain,
   })),
   generatedAt: dto.generatedAt,
   expiresAt: dto.expiresAt,
   rubricVersion: dto.rubricVersion,
+  ...(dto.serviceSignals === undefined ? {} : { serviceSignals: dto.serviceSignals }),
+  ...(dto.licenseChecks === undefined ? {} : { licenseChecks: dto.licenseChecks }),
+  ...(dto.assetInventory === undefined ? {} : { assetInventory: dto.assetInventory }),
 });
 
 export default async function ReportPage({
@@ -47,11 +54,7 @@ export default async function ReportPage({
     const report = toReportPayload(dto);
     return (
       <main>
-        <ReportView
-          locale={locale}
-          messages={messagesFor(locale)}
-          report={report}
-        />
+        <ReportView locale={locale} messages={messagesFor(locale)} report={report} />
       </main>
     );
   } catch (cause) {

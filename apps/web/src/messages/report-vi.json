@@ -7,7 +7,7 @@
   "coverage.fetched": "Đã quét",
   "coverage.failed": "Không thể quét",
   "coverage.skipped": "Bỏ qua",
-  "status.high_risk": "Phát hiện vi phạm nghiêm trọng",
+  "status.high_risk": "Phát hiện tín hiệu rủi ro cao",
   "status.needs_review": "Cần chuyên gia xem xét",
   "status.no_significant_risk": "Không phát hiện vấn đề đáng kể",
   "finding.severity.high": "Nghiêm trọng",
@@ -26,5 +26,12 @@
   "expiry.label": "Báo cáo hết hạn vào",
   "disclaimer": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý. Vui lòng tham vấn luật sư có chứng chỉ cho quyết định cuối cùng.",
   "footer.disclosure": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý.",
-  "footer.version": "v0.1 · SafeLaunch"
+  "footer.version": "v0.1 · SafeLaunch",
+  "service.signals.title": "Đặc tính dịch vụ đã phát hiện",
+  "license.checks.title": "Kiểm tra giấy phép",
+  "asset.inventory.title": "Inventory tài sản số",
+  "asset.inventory.summary": "Tài sản được site tham chiếu",
+  "asset.inventory.flagged": "Cần kiểm tra license",
+  "asset.inventory.scope": "Phạm vi: font (ảnh/video/audio nằm ngoài phạm vi quét)",
+  "finding.source_link_unavailable": "Liên kết nguồn không khả dụng"
 }

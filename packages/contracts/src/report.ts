@@ -10,6 +10,9 @@ export const Finding = z.object({
   citations: z.array(Citation).min(1),
   recommendedAction: z.string().min(1),
   applicability: z.enum(["current", "upcoming"]),
+  domain: z.enum(["regulatory", "license", "digital-rights"]).optional(),
+  evidenceExcerpt: z.string().optional(),
+  upcomingEffectiveAt: z.string().datetime().nullable().optional(),
 });
 export const ReportStatus = z.enum(["high_risk", "needs_review", "no_significant_risk"]);
 

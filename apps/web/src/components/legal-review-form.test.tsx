@@ -1,26 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import {
-  LegalReviewForm,
-  type PendingLegalDocument,
-} from "./legal-review-form";
+import { LegalReviewForm, type PendingLegalDocument } from "./legal-review-form";
 
 const enMessages = {
-  title: 'Review legal document',
-  source: 'Source URL',
-  retrievedAt: 'Retrieved',
-  sourceHash: 'Source hash',
-  effectiveFrom: 'Effective from',
-  effectiveTo: 'Effective to',
-  provisions: 'Parsed provisions',
-  relations: 'Document relations',
-  audit: 'Audit history',
-  reason: 'Reason',
-  approve: 'Approve',
-  reject: 'Reject',
-  reasonRequired: 'A reason is required before submitting this decision.',
-  submitting: 'Submitting…',
+  title: "Review legal document",
+  source: "Source URL",
+  retrievedAt: "Retrieved",
+  sourceHash: "Source hash",
+  effectiveFrom: "Effective from",
+  effectiveTo: "Effective to",
+  provisions: "Parsed provisions",
+  relations: "Document relations",
+  audit: "Audit history",
+  reason: "Reason",
+  approve: "Approve",
+  reject: "Reject",
+  reasonRequired: "A reason is required before submitting this decision.",
+  submitting: "Submitting…",
 } as const;
 
 const pendingDocument: PendingLegalDocument = {
@@ -96,7 +93,13 @@ describe("LegalReviewForm", () => {
   });
 
   it("renders the source URL, hash, and provisions so reviewers can audit", () => {
-    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} messages={enMessages} />);
+    render(
+      <LegalReviewForm
+        document={pendingDocument}
+        submit={vi.fn(() => Promise.resolve())}
+        messages={enMessages}
+      />,
+    );
     expect(screen.getByText(/vbpl\.vn\/abc/)).toBeInTheDocument();
     expect(screen.getByText(/abc123/)).toBeInTheDocument();
     expect(screen.getByText(/Điều 1/)).toBeInTheDocument();
@@ -104,7 +107,13 @@ describe("LegalReviewForm", () => {
   });
 
   it("renders the audit history so reviewers can see prior decisions", () => {
-    render(<LegalReviewForm document={pendingDocument} submit={vi.fn(() => Promise.resolve())} messages={enMessages} />);
+    render(
+      <LegalReviewForm
+        document={pendingDocument}
+        submit={vi.fn(() => Promise.resolve())}
+        messages={enMessages}
+      />,
+    );
     expect(screen.getByText(/Initial import/i)).toBeInTheDocument();
     expect(screen.getByText(/admin@safelaunch\.test/)).toBeInTheDocument();
   });

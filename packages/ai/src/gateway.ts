@@ -20,7 +20,10 @@ export interface GatewayConfig {
   readonly cacheTtl?: number;
   readonly skipCache?: boolean;
   readonly collectLog?: boolean;
-  readonly retries?: { maxAttempts: 1 | 2 | 3 | 4 | 5; backoff?: "constant" | "linear" | "exponential" };
+  readonly retries?: {
+    maxAttempts: 1 | 2 | 3 | 4 | 5;
+    backoff?: "constant" | "linear" | "exponential";
+  };
 }
 
 export const gatewayOptionsFor = (config: GatewayConfig): { gateway: GatewayOptions } => {
@@ -54,10 +57,7 @@ interface AiRunResponse {
  * Embed a single text via Workers AI through Cloudflare AI Gateway.
  * The returned `vector` is what we hand to Vectorize.
  */
-export const embedText = async (
-  text: string,
-  deps: EmbeddingDeps,
-): Promise<EmbeddingResult> => {
+export const embedText = async (text: string, deps: EmbeddingDeps): Promise<EmbeddingResult> => {
   const model = deps.model ?? DEFAULT_EMBEDDING_MODEL;
   const response = (await deps.ai.run(
     model,

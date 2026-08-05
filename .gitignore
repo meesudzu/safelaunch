@@ -6,6 +6,9 @@ node_modules/
 .next/
 dist/
 coverage/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
 .wrangler/
 playwright-report/
 test-results/

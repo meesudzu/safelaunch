@@ -58,12 +58,10 @@ export default async function LegalQueuePage() {
                 <div className="flex flex-col gap-1">
                   <p className="font-serif text-lg font-semibold">{doc.title}</p>
                   <p className="text-xs uppercase tracking-wider text-ink-soft">
-                    {messages["list.jurisdiction"]}: {doc.jurisdiction} · {messages["list.retrieved"]}:{" "}
-                    {formatDate(doc.retrievedAt)}
+                    {messages["list.jurisdiction"]}: {doc.jurisdiction} ·{" "}
+                    {messages["list.retrieved"]}: {formatDate(doc.retrievedAt)}
                   </p>
-                  <p className="font-mono text-xs text-ink-soft break-all">
-                    {doc.sourceUrl}
-                  </p>
+                  <p className="font-mono text-xs text-ink-soft break-all">{doc.sourceUrl}</p>
                 </div>
                 <div className="mt-3 flex justify-end">
                   <a

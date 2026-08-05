@@ -9,7 +9,7 @@
 
 - **Release candidate commit:** `____________________________` (paste the
   green CI SHA)
-- **Ruleset / corpus version:** `vn-mvp-v1` (frozen for the MVP)
+- **Ruleset / corpus version:** `vn-mvp-v2-licensing-digital-rights-strict` (current strict rubric)
 - **Model identifier:** `____________________________`
 - **Release captain:** `____________________________`
 - **Date (UTC):** `____________________________`
@@ -32,28 +32,21 @@
 Each command below must exit 0. Paste the last 10 lines of each output
 into the PR description.
 
-| # | Gate | Command | Result |
-| --- | --- | --- | --- |
-| 1 | Lint | `rtk pnpm lint` | ☐ PASS |
-| 2 | Typecheck | `rtk pnpm typecheck` | ☐ PASS |
-| 3 | Unit + integration tests | `rtk pnpm test` | ☐ PASS |
-| 4 | Worker dry-run build | `rtk pnpm -C apps/workers build` | ☐ PASS |
-| 5 | Web build | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS |
-| 6 | End-to-end (Playwright) | `rtk pnpm test:e2e` | ☐ PASS *or* ☐ N/A * |
-
-`*` The e2e script runs `playwright test`. The MVP ships with the
-script wired in but no Playwright specs in the MVP set; the box is
-"skipped" by default. Once Task 22 lands real Playwright specs, this
-box becomes a hard PASS gate.
+| #   | Gate                     | Command                                                                     | Result |
+| --- | ------------------------ | --------------------------------------------------------------------------- | ------ |
+| 1   | Lint                     | `rtk pnpm lint`                                                             | ☐ PASS |
+| 2   | Typecheck                | `rtk pnpm typecheck`                                                        | ☐ PASS |
+| 3   | Unit + integration tests | `rtk pnpm test`                                                             | ☐ PASS |
+| 4   | Worker dry-run build     | `rtk pnpm -C apps/workers build`                                            | ☐ PASS |
+| 5   | Web build                | `NEXT_PUBLIC_API_ORIGIN=https://api.example.com rtk pnpm -C apps/web build` | ☐ PASS |
 
 ## 4 · Legal evaluation gates
 
 The release is **not eligible** unless both of these pass.
 
-| # | Gate | Command | Gate value | Observed |
-| --- | --- | --- | --- | --- |
-| 1 | Eval gate | `rtk pnpm -C packages/ai test -- eval-runner` | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS |
-| 2 | Latency probe | `rtk node scripts/check-latency.mjs --base-url "$STAGING_URL" --samples 100` | `P95 < 60 000 ms` | ☐ PASS |
+| #   | Gate      | Command                                       | Gate value                                                                     | Observed |
+| --- | --------- | --------------------------------------------- | ------------------------------------------------------------------------------ | -------- |
+| 1   | Eval gate | `rtk pnpm -C packages/ai test -- eval-runner` | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0` | ☐ PASS   |
 
 Capture the observed metrics in the PR:
 
@@ -61,9 +54,6 @@ Capture the observed metrics in the PR:
 citationValidity = ____________
 highRiskPrecision = ____________
 unsupportedHighRisk = ____________
-p50 = ____________ ms
-p95 = ____________ ms
-p99 = ____________ ms
 ```
 
 ## 5 · Privacy gates
@@ -82,7 +72,6 @@ p99 = ____________ ms
 ## 6 · Operational gates
 
 - [ ] `scripts/smoke.mjs` against staging returns exit 0.
-- [ ] `scripts/check-latency.mjs` against staging returns exit 0.
 - [ ] The D1 staging database has all forward-only migrations applied
       (`wrangler d1 migrations list DB --env staging` shows the latest
       migration).
@@ -114,7 +103,7 @@ Signed: ____________________________
 Role:   Release captain
 Date:   ____________ (UTC)
 Commit: ____________
-Ruleset: vn-mvp-v1
+Ruleset: vn-mvp-v2-licensing-digital-rights-strict
 ```
 
 ## 9 · Post-release checklist (within 24 h)

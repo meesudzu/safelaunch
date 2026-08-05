@@ -1,4 +1,8 @@
-import { LegalReviewForm, type PendingLegalDocument, type ReviewSubmission } from "../../../../components/legal-review-form";
+import {
+  LegalReviewForm,
+  type PendingLegalDocument,
+  type ReviewSubmission,
+} from "../../../../components/legal-review-form";
 import messages from "../../../../messages/admin-vi.json";
 import { createApiClient, type PendingLegalDocumentDto } from "../../../../lib/api-client";
 
@@ -20,12 +24,12 @@ const toPending = (dto: PendingLegalDocumentDto): PendingLegalDocument => ({
   })),
   relations: dto.relations.map((relation) => ({
     id: relation.id,
-    type: (relation.type as "amends" | "supplements" | "replaces" | "repeals"),
+    type: relation.type as "amends" | "supplements" | "replaces" | "repeals",
     targetDocumentId: relation.targetDocumentId,
   })),
   audit: dto.audit.map((event) => ({
     actor: event.actor,
-    decision: (event.decision as "pending" | "approved" | "rejected"),
+    decision: event.decision as "pending" | "approved" | "rejected",
     reason: event.reason,
     createdAt: event.createdAt,
   })),

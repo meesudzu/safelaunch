@@ -1,6 +1,15 @@
 "use client";
 
-import type { OverallReportStatus, ReportFinding, ScanCoverage } from "@safelaunch/contracts";
+import type {
+  AssetRightsSummary,
+  DigitalAsset,
+  LicenseCheck,
+  OverallReportStatus,
+  ReportFinding,
+  ScanCoverage,
+  ServiceSignal,
+} from "@safelaunch/contracts";
+import { isApprovedCitationUrl } from "../lib/citation-hosts";
 
 export interface ReportMessages {
   readonly brand: string;
@@ -26,11 +35,18 @@ export interface ReportMessages {
   readonly "finding.source": string;
   readonly "finding.retrieved_at": string;
   readonly "finding.provision_link": string;
+  readonly "finding.source_link_unavailable": string;
   readonly "upcoming.banner": string;
   readonly "expiry.label": string;
   readonly disclaimer: string;
   readonly "footer.disclosure": string;
   readonly "footer.version": string;
+  readonly "service.signals.title": string;
+  readonly "license.checks.title": string;
+  readonly "asset.inventory.title": string;
+  readonly "asset.inventory.summary": string;
+  readonly "asset.inventory.flagged": string;
+  readonly "asset.inventory.scope"?: string;
 }
 
 export interface ReportFindingCard extends ReportFinding {
@@ -48,6 +64,12 @@ export interface ReportPayload {
   readonly generatedAt: string;
   readonly expiresAt: string;
   readonly rubricVersion: string;
+  readonly serviceSignals?: readonly ServiceSignal[];
+  readonly licenseChecks?: readonly LicenseCheck[];
+  readonly assetInventory?: {
+    readonly assets: readonly DigitalAsset[];
+    readonly summary: AssetRightsSummary;
+  };
 }
 
 const statusLabel = (messages: ReportMessages, status: OverallReportStatus): string => {
@@ -70,6 +92,48 @@ const severityLabel = (messages: ReportMessages, severity: "high" | "review" | "
     case "pass":
       return messages["finding.severity.pass"];
   }
+};
+
+const serviceSignalLabel = (locale: "vi" | "en", kind: ServiceSignal["kind"]): string => {
+  const labels =
+    locale === "vi"
+      ? {
+          login: "Đăng nhập/đăng ký",
+          ugc: "Nội dung người dùng",
+          public_profile: "Hồ sơ công khai",
+          content_feed: "Feed nội dung",
+          follow_or_friend: "Theo dõi/kết bạn",
+          comment: "Bình luận",
+          share: "Chia sẻ",
+          editorial_publishing: "Xuất bản biên tập",
+        }
+      : {
+          login: "Login/registration",
+          ugc: "User-generated content",
+          public_profile: "Public profile",
+          content_feed: "Content feed",
+          follow_or_friend: "Follow/friend",
+          comment: "Comments",
+          share: "Sharing",
+          editorial_publishing: "Editorial publishing",
+        };
+  return labels[kind];
+};
+
+const licenseTypeLabel = (locale: "vi" | "en", value: string): string => {
+  const labels =
+    locale === "vi"
+      ? {
+          online_game: "Trò chơi điện tử",
+          electronic_press: "Báo chí điện tử",
+          social_network: "Mạng xã hội",
+        }
+      : {
+          online_game: "Online game",
+          electronic_press: "Electronic press",
+          social_network: "Social network",
+        };
+  return labels[value as keyof typeof labels] ?? value;
 };
 
 const formatDate = (iso: string, locale: "vi" | "en"): string => {
@@ -187,9 +251,105 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 ? formatDate(upcomingFindings[0].upcomingEffectiveAt, locale)
                 : ""}
             </h2>
-            <p className="mt-2 text-sm text-ink">
-              {upcomingFindings[0]?.rationale}
+            <p className="mt-2 text-sm text-ink">{upcomingFindings[0]?.rationale}</p>
+          </section>
+        ) : null}
+
+        {report.serviceSignals && report.serviceSignals.length > 0 ? (
+          <section
+            aria-labelledby="service-signals-heading"
+            data-testid="service-signals-section"
+            className="rounded-md border border-rule bg-surface p-5"
+          >
+            <h2
+              id="service-signals-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+            >
+              {messages["service.signals.title"] ?? "Đặc tính dịch vụ đã phát hiện"}
+            </h2>
+            <ul className="mt-3 flex flex-col gap-3 text-sm">
+              {report.serviceSignals.map((signal) => (
+                <li key={signal.id} className="border-l-2 border-rule pl-3">
+                  <p className="font-semibold">{serviceSignalLabel(locale, signal.kind)}</p>
+                  <p className="text-ink-soft">{signal.excerpt}</p>
+                  <p className="mt-1 font-mono text-xs text-ink-soft">
+                    {signal.sourceUrl} · {(signal.confidence * 100).toFixed(0)}%
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {report.licenseChecks && report.licenseChecks.length > 0 ? (
+          <section
+            aria-labelledby="license-checks-heading"
+            data-testid="license-checks-section"
+            className="rounded-md border border-rule bg-surface p-5"
+          >
+            <h2
+              id="license-checks-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+            >
+              {messages["license.checks.title"] ?? "Kiểm tra giấy phép"}
+            </h2>
+            <ul className="mt-3 flex flex-col gap-3 text-sm">
+              {report.licenseChecks.map((check) => (
+                <li key={check.id} className="border-l-2 border-gold pl-3">
+                  <p className="font-semibold">
+                    {licenseTypeLabel(locale, check.licenseType)} ·{" "}
+                    {severityLabel(messages, check.severity)}
+                  </p>
+                  <p className="text-ink-soft">{check.rationale}</p>
+                  <p className="mt-1 text-xs text-ink-soft">
+                    {messages["finding.recommended_action"] ?? "Hành động đề xuất"}:{" "}
+                    {check.recommendedAction}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {report.assetInventory && report.assetInventory.assets.length > 0 ? (
+          <section
+            aria-labelledby="asset-inventory-heading"
+            data-testid="asset-inventory-section"
+            className="rounded-md border border-rule bg-surface p-5"
+          >
+            <h2
+              id="asset-inventory-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+            >
+              {messages["asset.inventory.title"] ?? "Inventory tài sản số"}
+            </h2>
+            <p className="mt-2 text-sm text-ink-soft">
+              {messages["asset.inventory.summary"] ?? "Tài sản được site tham chiếu"}:{" "}
+              {report.assetInventory.summary.total} ·{" "}
+              {messages["asset.inventory.flagged"] ?? "Cần kiểm tra license"}:{" "}
+              {report.assetInventory.summary.flagged}
             </p>
+            {messages["asset.inventory.scope"] ? (
+              <p className="mt-1 text-xs italic text-ink-soft">
+                {messages["asset.inventory.scope"]}
+              </p>
+            ) : null}
+            <ul className="mt-3 flex flex-col gap-3 text-xs">
+              {report.assetInventory.assets.slice(0, 25).map((asset) => (
+                <li
+                  key={asset.id}
+                  className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
+                >
+                  <p className="font-semibold uppercase tracking-wider">
+                    {asset.kind} · {asset.licenseEvidence}
+                  </p>
+                  <p className="mt-1 break-all font-mono text-ink">{asset.url}</p>
+                  <p className="mt-1 text-ink-soft">
+                    {asset.sourceUrl} · {(asset.confidence * 100).toFixed(0)}%
+                  </p>
+                </li>
+              ))}
+            </ul>
           </section>
         ) : null}
 
@@ -209,7 +369,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
           {currentFindings.length > 0 ? (
             <div data-testid="findings-current" className="flex flex-col gap-4">
-              <h3 data-testid="findings-current-heading" className="text-xs uppercase tracking-wider text-ink-soft">
+              <h3
+                data-testid="findings-current-heading"
+                className="text-xs uppercase tracking-wider text-ink-soft"
+              >
                 {messages["finding.applicability.current"]}
               </h3>
               {currentFindings.map((finding) => (
@@ -225,7 +388,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
           {upcomingFindings.length > 0 ? (
             <div data-testid="findings-upcoming" className="flex flex-col gap-4">
-              <h3 data-testid="findings-upcoming-heading" className="text-xs uppercase tracking-wider text-ink-soft">
+              <h3
+                data-testid="findings-upcoming-heading"
+                className="text-xs uppercase tracking-wider text-ink-soft"
+              >
                 {messages["finding.applicability.upcoming"]}
               </h3>
               {upcomingFindings.map((finding) => (
@@ -240,7 +406,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           ) : null}
         </section>
 
-        <p data-testid="report-disclaimer" className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft">
+        <p
+          data-testid="report-disclaimer"
+          className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft"
+        >
           {messages.disclaimer}
         </p>
 
@@ -279,9 +448,7 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
             ? messages["finding.applicability.current"]
             : messages["finding.applicability.upcoming"]}
         </p>
-        <p className="font-serif text-lg font-semibold leading-snug">
-          {finding.rationale}
-        </p>
+        <p className="font-serif text-lg font-semibold leading-snug">{finding.rationale}</p>
       </header>
 
       <dl className="mt-4 flex flex-col gap-3 text-sm">
@@ -290,10 +457,7 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
             {messages["finding.confidence"]}
           </dt>
           <dd>
-            <span
-              data-testid={`confidence-${finding.id}`}
-              className="font-mono text-sm"
-            >
+            <span data-testid={`confidence-${finding.id}`} className="font-mono text-sm">
               {(finding.confidence * 100).toFixed(0)}%
             </span>
           </dd>
@@ -320,14 +484,24 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
               {messages["finding.retrieved_at"]}
             </dt>
             <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
-            <a
-              href={citation.url}
-              rel="noopener noreferrer"
-              target="_blank"
-              className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-            >
-              {messages["finding.provision_link"]}
-            </a>
+            {isApprovedCitationUrl(citation.url) ? (
+              <a
+                data-testid={`provision-link-${finding.id}`}
+                href={citation.url}
+                rel="noopener noreferrer"
+                target="_blank"
+                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+              >
+                {messages["finding.provision_link"]}
+              </a>
+            ) : (
+              <p
+                data-testid={`provision-link-unavailable-${finding.id}`}
+                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
+              >
+                {messages["finding.source_link_unavailable"]}
+              </p>
+            )}
           </div>
         ) : null}
 

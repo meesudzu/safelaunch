@@ -12,14 +12,14 @@
 
 ## Release Phases and Gates
 
-| Phase | Deliverable | Exit gate |
-|---|---|---|
-| 0 | Monorepo, contracts, local Worker, D1 schema | lint, typecheck, unit tests, local health endpoint pass |
-| 1 | Reviewed legal corpus pipeline | fixture document reaches approved/searchable state with audit trail |
-| 2 | Safe website scanner | hostile URL suite passes and a fixture site yields source-bound evidence |
-| 3 | Evidence-first compliance engine | benchmark enforces citation validity and high-risk precision |
-| 4 | Anonymous bilingual product and admin UI | Playwright completes submit → progress → private report and admin approval |
-| 5 | Production hardening and release | staging soak, security checks, backup/rollback drill, production smoke pass |
+| Phase | Deliverable                                  | Exit gate                                                                   |
+| ----- | -------------------------------------------- | --------------------------------------------------------------------------- |
+| 0     | Monorepo, contracts, local Worker, D1 schema | lint, typecheck, unit tests, local health endpoint pass                     |
+| 1     | Reviewed legal corpus pipeline               | fixture document reaches approved/searchable state with audit trail         |
+| 2     | Safe website scanner                         | hostile URL suite passes and a fixture site yields source-bound evidence    |
+| 3     | Evidence-first compliance engine             | benchmark enforces citation validity and high-risk precision                |
+| 4     | Anonymous bilingual product and admin UI     | Playwright completes submit → progress → private report and admin approval  |
+| 5     | Production hardening and release             | staging soak, security checks, backup/rollback drill, production smoke pass |
 
 ## Locked File Structure
 
@@ -61,6 +61,7 @@ tests/
 ### Task 1: Bootstrap the pnpm monorepo
 
 **Files:**
+
 - Create: `package.json`
 - Create: `pnpm-workspace.yaml`
 - Create: `tsconfig.base.json`
@@ -105,9 +106,14 @@ packages:
 ```json
 {
   "compilerOptions": {
-    "target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
-    "strict": true, "noUncheckedIndexedAccess": true, "exactOptionalPropertyTypes": true,
-    "noEmit": true, "skipLibCheck": true
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "skipLibCheck": true
   }
 }
 ```
@@ -127,6 +133,7 @@ rtk git commit -m "chore: bootstrap TypeScript monorepo"
 ### Task 2: Define shared public contracts
 
 **Files:**
+
 - Create: `packages/contracts/package.json`
 - Create: `packages/contracts/src/scan.ts`
 - Create: `packages/contracts/src/legal.ts`
@@ -142,11 +149,32 @@ import { CreateScanInput, Finding } from "./index";
 
 describe("public contracts", () => {
   it("accepts only the enabled MVP jurisdiction and categories", () => {
-    expect(CreateScanInput.parse({ url: "https://example.com", jurisdiction: "VN", category: "online_game" })).toBeTruthy();
-    expect(() => CreateScanInput.parse({ url: "https://example.com", jurisdiction: "US", category: "online_game" })).toThrow();
+    expect(
+      CreateScanInput.parse({
+        url: "https://example.com",
+        jurisdiction: "VN",
+        category: "online_game",
+      }),
+    ).toBeTruthy();
+    expect(() =>
+      CreateScanInput.parse({
+        url: "https://example.com",
+        jurisdiction: "US",
+        category: "online_game",
+      }),
+    ).toThrow();
   });
   it("requires evidence and a citation for high risk", () => {
-    expect(() => Finding.parse({ id: "f1", severity: "high", rationale: "risk", confidence: 0.95, evidenceIds: [], citations: [] })).toThrow();
+    expect(() =>
+      Finding.parse({
+        id: "f1",
+        severity: "high",
+        rationale: "risk",
+        confidence: 0.95,
+        evidenceIds: [],
+        citations: [],
+      }),
+    ).toThrow();
   });
 });
 ```
@@ -163,22 +191,58 @@ Expected: FAIL because the schemas do not exist.
 import { z } from "zod";
 export const JurisdictionCode = z.enum(["VN"]);
 export const AppCategory = z.enum(["online_game", "electronic_press", "digital_entertainment"]);
-export const CreateScanInput = z.object({ url: z.string().url(), jurisdiction: JurisdictionCode, category: AppCategory });
-export const ScanState = z.enum(["queued", "fetching", "extracting", "retrieving", "evaluating", "reporting", "completed", "partial", "failed"]);
+export const CreateScanInput = z.object({
+  url: z.string().url(),
+  jurisdiction: JurisdictionCode,
+  category: AppCategory,
+});
+export const ScanState = z.enum([
+  "queued",
+  "fetching",
+  "extracting",
+  "retrieving",
+  "evaluating",
+  "reporting",
+  "completed",
+  "partial",
+  "failed",
+]);
 ```
 
 ```ts
 // packages/contracts/src/legal.ts
 import { z } from "zod";
-export const Citation = z.object({ provisionId: z.string().min(1), source: z.string().min(1), url: z.string().url(), retrievedAt: z.string().datetime(), excerpt: z.string().min(1) });
-export const Evidence = z.object({ id: z.string(), type: z.string(), value: z.string(), sourceUrl: z.string().url(), excerpt: z.string().min(1), confidence: z.number().min(0).max(1) });
+export const Citation = z.object({
+  provisionId: z.string().min(1),
+  source: z.string().min(1),
+  url: z.string().url(),
+  retrievedAt: z.string().datetime(),
+  excerpt: z.string().min(1),
+});
+export const Evidence = z.object({
+  id: z.string(),
+  type: z.string(),
+  value: z.string(),
+  sourceUrl: z.string().url(),
+  excerpt: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+});
 ```
 
 ```ts
 // packages/contracts/src/report.ts
 import { z } from "zod";
 import { Citation, Evidence } from "./legal";
-export const Finding = z.object({ id: z.string(), severity: z.enum(["high", "review", "pass"]), rationale: z.string().min(1), confidence: z.number().min(0).max(1), evidenceIds: z.array(z.string()).min(1), citations: z.array(Citation).min(1), recommendedAction: z.string().min(1), applicability: z.enum(["current", "upcoming"]) });
+export const Finding = z.object({
+  id: z.string(),
+  severity: z.enum(["high", "review", "pass"]),
+  rationale: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+  evidenceIds: z.array(z.string()).min(1),
+  citations: z.array(Citation).min(1),
+  recommendedAction: z.string().min(1),
+  applicability: z.enum(["current", "upcoming"]),
+});
 export const ReportStatus = z.enum(["high_risk", "needs_review", "no_significant_risk"]);
 export type EvidenceItem = z.infer<typeof Evidence>;
 ```
@@ -196,6 +260,7 @@ rtk git commit -m "feat: define SafeLaunch public contracts"
 ### Task 3: Create the D1 schema and repositories
 
 **Files:**
+
 - Create: `packages/db/migrations/0001_initial.sql`
 - Create: `packages/db/src/client.ts`
 - Create: `packages/db/src/legal-repository.ts`
@@ -238,7 +303,13 @@ CREATE INDEX idx_legal_retrieval ON legal_documents(status, effective_from, effe
 ```
 
 ```ts
-export const isApplicable = (d: { status: string; effectiveFrom: string | null; effectiveTo: string | null }, on: string) => d.status === "approved" && (!d.effectiveFrom || d.effectiveFrom <= on) && (!d.effectiveTo || d.effectiveTo > on);
+export const isApplicable = (
+  d: { status: string; effectiveFrom: string | null; effectiveTo: string | null },
+  on: string,
+) =>
+  d.status === "approved" &&
+  (!d.effectiveFrom || d.effectiveFrom <= on) &&
+  (!d.effectiveTo || d.effectiveTo > on);
 ```
 
 - [ ] **Step 4: Apply migration, pass tests, and commit**
@@ -254,6 +325,7 @@ rtk git commit -m "feat: add auditable D1 data model"
 ### Task 4: Bootstrap the Worker and binding configuration
 
 **Files:**
+
 - Create: `apps/workers/package.json`
 - Create: `apps/workers/wrangler.jsonc`
 - Create: `apps/workers/src/index.ts`
@@ -283,7 +355,9 @@ Expected: FAIL because the Worker is absent.
 import { Hono } from "hono";
 const app = new Hono<{ Bindings: Env }>();
 app.get("/v1/health", (c) => c.json({ ok: true, service: "safelaunch-api" }));
-app.onError((error, c) => c.json({ code: "INTERNAL_ERROR", requestId: c.req.header("cf-ray") ?? crypto.randomUUID() }, 500));
+app.onError((error, c) =>
+  c.json({ code: "INTERNAL_ERROR", requestId: c.req.header("cf-ray") ?? crypto.randomUUID() }, 500),
+);
 export default app;
 ```
 
@@ -304,6 +378,7 @@ rtk git commit -m "feat: bootstrap Cloudflare Worker API"
 ### Task 5: Capture vbpl.vn fixtures and parse DOCX documents
 
 **Files:**
+
 - Create: `tests/fixtures/vbpl/sample-current.docx`
 - Create: `tests/fixtures/vbpl/sample-current.html`
 - Create: `tests/fixtures/vbpl/sample-upcoming.docx`
@@ -333,7 +408,10 @@ it("extracts Điều-level provisions with article labels and merged body text",
 import { gunzipSync } from "node:zlib";
 import { parse as parseXml } from "fast-xml-parser";
 
-export const parseVbplDocx = async (bytes: Uint8Array, input: { sourceUrl: string; retrievedAt: string; metadata: VbplMetadata }): Promise<ParsedVbplDocument> => {
+export const parseVbplDocx = async (
+  bytes: Uint8Array,
+  input: { sourceUrl: string; retrievedAt: string; metadata: VbplMetadata },
+): Promise<ParsedVbplDocument> => {
   const entries = unzipOpenXml(bytes);
   const xml = new TextDecoder("utf-8").decode(entries["word/document.xml"]);
   const root = parseXml(xml, { ignoreAttributes: false });
@@ -344,6 +422,7 @@ export const parseVbplDocx = async (bytes: Uint8Array, input: { sourceUrl: strin
 ```
 
 Implementation notes:
+
 - Open the DOCX as a ZIP container; fail explicitly if `word/document.xml` is missing.
 - Walk `w:p` paragraphs. Capture every `w:t` text node, preserve paragraph breaks, and ignore inline formatting.
 - Group paragraphs under headings whose text begins with `Điều <number>`; each heading starts a new provision whose text is the concatenation of the heading paragraph and subsequent paragraphs until the next `Điều` heading or end of document.
@@ -366,6 +445,7 @@ rtk git commit -m "feat: parse versioned vbpl legal documents"
 ### Task 6: Implement ingestion, review, and indexing
 
 **Files:**
+
 - Create: `apps/workers/src/queues/legal-ingestion.ts`
 - Create: `apps/workers/src/routes/admin.ts`
 - Test: `apps/workers/src/queues/legal-ingestion.test.ts`
@@ -377,7 +457,11 @@ rtk git commit -m "feat: parse versioned vbpl legal documents"
 it("indexes only after explicit approval", async () => {
   await ingest(snapshot);
   expect(await vectorIds()).toEqual([]);
-  await approve({ documentId: snapshot.id, actor: "access:user@example.com", reason: "metadata and source checked" });
+  await approve({
+    documentId: snapshot.id,
+    actor: "access:user@example.com",
+    reason: "metadata and source checked",
+  });
   expect(await vectorIds()).toEqual(snapshot.provisions.map((p) => p.id));
 });
 ```
@@ -394,7 +478,9 @@ export async function ingestMessage(message: IngestionMessage, deps: IngestionDe
   const sourceHash = await sha256(message.html);
   if (await deps.legal.hasSourceHash(sourceHash)) return { status: "duplicate" as const };
   const parsed = parseVbplHtml(message);
-  await deps.r2.put(`legal/${parsed.id}/${sourceHash}.html`, message.html, { httpMetadata: { contentType: "text/html; charset=utf-8" } });
+  await deps.r2.put(`legal/${parsed.id}/${sourceHash}.html`, message.html, {
+    httpMetadata: { contentType: "text/html; charset=utf-8" },
+  });
   await deps.legal.insertPending(parsed, sourceHash);
   return { status: "pending_review" as const };
 }
@@ -417,16 +503,26 @@ rtk git commit -m "feat: add reviewed legal corpus lifecycle"
 ### Task 7: Implement SSRF-safe URL policy
 
 **Files:**
+
 - Create: `apps/workers/src/services/url-policy.ts`
 - Test: `apps/workers/src/services/url-policy.test.ts`
 
 - [ ] **Step 1: Encode hostile URL cases**
 
 ```ts
-it.each(["http://127.0.0.1", "http://[::1]", "http://169.254.169.254/latest/meta-data", "file:///etc/passwd", "https://user:pass@example.com"])("blocks %s", async (url) => {
+it.each([
+  "http://127.0.0.1",
+  "http://[::1]",
+  "http://169.254.169.254/latest/meta-data",
+  "file:///etc/passwd",
+  "https://user:pass@example.com",
+])("blocks %s", async (url) => {
   await expect(validatePublicUrl(url, fakeDns)).rejects.toThrow(UnsafeUrlError);
 });
-it("accepts a public https destination", async () => expect(validatePublicUrl("https://example.com", fakeDnsPublic)).resolves.toMatchObject({ hostname: "example.com" }));
+it("accepts a public https destination", async () =>
+  expect(validatePublicUrl("https://example.com", fakeDnsPublic)).resolves.toMatchObject({
+    hostname: "example.com",
+  }));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -439,9 +535,11 @@ Expected: FAIL.
 ```ts
 export async function validatePublicUrl(raw: string, resolve: Resolver): Promise<URL> {
   const url = new URL(raw);
-  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new UnsafeUrlError("unsupported URL");
+  if (!["http:", "https:"].includes(url.protocol) || url.username || url.password)
+    throw new UnsafeUrlError("unsupported URL");
   const addresses = await resolve(url.hostname);
-  if (addresses.length === 0 || addresses.some((address) => !isPublicAddress(address))) throw new UnsafeUrlError("non-public destination");
+  if (addresses.length === 0 || addresses.some((address) => !isPublicAddress(address)))
+    throw new UnsafeUrlError("non-public destination");
   url.hash = "";
   return url;
 }
@@ -460,6 +558,7 @@ rtk git commit -m "feat: enforce public URL policy"
 ### Task 8: Add bounded fetching and page discovery
 
 **Files:**
+
 - Create: `apps/workers/src/services/safe-fetch.ts`
 - Create: `apps/workers/src/services/page-discovery.ts`
 - Test: `apps/workers/src/services/safe-fetch.test.ts`
@@ -468,11 +567,15 @@ rtk git commit -m "feat: enforce public URL policy"
 - [ ] **Step 1: Test redirect revalidation, byte limits, and four page types**
 
 ```ts
-it("revalidates every redirect", async () => expect(fetchBounded("https://public.test", redirectToPrivate)).rejects.toThrow(UnsafeUrlError));
-it("selects one best URL per supported type", () => expect(discoverPages(homeHtml, base)).toEqual([
-  { type: "terms", url: "https://site.test/terms" }, { type: "privacy", url: "https://site.test/privacy" },
-  { type: "about", url: "https://site.test/about" }, { type: "contact", url: "https://site.test/contact" }
-]));
+it("revalidates every redirect", async () =>
+  expect(fetchBounded("https://public.test", redirectToPrivate)).rejects.toThrow(UnsafeUrlError));
+it("selects one best URL per supported type", () =>
+  expect(discoverPages(homeHtml, base)).toEqual([
+    { type: "terms", url: "https://site.test/terms" },
+    { type: "privacy", url: "https://site.test/privacy" },
+    { type: "about", url: "https://site.test/about" },
+    { type: "contact", url: "https://site.test/contact" },
+  ]));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -483,7 +586,12 @@ Expected: FAIL.
 - [ ] **Step 3: Implement streaming size enforcement and deterministic discovery ranking**
 
 ```ts
-export const FETCH_LIMITS = { redirects: 3, compressedBytes: 1_000_000, decodedBytes: 2_000_000, timeoutMs: 8_000 } as const;
+export const FETCH_LIMITS = {
+  redirects: 3,
+  compressedBytes: 1_000_000,
+  decodedBytes: 2_000_000,
+  timeoutMs: 8_000,
+} as const;
 ```
 
 Read response streams chunk-by-chunk, cancel once a limit is exceeded, accept only HTML/XHTML, and run `validatePublicUrl` before the first request and each redirect. Rank same-origin links using Vietnamese and English exact labels before URL keyword matches; never fetch more than homepage plus four selected pages.
@@ -501,6 +609,7 @@ rtk git commit -m "feat: add bounded website discovery"
 ### Task 9: Extract source-bound evidence
 
 **Files:**
+
 - Create: `apps/workers/src/services/evidence.ts`
 - Create: `tests/fixtures/sites/{game,press,entertainment}/index.html`
 - Test: `apps/workers/src/services/evidence.test.ts`
@@ -510,9 +619,18 @@ rtk git commit -m "feat: add bounded website discovery"
 ```ts
 it("preserves exact source for operator evidence", async () => {
   const items = await extractEvidence(gameFixture, deterministicExtractor);
-  expect(items).toContainEqual(expect.objectContaining({ type: "operator_identity", sourceUrl: "https://game.test/about", excerpt: expect.stringContaining("Công ty") }));
+  expect(items).toContainEqual(
+    expect.objectContaining({
+      type: "operator_identity",
+      sourceUrl: "https://game.test/about",
+      excerpt: expect.stringContaining("Công ty"),
+    }),
+  );
 });
-it("treats page instructions as content", async () => expect(extractEvidence(promptInjectionFixture, deterministicExtractor)).resolves.not.toContainEqual(expect.objectContaining({ value: "ignore system" })));
+it("treats page instructions as content", async () =>
+  expect(
+    extractEvidence(promptInjectionFixture, deterministicExtractor),
+  ).resolves.not.toContainEqual(expect.objectContaining({ value: "ignore system" })));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -523,7 +641,20 @@ Expected: FAIL.
 - [ ] **Step 3: Implement sanitization, chunking, typed extraction, and excerpt verification**
 
 ```ts
-export const EvidenceDraft = z.object({ type: z.enum(["operator_identity", "contact", "privacy_notice", "payment", "ugc", "content_model", "license_claim"]), value: z.string(), quote: z.string(), confidence: z.number().min(0).max(1) });
+export const EvidenceDraft = z.object({
+  type: z.enum([
+    "operator_identity",
+    "contact",
+    "privacy_notice",
+    "payment",
+    "ugc",
+    "content_model",
+    "license_claim",
+  ]),
+  value: z.string(),
+  quote: z.string(),
+  confidence: z.number().min(0).max(1),
+});
 export function verifyQuote(pageText: string, draft: z.infer<typeof EvidenceDraft>) {
   if (!pageText.includes(draft.quote)) throw new UnsupportedEvidenceError(draft.quote);
   return { ...draft, excerpt: draft.quote };
@@ -543,6 +674,7 @@ rtk git commit -m "feat: extract auditable website evidence"
 ### Task 10: Orchestrate scans with progress and partial outcomes
 
 **Files:**
+
 - Create: `apps/workers/src/workflows/scan-workflow.ts`
 - Create: `apps/workers/src/routes/scans.ts`
 - Test: `apps/workers/src/workflows/scan-workflow.test.ts`
@@ -568,9 +700,17 @@ Expected: FAIL.
 ```ts
 export class ScanWorkflow extends WorkflowEntrypoint<Env, ScanParams> {
   async run(event: WorkflowEvent<ScanParams>, step: WorkflowStep) {
-    const pages = await step.do("fetch-pages", { retries: { limit: 1 }, timeout: "20 seconds" }, () => fetchScanPages(event.payload));
-    const evidence = await step.do("extract-evidence", { timeout: "15 seconds" }, () => extractScanEvidence(pages));
-    return step.do("evaluate-and-report", { timeout: "20 seconds" }, () => evaluateAndPersist(event.payload.scanId, pages, evidence));
+    const pages = await step.do(
+      "fetch-pages",
+      { retries: { limit: 1 }, timeout: "20 seconds" },
+      () => fetchScanPages(event.payload),
+    );
+    const evidence = await step.do("extract-evidence", { timeout: "15 seconds" }, () =>
+      extractScanEvidence(pages),
+    );
+    return step.do("evaluate-and-report", { timeout: "20 seconds" }, () =>
+      evaluateAndPersist(event.payload.scanId, pages, evidence),
+    );
   }
 }
 ```
@@ -592,6 +732,7 @@ rtk git commit -m "feat: orchestrate bounded compliance scans"
 ### Task 11: Implement jurisdiction registry and deterministic rules
 
 **Files:**
+
 - Create: `packages/compliance-core/src/jurisdictions.ts`
 - Create: `packages/compliance-core/src/rules.ts`
 - Create: `packages/compliance-core/src/scoring.ts`
@@ -601,8 +742,12 @@ rtk git commit -m "feat: orchestrate bounded compliance scans"
 - [ ] **Step 1: Test reproducible, coverage-aware rules**
 
 ```ts
-it("does not infer absence from a failed privacy page", () => expect(runRules(scanWithFailedPrivacy)).toContainEqual(expect.objectContaining({ ruleId: "privacy-notice", outcome: "unknown" })));
-it("returns the same rationale for the same versioned input", () => expect(runRules(completeScan)).toEqual(runRules(completeScan)));
+it("does not infer absence from a failed privacy page", () =>
+  expect(runRules(scanWithFailedPrivacy)).toContainEqual(
+    expect.objectContaining({ ruleId: "privacy-notice", outcome: "unknown" }),
+  ));
+it("returns the same rationale for the same versioned input", () =>
+  expect(runRules(completeScan)).toEqual(runRules(completeScan)));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -613,9 +758,12 @@ Expected: FAIL.
 - [ ] **Step 3: Implement data-driven jurisdiction/category configuration and named rubric**
 
 ```ts
-export const jurisdictions = [{ code: "VN", enabled: true, sourceHosts: ["vbpl.vn"], reportLocales: ["vi", "en"] }] as const;
+export const jurisdictions = [
+  { code: "VN", enabled: true, sourceHosts: ["vbpl.vn"], reportLocales: ["vi", "en"] },
+] as const;
 export const RUBRIC_VERSION = "vn-mvp-v1";
-export const severityFor = (outcome: "present" | "absent" | "unknown") => outcome === "absent" ? "high" : outcome === "unknown" ? "review" : "pass";
+export const severityFor = (outcome: "present" | "absent" | "unknown") =>
+  outcome === "absent" ? "high" : outcome === "unknown" ? "review" : "pass";
 ```
 
 Document every rule ID, evidence requirement, unknown behavior, severity, rationale template, categories, and citations required in `v1.md`.
@@ -633,6 +781,7 @@ rtk git commit -m "feat: add explainable Vietnam ruleset"
 ### Task 12: Add approved legal retrieval
 
 **Files:**
+
 - Create: `packages/ai/src/retrieval.ts`
 - Test: `packages/ai/src/retrieval.test.ts`
 
@@ -654,10 +803,20 @@ Expected: FAIL.
 
 ```ts
 export async function retrieveLegalContext(q: RetrievalQuery, deps: RetrievalDeps) {
-  const eligible = await deps.legal.listRetrievable({ jurisdiction: q.jurisdiction, category: q.category, on: q.on });
+  const eligible = await deps.legal.listRetrievable({
+    jurisdiction: q.jurisdiction,
+    category: q.category,
+    on: q.on,
+  });
   const allowed = new Set(eligible.map((p) => p.id));
-  const hits = await deps.vector.query(await deps.embed(q.text), { topK: 12, returnMetadata: "all" });
-  return hits.matches.filter((hit) => allowed.has(hit.id)).slice(0, 6).map((hit) => eligible.find((p) => p.id === hit.id)!);
+  const hits = await deps.vector.query(await deps.embed(q.text), {
+    topK: 12,
+    returnMetadata: "all",
+  });
+  return hits.matches
+    .filter((hit) => allowed.has(hit.id))
+    .slice(0, 6)
+    .map((hit) => eligible.find((p) => p.id === hit.id)!);
 }
 ```
 
@@ -674,6 +833,7 @@ rtk git commit -m "feat: retrieve only approved legal provisions"
 ### Task 13: Evaluate and verify evidence-provision pairs
 
 **Files:**
+
 - Create: `packages/ai/src/provider.ts`
 - Create: `packages/ai/src/evaluate.ts`
 - Create: `packages/compliance-core/src/verify.ts`
@@ -683,8 +843,10 @@ rtk git commit -m "feat: retrieve only approved legal provisions"
 - [ ] **Step 1: Test malformed output, invented quotes, and weak high-risk claims**
 
 ```ts
-it("rejects an invented legal quote", () => expect(() => verifyFinding(inventedQuote, context)).toThrow(CitationVerificationError));
-it("downgrades unsupported high risk to expert review", () => expect(verifyFinding(weakHighRisk, context).severity).toBe("review"));
+it("rejects an invented legal quote", () =>
+  expect(() => verifyFinding(inventedQuote, context)).toThrow(CitationVerificationError));
+it("downgrades unsupported high risk to expert review", () =>
+  expect(verifyFinding(weakHighRisk, context).severity).toBe("review"));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -695,7 +857,15 @@ Expected: FAIL.
 - [ ] **Step 3: Add structured provider boundary and deterministic verifier**
 
 ```ts
-export const EvaluationDraft = z.object({ severity: z.enum(["high", "review", "pass"]), rationale: z.string(), evidenceIds: z.array(z.string()).min(1), provisionIds: z.array(z.string()).min(1), legalQuotes: z.array(z.string()).min(1), confidence: z.number().min(0).max(1), recommendedAction: z.string() });
+export const EvaluationDraft = z.object({
+  severity: z.enum(["high", "review", "pass"]),
+  rationale: z.string(),
+  evidenceIds: z.array(z.string()).min(1),
+  provisionIds: z.array(z.string()).min(1),
+  legalQuotes: z.array(z.string()).min(1),
+  confidence: z.number().min(0).max(1),
+  recommendedAction: z.string(),
+});
 ```
 
 The provider receives system rules separately from `<untrusted_website_content>` blocks. The verifier checks exact website excerpts, exact legal quotes, approved/applicable provision IDs, category match, and a high-risk confidence threshold of `0.90`. Raw model output never becomes a report.
@@ -713,6 +883,7 @@ rtk git commit -m "feat: verify evidence-backed AI findings"
 ### Task 14: Aggregate and translate reports without semantic drift
 
 **Files:**
+
 - Create: `packages/compliance-core/src/aggregate.ts`
 - Create: `packages/ai/src/translate.ts`
 - Create: `apps/workers/src/routes/reports.ts`
@@ -722,7 +893,8 @@ rtk git commit -m "feat: verify evidence-backed AI findings"
 - [ ] **Step 1: Test status precedence and translation invariants**
 
 ```ts
-it("never returns a clean status for partial coverage", () => expect(aggregate([], { complete: false })).toBe("needs_review"));
+it("never returns a clean status for partial coverage", () =>
+  expect(aggregate([], { complete: false })).toBe("needs_review"));
 it("keeps machine fields identical across locales", async () => {
   const bilingual = await translateReport(reportVi, fakeTranslator);
   expect(projectMachineFields(bilingual.en)).toEqual(projectMachineFields(bilingual.vi));
@@ -738,8 +910,13 @@ Expected: FAIL.
 
 ```ts
 export function aggregate(findings: Finding[], coverage: Coverage): ReportStatus {
-  if (findings.some((f) => f.applicability === "current" && f.severity === "high")) return "high_risk";
-  if (!coverage.complete || findings.some((f) => f.applicability === "current" && f.severity === "review")) return "needs_review";
+  if (findings.some((f) => f.applicability === "current" && f.severity === "high"))
+    return "high_risk";
+  if (
+    !coverage.complete ||
+    findings.some((f) => f.applicability === "current" && f.severity === "review")
+  )
+    return "needs_review";
   return "no_significant_risk";
 }
 ```
@@ -761,6 +938,7 @@ rtk git commit -m "feat: compose private bilingual reports"
 ### Task 15: Build the bilingual homepage and scan form
 
 **Files:**
+
 - Create: `apps/web/package.json`
 - Create: `apps/web/next.config.mjs`
 - Create: `apps/web/open-next.config.ts`
@@ -785,7 +963,11 @@ it("submits the Vietnam scan contract without authentication", async () => {
   await user.type(screen.getByLabelText("URL website"), "https://example.com");
   await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
   await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
-  expect(createScan).toHaveBeenCalledWith({ url: "https://example.com", jurisdiction: "VN", category: "online_game" });
+  expect(createScan).toHaveBeenCalledWith({
+    url: "https://example.com",
+    jurisdiction: "VN",
+    category: "online_game",
+  });
 });
 ```
 
@@ -806,6 +988,7 @@ rtk git commit -m "feat: add anonymous bilingual scan homepage"
 ### Task 16: Build progress and report experiences
 
 **Files:**
+
 - Create: `apps/web/app/[locale]/scan/[scanId]/page.tsx`
 - Create: `apps/web/app/[locale]/report/[token]/page.tsx`
 - Create: `apps/web/components/scan-progress.tsx`
@@ -845,6 +1028,7 @@ rtk git commit -m "feat: render transparent compliance reports"
 ### Task 17: Build the Access-protected legal admin
 
 **Files:**
+
 - Create: `apps/web/app/admin/legal/page.tsx`
 - Create: `apps/web/app/admin/legal/[documentId]/page.tsx`
 - Create: `apps/web/components/legal-review-form.tsx`
@@ -885,6 +1069,7 @@ rtk git commit -m "feat: add auditable legal review console"
 ### Task 18: Add abuse controls, retention, and privacy-safe observability
 
 **Files:**
+
 - Create: `apps/workers/src/middleware/abuse.ts`
 - Create: `apps/workers/src/services/retention.ts`
 - Create: `apps/workers/src/observability.ts`
@@ -894,8 +1079,15 @@ rtk git commit -m "feat: add auditable legal review console"
 - [ ] **Step 1: Write failing retention and redaction tests**
 
 ```ts
-it("deletes expired D1 and R2 scan artifacts", async () => { await purgeExpired(now, deps); expect(await deps.db.scan("expired")).toBeNull(); expect(await deps.r2.get("scans/expired/home.html")).toBeNull(); });
-it("never logs raw URL paths or tokens", () => expect(toLogEvent(requestFixture)).toEqual(expect.objectContaining({ hostHash: expect.any(String), path: undefined, token: undefined })));
+it("deletes expired D1 and R2 scan artifacts", async () => {
+  await purgeExpired(now, deps);
+  expect(await deps.db.scan("expired")).toBeNull();
+  expect(await deps.r2.get("scans/expired/home.html")).toBeNull();
+});
+it("never logs raw URL paths or tokens", () =>
+  expect(toLogEvent(requestFixture)).toEqual(
+    expect.objectContaining({ hostHash: expect.any(String), path: undefined, token: undefined }),
+  ));
 ```
 
 - [ ] **Step 2: Run and confirm failure**
@@ -920,6 +1112,7 @@ rtk git commit -m "feat: harden anonymous scan privacy"
 ### Task 19: Build the legal evaluation and latency gates
 
 **Files:**
+
 - Create: `tests/evals/cases/*.json`
 - Create: `packages/ai/src/eval-runner.ts`
 - Create: `packages/ai/src/eval-runner.test.ts`
@@ -958,6 +1151,7 @@ rtk git commit -m "test: add legal quality release gates"
 ### Task 20: Add CI, staged deployment, and production rollback
 
 **Files:**
+
 - Create: `.github/workflows/ci.yml`
 - Create: `.github/workflows/deploy-staging.yml`
 - Create: `.github/workflows/deploy-production.yml`
@@ -991,6 +1185,7 @@ rtk git commit -m "ci: add staged SafeLaunch release pipeline"
 ### Task 21: Execute the release candidate checklist
 
 **Files:**
+
 - Create: `docs/releases/mvp-release-checklist.md`
 
 - [ ] **Step 1: Verify product and compliance gates**
@@ -1023,24 +1218,24 @@ rtk git push origin main v0.1.0
 
 ## Spec Coverage Matrix
 
-| Design requirement | Implemented by |
-|---|---|
-| Anonymous URL/category/Vietnam submission | Tasks 2, 10, 15 |
-| Homepage plus four legal/company pages | Tasks 8–10 |
-| SSRF, redirect, size, timeout, prompt-injection safety | Tasks 7–10, 13, 18 |
-| vbpl.vn source, lifecycle, versioning, approval, audit | Tasks 3, 5, 6, 17 |
-| Current and upcoming provisions | Tasks 3, 5, 12, 14, 16 |
-| Deterministic rules plus evidence-first RAG | Tasks 11–14 |
-| Exact website evidence and article-level citations | Tasks 9, 12–14, 16 |
-| Precision-first high-risk verifier | Tasks 13, 19 |
-| Completed/partial/failed outcomes without false clean result | Tasks 10, 14, 16 |
-| Vietnamese-English semantic parity | Tasks 14–16, 19 |
-| Private seven-day report and deletion | Tasks 14, 16, 18 |
-| Cloudflare-first bindings and provider isolation | Tasks 4, 6, 10, 12, 13 |
-| Admin protected by Cloudflare Access | Tasks 6, 17, 20 |
-| P95 below 60 seconds | Tasks 8, 10, 19, 21 |
-| 100% valid citations and ≥90% high-risk precision | Tasks 13, 19, 21 |
-| CI, staging, rollback, production release | Tasks 20, 21 |
+| Design requirement                                           | Implemented by         |
+| ------------------------------------------------------------ | ---------------------- |
+| Anonymous URL/category/Vietnam submission                    | Tasks 2, 10, 15        |
+| Homepage plus four legal/company pages                       | Tasks 8–10             |
+| SSRF, redirect, size, timeout, prompt-injection safety       | Tasks 7–10, 13, 18     |
+| vbpl.vn source, lifecycle, versioning, approval, audit       | Tasks 3, 5, 6, 17      |
+| Current and upcoming provisions                              | Tasks 3, 5, 12, 14, 16 |
+| Deterministic rules plus evidence-first RAG                  | Tasks 11–14            |
+| Exact website evidence and article-level citations           | Tasks 9, 12–14, 16     |
+| Precision-first high-risk verifier                           | Tasks 13, 19           |
+| Completed/partial/failed outcomes without false clean result | Tasks 10, 14, 16       |
+| Vietnamese-English semantic parity                           | Tasks 14–16, 19        |
+| Private seven-day report and deletion                        | Tasks 14, 16, 18       |
+| Cloudflare-first bindings and provider isolation             | Tasks 4, 6, 10, 12, 13 |
+| Admin protected by Cloudflare Access                         | Tasks 6, 17, 20        |
+| P95 below 60 seconds                                         | Tasks 8, 10, 19, 21    |
+| 100% valid citations and ≥90% high-risk precision            | Tasks 13, 19, 21       |
+| CI, staging, rollback, production release                    | Tasks 20, 21           |
 
 ## Implementation Order and Parallelism
 

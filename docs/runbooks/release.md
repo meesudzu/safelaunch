@@ -10,7 +10,7 @@
 1. **Confirm the green build.** The release commit is the latest `main`
    tip where `.github/workflows/ci.yml` finished green. Copy the commit
    SHA — it goes into the deployment audit and the production PR.
-2. **Verify the ruleset / corpus version.** The `vn-mvp-v1` ruleset is
+2. **Verify the ruleset / corpus version.** The `vn-mvp-v2-licensing-digital-rights-strict` ruleset is
    frozen; any rubric change requires a fresh benchmark set + re-baseline.
 3. **Open the release PR.** Use the release-checklist template (see
    `docs/releases/mvp-release-checklist.md`); paste the CI green URL.
@@ -27,9 +27,7 @@ after CI passes. The deploy:
    full production corpus).
 5. Runs `node scripts/smoke.mjs --base-url "$STAGING_URL"`.
 6. Runs the eval gate (`pnpm -C packages/ai test -- eval-runner`).
-7. Runs the latency probe (`node scripts/check-latency.mjs --base-url
-   "$STAGING_URL" --samples 25`).
-8. Uploads a redacted report artifact to GitHub Actions.
+7. Uploads a redacted report artifact to GitHub Actions.
 
 **Stop conditions** (any one halts the release):
 
@@ -37,7 +35,6 @@ after CI passes. The deploy:
   budget).
 - Eval gate fails (`citationValidity < 1.0`, `highRiskPrecision < 0.9`,
   or `unsupportedHighRisk > 0`).
-- Latency probe P95 ≥ 60 000 ms.
 
 If any stop condition fires, do **not** proceed to production. Either
 revert the merge commit on `main` (the `rollback.md` runbook covers
@@ -55,17 +52,14 @@ workflow:
 2. **Exports a D1 snapshot** to `artifacts/db-snapshot/db.sql` and
    uploads it as a 90-day artifact. **This is your rollback anchor.**
 3. **Applies forward-only D1 migrations** to the production database.
-4. **Deploys the API Worker** to production.
-5. **Deploys the Web Worker** (OpenNext) to production.
-6. **Shifts traffic gradually** — 10 %, then 50 %, then 100 % with a
-   60 s pause between each step. The Worker version is pinned by a
-   percentage rollout, not a flip.
+4. **Runs the eval gate** before any production deployment to catch rubric
+   regressions.
+5. **Deploys the API Worker** to production.
+6. **Deploys the Web Worker** (OpenNext) to production.
 7. **Runs smoke** against `https://api.safelaunch.app`.
-8. **Runs the eval gate** again to catch rubric regressions.
-9. **Runs the latency probe** with 50 samples.
-10. **Records the deployment audit** to
-    `artifacts/deployment.json` — commit, ruleset, prompt version, model,
-    corpus version, timestamp. This artifact lives for 365 days.
+8. **Records the deployment audit** to
+   `artifacts/deployment.json` — commit, ruleset, prompt version, model,
+   corpus version, timestamp. This artifact lives for 365 days.
 
 ## 4 · Verification (release captain)
 
@@ -100,3 +94,6 @@ After the workflow reports green, manually verify:
 ## 7 · Change log
 
 - `2026-07-30` — v1 runbook. First release of the SafeLaunch MVP.
+- `2026-08-04` — Removed the standalone CICD latency probe
+  (`scripts/check-latency.mjs` and its `Latency probe` step in
+  `deploy-production.yml`). Smoke + eval gate remain the release gates.

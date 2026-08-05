@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EvidenceItem, ScanCoverage } from "@safelaunch/contracts";
-import {
-  RUBRIC_VERSION,
-  runRules,
-  type RuleInput,
-  type RuleOutcome,
-} from "./rules";
+import { RUBRIC_VERSION, runRules, type RuleInput, type RuleOutcome } from "./rules";
 
 const FULL_COVERAGE: ScanCoverage = {
   fetched: ["homepage", "about", "privacy", "contact", "terms"],
@@ -36,7 +31,12 @@ const baseInput: RuleInput = {
   coverage: FULL_COVERAGE,
   evidence: [
     evidence({ id: "ev_op", type: "operator_identity" }),
-    evidence({ id: "ev_contact", type: "contact", value: "hotro@volam.test", excerpt: "Email liên hệ: hotro@volam.test" }),
+    evidence({
+      id: "ev_contact",
+      type: "contact",
+      value: "hotro@volam.test",
+      excerpt: "Email liên hệ: hotro@volam.test",
+    }),
     evidence({
       id: "ev_priv",
       type: "privacy_notice",
@@ -47,7 +47,18 @@ const baseInput: RuleInput = {
 
 describe("RUBRIC_VERSION", () => {
   it("matches the MVP release plan", () => {
-    expect(RUBRIC_VERSION).toBe("vn-mvp-v1");
+    expect(RUBRIC_VERSION).toBe("vn-mvp-v2-licensing-digital-rights-strict");
+  });
+});
+
+describe("citation sources", () => {
+  it("uses the reviewed vbpl.vn source for contact-info", () => {
+    const contact = runRules(baseInput).find((rule) => rule.ruleId === "contact-info");
+    expect(contact?.citations[0]).toMatchObject({
+      provisionId: "vn-pd-2025-contact-channel",
+      source: "Luật An toàn thông tin mạng 2015",
+    });
+    expect(contact?.citations[0]?.excerpt).toBeTypeOf("string");
   });
 });
 

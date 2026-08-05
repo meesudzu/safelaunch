@@ -30,12 +30,12 @@ interface EvalCase {
 
 ## 2 · Composition (MVP baseline)
 
-| Category | High-risk | Non-high-risk | Total |
-| --- | --- | --- | --- |
-| `online_game` | 10 | 10 | 20 |
-| `electronic_press` | 10 | 10 | 20 |
-| `digital_entertainment` | 10 | 10 | 20 |
-| **Total** | **30** | **30** | **60** |
+| Category                | High-risk | Non-high-risk | Total  |
+| ----------------------- | --------- | ------------- | ------ |
+| `online_game`           | 10        | 10            | 20     |
+| `electronic_press`      | 10        | 10            | 20     |
+| `digital_entertainment` | 10        | 10            | 20     |
+| **Total**               | **30**    | **30**        | **60** |
 
 Languages are interleaved: odd indices are `vi`, even are `en`. This keeps
 the gate honest across both locales.
@@ -47,38 +47,31 @@ a `reviewDate`. Disputed cases additionally carry a `disputed` object
 with the second reviewer's attestation. A case is eligible for the
 release set only if it has either:
 
-  - a single `reviewer` and `reviewDate`, **or**
-  - both a `reviewer` and a `disputed.reviewer` (two distinct human
-    reviewers signed off).
+- a single `reviewer` and `reviewDate`, **or**
+- both a `reviewer` and a `disputed.reviewer` (two distinct human
+  reviewers signed off).
 
 ## 4 · Release gates
 
 The runner exports `RELEASE_GATES`:
 
-| Gate | Threshold | Failure mode |
-| --- | --- | --- |
-| `citationValidity` | 1.0 | Any model citation that does not point to an allowed provision AND quote the provision's text verbatim. |
-| `highRiskPrecision` | ≥ 0.9 | True positives / (true positives + false positives) for the `high` severity class. |
-| `unsupportedHighRisk` | 0 | A `high` prediction that does not cite any provision in the case's expected set. |
-| `p95LatencyMs` (probe) | 60 000 ms | `scripts/check-latency.mjs --samples 100` against the staging URL. |
+| Gate                  | Threshold | Failure mode                                                                                            |
+| --------------------- | --------- | ------------------------------------------------------------------------------------------------------- |
+| `citationValidity`    | 1.0       | Any model citation that does not point to an allowed provision AND quote the provision's text verbatim. |
+| `highRiskPrecision`   | ≥ 0.9     | True positives / (true positives + false positives) for the `high` severity class.                      |
+| `unsupportedHighRisk` | 0         | A `high` prediction that does not cite any provision in the case's expected set.                        |
 
 A run is **release-eligible** only when `evaluateReleaseGates(metrics).pass`
-is `true` and the latency probe's exit code is 0.
+is `true`.
 
 ## 5 · Running the gates locally
 
 ```bash
-# 1. Unit + integration tests (incl. the eval runner)
+# Unit + integration tests (incl. the eval runner)
 pnpm test
-
-# 2. Latency probe against staging
-node scripts/check-latency.mjs \
-  --base-url "$STAGING_URL" \
-  --samples 100 \
-  --category online_game
 ```
 
-The runner prints a metrics table; the script prints a percentile summary.
+The runner prints a metrics table summarizing the eval suite.
 
 ## 6 · Adding a new case
 
@@ -104,10 +97,6 @@ sign-off).
 ```bash
 # Run the full MVP suite (vitest)
 pnpm --filter @safelaunch/ai test
-
-# Latency probe (requires a live API)
-STAGING_URL=https://staging.api.safelaunch.app \
-  node scripts/check-latency.mjs --samples 100
 ```
 
 ## 9 · Change log
@@ -115,3 +104,6 @@ STAGING_URL=https://staging.api.safelaunch.app \
 - `2026-07-30` — v1 baseline. 60 cases (10 high-risk + 10 non-high per
   category × 3 categories). All gates pass against the reference system
   under test.
+- `2026-08-04` — Removed the standalone latency probe
+  (`scripts/check-latency.mjs`). The in-process `p95LatencyMs` eval
+  gate remains in `RELEASE_GATES`; only the external probe is gone.

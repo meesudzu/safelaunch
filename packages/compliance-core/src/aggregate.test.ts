@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReportFinding, OverallReportStatus } from "@safelaunch/contracts";
-import {
-  aggregateFindings,
-  aggregateStatus,
-  type AggregateCoverage,
-} from "./aggregate";
+import { aggregateFindings, aggregateStatus, type AggregateCoverage } from "./aggregate";
 
 const finding = (overrides: Partial<ReportFinding>): ReportFinding => ({
   id: "f1",
@@ -31,36 +27,26 @@ const completeCoverage: AggregateCoverage = { complete: true };
 describe("aggregateFindings", () => {
   it("returns 'high_risk' when any current finding is high severity", () => {
     const status = aggregateFindings(
-      [
-        finding({ id: "f1", severity: "pass" }),
-        finding({ id: "f2", severity: "high" }),
-      ],
+      [finding({ id: "f1", severity: "pass" }), finding({ id: "f2", severity: "high" })],
       completeCoverage,
     );
     expect(status).toBe<OverallReportStatus>("high_risk");
   });
 
   it("returns 'needs_review' when any current finding is review severity", () => {
-    const status = aggregateFindings(
-      [finding({ id: "f1", severity: "review" })],
-      completeCoverage,
-    );
+    const status = aggregateFindings([finding({ id: "f1", severity: "review" })], completeCoverage);
     expect(status).toBe<OverallReportStatus>("needs_review");
   });
 
   it("returns 'no_significant_risk' only when coverage is complete and no high/review findings", () => {
-    const status = aggregateFindings(
-      [finding({ id: "f1", severity: "pass" })],
-      completeCoverage,
-    );
+    const status = aggregateFindings([finding({ id: "f1", severity: "pass" })], completeCoverage);
     expect(status).toBe<OverallReportStatus>("no_significant_risk");
   });
 
   it("never returns 'no_significant_risk' for partial coverage, even with passing findings", () => {
-    const status = aggregateFindings(
-      [finding({ id: "f1", severity: "pass" })],
-      { complete: false },
-    );
+    const status = aggregateFindings([finding({ id: "f1", severity: "pass" })], {
+      complete: false,
+    });
     expect(status).toBe<OverallReportStatus>("needs_review");
   });
 
@@ -92,7 +78,9 @@ describe("aggregateFindings", () => {
       finding({ id: "f1", severity: "review" }),
       finding({ id: "f2", severity: "pass" }),
     ];
-    expect(aggregateFindings(findings, completeCoverage)).toBe(aggregateFindings(findings, completeCoverage));
+    expect(aggregateFindings(findings, completeCoverage)).toBe(
+      aggregateFindings(findings, completeCoverage),
+    );
   });
 });
 

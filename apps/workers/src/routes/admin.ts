@@ -99,13 +99,12 @@ const resolveActor = (request: Request, env: AdminEnv): string | null => {
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
 
 adminRouter.get("/legal/pending", async (context) => {
-  const result = await context.env.DB
-    .prepare(
-      "SELECT id, jurisdiction, source_url, title, retrieved_at, source_hash, effective_from, effective_to " +
-        "FROM legal_documents " +
-        "WHERE status = 'pending_review' " +
-        "ORDER BY retrieved_at DESC LIMIT 100",
-    )
+  const result = await context.env.DB.prepare(
+    "SELECT id, jurisdiction, source_url, title, retrieved_at, source_hash, effective_from, effective_to " +
+      "FROM legal_documents " +
+      "WHERE status = 'pending_review' " +
+      "ORDER BY retrieved_at DESC LIMIT 100",
+  )
     .bind()
     .all<PendingDocumentRow>();
   const docs = (result.results ?? []).map((r) => ({
@@ -126,11 +125,10 @@ adminRouter.get("/legal/:documentId", async (context) => {
   if (!documentId || documentId.length > 256) {
     return context.json({ code: "INVALID_DOCUMENT_ID" }, 400);
   }
-  const docRow = await context.env.DB
-    .prepare(
-      "SELECT id, jurisdiction, source_url, title, retrieved_at, source_hash, effective_from, effective_to " +
-        "FROM legal_documents WHERE id = ?",
-    )
+  const docRow = await context.env.DB.prepare(
+    "SELECT id, jurisdiction, source_url, title, retrieved_at, source_hash, effective_from, effective_to " +
+      "FROM legal_documents WHERE id = ?",
+  )
     .bind(documentId)
     .first<PendingDocumentRow>();
   if (!docRow) {
@@ -138,22 +136,19 @@ adminRouter.get("/legal/:documentId", async (context) => {
   }
 
   const [provResult, relResult, auditResult] = await Promise.all([
-    context.env.DB
-      .prepare(
-        "SELECT id, document_id, article, clause, text, categories_json FROM legal_provisions WHERE document_id = ?",
-      )
+    context.env.DB.prepare(
+      "SELECT id, document_id, article, clause, text, categories_json FROM legal_provisions WHERE document_id = ?",
+    )
       .bind(documentId)
       .all<ProvisionRow>(),
-    context.env.DB
-      .prepare(
-        "SELECT id, from_document_id, to_document_id, relation_type FROM document_relations WHERE from_document_id = ?",
-      )
+    context.env.DB.prepare(
+      "SELECT id, from_document_id, to_document_id, relation_type FROM document_relations WHERE from_document_id = ?",
+    )
       .bind(documentId)
       .all<RelationRow>(),
-    context.env.DB
-      .prepare(
-        "SELECT actor, decision, reason, created_at FROM legal_review_events WHERE document_id = ? ORDER BY created_at DESC LIMIT 50",
-      )
+    context.env.DB.prepare(
+      "SELECT actor, decision, reason, created_at FROM legal_review_events WHERE document_id = ? ORDER BY created_at DESC LIMIT 50",
+    )
       .bind(documentId)
       .all<AuditRow>(),
   ]);
@@ -223,8 +218,7 @@ adminRouter.post("/legal/:documentId/review", async (context) => {
   // Confirm the document exists and is still in pending_review. This
   // prevents a duplicate approve/reject from racing past an earlier
   // decision.
-  const current = await context.env.DB
-    .prepare("SELECT status FROM legal_documents WHERE id = ?")
+  const current = await context.env.DB.prepare("SELECT status FROM legal_documents WHERE id = ?")
     .bind(documentId)
     .first<{ status: string }>();
   if (!current) {
@@ -245,16 +239,12 @@ adminRouter.post("/legal/:documentId/review", async (context) => {
   const now = new Date().toISOString();
 
   await context.env.DB.batch([
-    context.env.DB
-      .prepare(
-        "UPDATE legal_documents SET status = ? WHERE id = ? AND status = 'pending_review'",
-      )
-      .bind(newStatus, documentId),
-    context.env.DB
-      .prepare(
-        "INSERT INTO legal_review_events (id, document_id, actor, decision, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .bind(eventId, documentId, actor, decision, reason, now),
+    context.env.DB.prepare(
+      "UPDATE legal_documents SET status = ? WHERE id = ? AND status = 'pending_review'",
+    ).bind(newStatus, documentId),
+    context.env.DB.prepare(
+      "INSERT INTO legal_review_events (id, document_id, actor, decision, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+    ).bind(eventId, documentId, actor, decision, reason, now),
   ]);
 
   // Audit logging NEVER logs the URL path or document id (privacy), only

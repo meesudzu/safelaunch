@@ -55,7 +55,7 @@ Skills to invoke, depending on the slice:
    - new landing/marketing page
    - redesign of an existing surface
    - visual study of a reference
-   See `hallmark` skill for the verbs (`audit`, `redesign`, `study`).
+     See `hallmark` skill for the verbs (`audit`, `redesign`, `study`).
 10. `superpowers:systematic-debugging` — when something fails before guessing fixes.
 
 ### Phase 4 — Verify & Ship
@@ -71,17 +71,17 @@ Skills to invoke, in order:
 
 ## Quick reference table
 
-| Task type                         | Minimum skill chain                                                  |
-| --------------------------------- | -------------------------------------------------------------------- |
-| New product feature               | using-superpowers > overview > brainstorming > writing-plans > TDD > verification > code-review > finishing |
-| Compliance-surface change         | ... add `safelaunch-compliance` after `overview` ...                 |
-| New landing/marketing page        | ... add `hallmark` in Phase 3 ...                                   |
-| Bug fix (reproducible)            | using-superpowers > overview > systematic-debugging > TDD > verification |
-| Refactor (no behavior change)     | using-superpowers > overview > TDD (characterization tests first) > verification |
-| Dependency / config bump          | overview > verification > finishing                                  |
-| PR review (incoming)              | using-superpowers > overview > receiving-code-review                 |
-| Design extraction from a URL/pic  | hallmark `study` verb                                                |
-| Doc-only / copy edit              | overview > verification (build still has to pass)                    |
+| Task type                        | Minimum skill chain                                                                                         |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| New product feature              | using-superpowers > overview > brainstorming > writing-plans > TDD > verification > code-review > finishing |
+| Compliance-surface change        | ... add `safelaunch-compliance` after `overview` ...                                                        |
+| New landing/marketing page       | ... add `hallmark` in Phase 3 ...                                                                           |
+| Bug fix (reproducible)           | using-superpowers > overview > systematic-debugging > TDD > verification                                    |
+| Refactor (no behavior change)    | using-superpowers > overview > TDD (characterization tests first) > verification                            |
+| Dependency / config bump         | overview > verification > finishing                                                                         |
+| PR review (incoming)             | using-superpowers > overview > receiving-code-review                                                        |
+| Design extraction from a URL/pic | hallmark `study` verb                                                                                       |
+| Doc-only / copy edit             | overview > verification (build still has to pass)                                                           |
 
 ## Anti-slop rules (carried from `hallmark`)
 

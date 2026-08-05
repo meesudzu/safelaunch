@@ -1,13 +1,21 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import { z } from "zod";
-import { createApiClient, type CreateScanInput, type ApiClient } from "../lib/api-client";
+import {
+  createApiClient,
+  type CreateScanInput,
+  type ScanCachedResponse,
+  type ApiClient,
+} from "../lib/api-client";
+import { CachedBanner } from "./CachedBanner";
 
 const categoryValues = ["online_game", "electronic_press", "digital_entertainment"] as const;
 type CategoryValue = (typeof categoryValues)[number];
 
 export interface ScanFormMessages {
+  readonly [key: string]: string;
   readonly brand: string;
   readonly "locale.switch": string;
   readonly headline: string;
@@ -31,6 +39,13 @@ export interface ScanFormMessages {
   readonly disclosure: string;
   readonly "footer.disclosure": string;
   readonly "footer.version": string;
+  // Daily-quota + redeem-code surfaces (per spec).
+  readonly "quota.disclaimer": string;
+  readonly "quota.redeem.toggle": string;
+  readonly "quota.redeem.label": string;
+  readonly "quota.redeem.placeholder": string;
+  readonly "quota.redeem.invalid": string;
+  readonly "quota.redeem.used": string;
 }
 
 const categoryLabels = (messages: ScanFormMessages): Record<CategoryValue, string> => ({
@@ -45,6 +60,10 @@ const inputSchema = z.object({
     .url()
     .refine((value) => /^https?:\/\//i.test(value), { message: "https required" }),
   category: z.enum(categoryValues),
+  redeemCode: z
+    .string()
+    .regex(/^SL-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/)
+    .optional(),
 });
 
 export interface ScanFormProps {
@@ -55,15 +74,24 @@ export interface ScanFormProps {
 }
 
 export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFormProps) => {
+  const router = useRouter();
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<CategoryValue | "">("");
+  const [redeemCode, setRedeemCode] = useState("");
+  const [redeemOpen, setRedeemOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ url?: string; category?: string; submit?: string }>({});
+  const [cachedResult, setCachedResult] = useState<ScanCachedResponse | null>(null);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrors({});
-    const parsed = inputSchema.safeParse({ url, category });
+    const trimmedRedeem = redeemCode.trim().toUpperCase();
+    const parsed = inputSchema.safeParse({
+      url,
+      category,
+      redeemCode: trimmedRedeem === "" ? undefined : trimmedRedeem,
+    });
     if (!parsed.success) {
       const next: typeof errors = {};
       for (const issue of parsed.error.issues) {
@@ -80,11 +108,21 @@ export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFo
         jurisdiction: "VN",
         category: parsed.data.category,
       };
+      if (parsed.data.redeemCode) input.redeemCode = parsed.data.redeemCode;
       const submit =
         createScan ??
         createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).createScan;
-      const result = await submit(input);
-      onScanCreated?.(result.scanId);
+      const response = await submit(input);
+      onScanCreated?.(response.scanId);
+      // A cached response (200) means the daily-domain-quota returned an
+      // existing scan for this domain. Render the cached banner instead of
+      // navigating to the progress page.
+      if ("cached" in response && response.cached === true) {
+        setCachedResult(response);
+        return;
+      }
+      // Fresh scan accepted (202) — move to the progress screen.
+      router.push(`/${locale}/scan/${encodeURIComponent(response.scanId)}`);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : messages["form.error.submit"];
       setErrors({ submit: message });
@@ -209,6 +247,45 @@ export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFo
             >
               {messages.disclosure}
             </p>
+
+            <p data-testid="quota-disclaimer" className="text-xs text-ink-soft">
+              {messages["quota.disclaimer"]}
+            </p>
+
+            {cachedResult ? (
+              <CachedBanner
+                message={messages["quota.cached.banner"] ?? "Already scanned today."}
+                ctaHref={cachedResult.reportUrl}
+                ctaLabel={messages["quota.cached.cta"] ?? "Open report"}
+              />
+            ) : null}
+
+            <div data-testid="redeem-toggle">
+              <button
+                type="button"
+                onClick={() => setRedeemOpen((prev) => !prev)}
+                className="text-xs text-ink-soft underline"
+              >
+                {messages["quota.redeem.toggle"]}
+              </button>
+              {redeemOpen ? (
+                <div className="mt-2 flex flex-col gap-1">
+                  <label htmlFor="scan-redeem" className="text-xs text-ink-soft">
+                    {messages["quota.redeem.label"]}
+                  </label>
+                  <input
+                    id="scan-redeem"
+                    name="redeemCode"
+                    type="text"
+                    value={redeemCode}
+                    onChange={(event) => setRedeemCode(event.target.value.toUpperCase())}
+                    placeholder={messages["quota.redeem.placeholder"]}
+                    data-testid="redeem-input"
+                    className="w-full rounded-sm border border-rule bg-bg px-3 py-2 font-mono text-sm text-ink outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/30"
+                  />
+                </div>
+              ) : null}
+            </div>
 
             <button
               type="submit"

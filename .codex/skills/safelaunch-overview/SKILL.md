@@ -13,7 +13,7 @@ context every AI agent needs to make safe proposals.
 **SafeLaunch** is an AI-powered legal & regulatory compliance platform that detects
 legal and regulatory risks **before** a website, app, or digital product ships.
 
-- Tagline: *"Ra mắt toàn cầu. Tuân thủ ngay từ đầu."* ("Launch globally. Compliant from day one.")
+- Tagline: _"Ra mắt toàn cầu. Tuân thủ ngay từ đầu."_ ("Launch globally. Compliant from day one.")
 - Core promise: shift compliance left — find issues at design/launch time, not after
   regulators or users find them.
 - Primary users: founders, product teams, legal/ops leads shipping to multiple
@@ -65,20 +65,20 @@ These are **non-negotiable** for every change:
 
 ## Where things live — quick reference
 
-| If you are working on...     | Touch these paths                              |
-| ---------------------------- | ---------------------------------------------- |
-| Marketing copy / landing page| `apps/web/app/(marketing)/`, `packages/ui/`    |
-| Compliance scoring logic     | `packages/compliance-core/`                    |
-| AI prompts / retrieval       | `packages/ai/`                                 |
-| DB schema                    | `packages/db/prisma/`                          |
-| Crawlers / external fetches  | `apps/workers/`                                |
-| Docs / specs                 | `docs/`                                        |
+| If you are working on...      | Touch these paths                           |
+| ----------------------------- | ------------------------------------------- |
+| Marketing copy / landing page | `apps/web/app/(marketing)/`, `packages/ui/` |
+| Compliance scoring logic      | `packages/compliance-core/`                 |
+| AI prompts / retrieval        | `packages/ai/`                              |
+| DB schema                     | `packages/db/prisma/`                       |
+| Crawlers / external fetches   | `apps/workers/`                             |
+| Docs / specs                  | `docs/`                                     |
 
 ## Brand voice (for any copy or UI text)
 
 - **Confident but careful.** We give clear guidance, not vague warnings.
 - **Multilingual-aware.** Avoid idioms that don't translate. Plain English works globally.
-- **Plain-language legal.** Surface the *meaning* of regulations, not the legalese.
+- **Plain-language legal.** Surface the _meaning_ of regulations, not the legalese.
 - **Vietnamese-first friendly.** When the audience is Vietnamese, default to clear
   Vietnamese without mixed-language slop.
 

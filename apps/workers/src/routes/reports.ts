@@ -86,10 +86,18 @@ reportsRouter.get("/v1/reports/:token", async (context) => {
     console.log(JSON.stringify({ level: "info", event: "report.not_found" }));
     return context.json({ code: "REPORT_NOT_FOUND" }, 404);
   }
+  if (!token) {
+    console.log(JSON.stringify({ level: "info", event: "report.token_missing", scanId }));
+    return context.json({ code: "INVALID_TOKEN" }, 403);
+  }
   const now = new Date();
   if (isExpired(row.expires_at, now)) {
     console.log(JSON.stringify({ level: "info", event: "report.expired", scanId: row.scan_id }));
     return context.json({ code: "REPORT_EXPIRED" }, 410);
+  }
+  if (!constantTimeEquals(incomingHash, row.token_hash)) {
+    console.log(JSON.stringify({ level: "warn", event: "report.token_mismatch", scanId }));
+    return context.json({ code: "INVALID_TOKEN" }, 403);
   }
   // Strip the private plaintext token before returning the report payload.
   const stored = JSON.parse(row.payload_json) as Record<string, unknown>;
@@ -102,6 +110,108 @@ reportsRouter.get("/v1/reports/:token", async (context) => {
   // We do this BEFORE returning the response so the URL is consumed atomically.
   const repo = new ReportRepository(context.env.DB);
   await repo.burnToken(row.scan_id);
+  return new Response(JSON.stringify(publicPayload), {
+    status: 200,
+    headers: noCacheHeaders,
+  });
+});
+
+/**
+ * Public report endpoint that takes the one-time token in the path.
+ *
+ * This mirrors /v1/reports/:scanId but is keyed by the token (the only
+ * value present in the public share URL) instead of the scanId. We hash
+ * the URL token with SHA-256 and look up the report row by that hash.
+ *
+ * Behaviour is identical to the scanId-keyed route:
+ *  - 404 if no row matches the hash (never existed OR already burned);
+ *  - 410 if the matched row has expired;
+ *  - 200 with the payload on success, followed by token_hash = NULL
+ *    to make the URL single-use.
+ *
+ * The plaintext token is never logged; the hash is similarly treated as
+ * sensitive and never appears in logs.
+ */
+reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
+  const token = context.req.param("token");
+  if (!token) {
+    return context.json({ code: "INVALID_REQUEST" }, 400);
+  }
+  const incomingHash = await sha256Hex(token);
+  const repo = new ReportRepository(context.env.DB);
+  const row = await repo.getByTokenHash(incomingHash);
+  if (!row) {
+    // Covers both "never existed" and "already burned (hash is NULL)".
+    // We log only that the lookup failed, not the token or hash.
+    console.log(JSON.stringify({ level: "info", event: "report.token_not_found" }));
+    return context.json({ code: "REPORT_NOT_FOUND" }, 404);
+  }
+  const now = new Date();
+  if (isExpired(row.expiresAt, now)) {
+    console.log(JSON.stringify({ level: "info", event: "report.expired", scanId: row.scanId }));
+    return context.json({ code: "REPORT_EXPIRED" }, 410);
+  }
+  // Strip the private plaintext token before returning the report payload.
+  const stored = JSON.parse(row.payloadJson) as Record<string, unknown>;
+  const publicPayload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(stored)) {
+    if (key === "_reportToken") continue;
+    publicPayload[key] = value;
+  }
+  // Single-use: invalidate the stored hash before returning the response
+  // so the URL is consumed atomically.
+  await repo.burnToken(row.scanId);
+  return new Response(JSON.stringify(publicPayload), {
+    status: 200,
+    headers: noCacheHeaders,
+  });
+});
+
+/**
+ * Public report endpoint that takes the one-time token in the path.
+ *
+ * This mirrors /v1/reports/:scanId but is keyed by the token (the only
+ * value present in the public share URL) instead of the scanId. We hash
+ * the URL token with SHA-256 and look up the report row by that hash.
+ *
+ * Behaviour is identical to the scanId-keyed route:
+ *  - 404 if no row matches the hash (never existed OR already burned);
+ *  - 410 if the matched row has expired;
+ *  - 200 with the payload on success, followed by token_hash = NULL
+ *    to make the URL single-use.
+ *
+ * The plaintext token is never logged; the hash is similarly treated as
+ * sensitive and never appears in logs.
+ */
+reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
+  const token = context.req.param("token");
+  if (!token) {
+    return context.json({ code: "INVALID_REQUEST" }, 400);
+  }
+  const incomingHash = await sha256Hex(token);
+  const repo = new ReportRepository(context.env.DB);
+  const row = await repo.getByTokenHash(incomingHash);
+  if (!row) {
+    // Covers both "never existed" and "already burned (hash is NULL)".
+    // We log only that the lookup failed, not the token or hash.
+    console.log(JSON.stringify({ level: "info", event: "report.token_not_found" }));
+    return context.json({ code: "REPORT_NOT_FOUND" }, 404);
+  }
+  const now = new Date();
+  if (isExpired(row.expiresAt, now)) {
+    console.log(JSON.stringify({ level: "info", event: "report.expired", scanId: row.scanId }));
+    return context.json({ code: "REPORT_EXPIRED" }, 410);
+  }
+  // Strip the private plaintext token before returning the report payload.
+  const stored = JSON.parse(row.payloadJson) as Record<string, unknown>;
+  const publicPayload: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(stored)) {
+    if (key === "_reportToken") continue;
+    publicPayload[key] = value;
+  }
+  // Single-use: invalidate the stored hash before returning the response
+  // so the URL is consumed atomically.
+  await repo.burnToken(row.scanId);
   return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,

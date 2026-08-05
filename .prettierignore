@@ -1,0 +1,30 @@
+# Build / dependency artifacts
+node_modules
+dist
+.next
+.open-next
+coverage
+.wrangler
+.pnpm-store
+
+# Generated / managed by tooling
+apps/workers/worker-configuration.d.ts
+wrangler.jsonc
+
+# Lockfile — must never be reformatted
+pnpm-lock.yaml
+
+# Local scratch / git metadata
+.superpowers
+.worktrees
+.presentation-build
+
+# Eval fixtures: human-reviewed benchmark corpus consumed by
+# packages/ai/src/eval-runner.ts. JSON keys/values are semantic
+# test data (URLs, evidence strings, expected citations). We must
+# not have Prettier collapse arrays onto a single line or otherwise
+# mutate the on-disk shape — git diffs on these are noise.
+tests/evals/cases
+
+# TypeScript incremental build cache (apps/web runs `tsc --incremental`)
+*.tsbuildinfo

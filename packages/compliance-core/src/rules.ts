@@ -1,8 +1,4 @@
-import {
-  type EvidenceItem,
-  type LegalCitation,
-  type ScanCoverage,
-} from "@safelaunch/contracts";
+import { type EvidenceItem, type LegalCitation, type ScanCoverage } from "@safelaunch/contracts";
 type AppCategoryLike = "online_game" | "electronic_press" | "digital_entertainment";
 import { RUBRIC_VERSION, severityFor } from "./scoring";
 import type { RuleOutcome, RuleSeverity } from "./scoring";
@@ -49,6 +45,8 @@ interface RuleDefinition {
   readonly unknownRationale: string;
 }
 
+const CITATION_RETRIEVED_AT = "2026-07-29T00:00:00.000Z";
+
 const PRIVACY_PROVISION_ID = "vn-pd-2025-privacy-notice";
 const OPERATOR_PROVISION_ID = "vn-pd-2025-operator-identity";
 const CONTACT_PROVISION_ID = "vn-pd-2025-contact-channel";
@@ -62,7 +60,7 @@ const baseCitation = (
   provisionId,
   source,
   url,
-  retrievedAt: "2025-01-01T00:00:00.000Z",
+  retrievedAt: CITATION_RETRIEVED_AT,
   excerpt,
 });
 
@@ -80,7 +78,6 @@ const OPERATOR_CITATION: LegalCitation = baseCitation(
   "Doanh nghiệp cung cấp dịch vụ phải công khai tên, địa chỉ, số điện thoại liên hệ trên trang thông tin điện tử của mình.",
 );
 
-
 const LICENSE_GAME_PROVISION_ID = "vn-pd-72-2013-game-license";
 const LICENSE_GAME_CITATION: LegalCitation = baseCitation(
   LICENSE_GAME_PROVISION_ID,
@@ -92,7 +89,7 @@ const LICENSE_GAME_CITATION: LegalCitation = baseCitation(
 const CONTACT_CITATION: LegalCitation = baseCitation(
   CONTACT_PROVISION_ID,
   "Luật An toàn thông tin mạng 2015",
-  "https://vbpl.vn/TW/Pages/vbpq-thuoctinhluoc.do?itemId=25878",
+  "https://vbpl.vn/TW/Pages/vbpq-thuoctinhluoc.do?itemId=25914",
   "Tổ chức, doanh nghiệp cung cấp dịch vụ trên mạng phải công bố thông tin liên lạc để tiếp nhận phản ánh của người sử dụng.",
 );
 
@@ -146,10 +143,8 @@ const RULES: readonly RuleDefinition[] = [
     requiredPages: ["contact"],
     evidenceTypes: ["contact"],
     citation: CONTACT_CITATION,
-    presentRationale:
-      "Đã phát hiện kênh liên hệ (email hoặc số điện thoại) trên trang liên hệ.",
-    absentRationale:
-      "Không tìm thấy kênh liên hệ công khai; cần bổ sung trước khi ra mắt.",
+    presentRationale: "Đã phát hiện kênh liên hệ (email hoặc số điện thoại) trên trang liên hệ.",
+    absentRationale: "Không tìm thấy kênh liên hệ công khai; cần bổ sung trước khi ra mắt.",
     unknownRationale:
       "Chưa xác định được kênh liên hệ vì trang liên hệ không thể truy cập trong lần quét này.",
   },
@@ -176,9 +171,7 @@ const hasEvidenceFor = (
   return matches;
 };
 
-const buildCitations = (
-  rule: RuleDefinition,
-): readonly RuleCitation[] => [
+const buildCitations = (rule: RuleDefinition): readonly RuleCitation[] => [
   {
     provisionId: rule.citation.provisionId,
     source: rule.citation.source,
@@ -214,7 +207,9 @@ const buildRuleResult = (
 const evaluateRule = (rule: RuleDefinition, input: RuleInput): RuleResult => {
   const allRequiredFailed = rule.requiredPages.every((page) => pageIsFailed(input.coverage, page));
   const anyRequiredFailed = rule.requiredPages.some((page) => pageIsFailed(input.coverage, page));
-  const anyRequiredFetched = rule.requiredPages.some((page) => pageWasFetched(input.coverage, page));
+  const anyRequiredFetched = rule.requiredPages.some((page) =>
+    pageWasFetched(input.coverage, page),
+  );
   const matched = hasEvidenceFor(input.evidence, rule);
   if (matched.length > 0) {
     return buildRuleResult(rule, "present", matched);
@@ -230,8 +225,8 @@ const evaluateRule = (rule: RuleDefinition, input: RuleInput): RuleResult => {
 
 export const runRules = (input: RuleInput): readonly RuleResult[] => {
   const category: AppCategoryLike = input.category;
-  const filteredRules = RULES.filter((rule) =>
-    rule.categories.includes(category) && supportsCategory(input.jurisdiction, category),
+  const filteredRules = RULES.filter(
+    (rule) => rule.categories.includes(category) && supportsCategory(input.jurisdiction, category),
   );
   return filteredRules.map((rule) => evaluateRule(rule, input));
 };

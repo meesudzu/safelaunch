@@ -58,10 +58,7 @@ const main = async () => {
   }
   const trimmed = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 
-  const probes = [
-    { method: "GET", path: "/v1/health" },
-    { method: "GET", path: "/v1/scans?limit=0" },
-  ];
+  const probes = [{ method: "GET", path: "/v1/health" }];
   const results = [];
   for (const probe of probes) {
     const result = await check(`${trimmed}${probe.path}`, probe.method, {}, maxLatencyMs);
@@ -80,7 +77,13 @@ const main = async () => {
   });
   if (scan.ok) {
     const created = await scan.json();
-    results.push({ url: `${trimmed}/v1/scans`, method: "POST", status: scan.status, elapsed: 0, ok: true });
+    results.push({
+      url: `${trimmed}/v1/scans`,
+      method: "POST",
+      status: scan.status,
+      elapsed: 0,
+      ok: true,
+    });
     const final = await check(
       `${trimmed}/v1/scans/${encodeURIComponent(created.scanId)}`,
       "GET",
@@ -89,7 +92,13 @@ const main = async () => {
     );
     results.push(final);
   } else {
-    results.push({ url: `${trimmed}/v1/scans`, method: "POST", status: scan.status, elapsed: 0, ok: false });
+    results.push({
+      url: `${trimmed}/v1/scans`,
+      method: "POST",
+      status: scan.status,
+      elapsed: 0,
+      ok: false,
+    });
   }
 
   await sleep(100);

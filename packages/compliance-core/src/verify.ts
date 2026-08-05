@@ -2,7 +2,10 @@ import { z } from "zod";
 import type { EvidenceItem, LegalCitation } from "@safelaunch/contracts";
 
 export class SchemaViolationError extends Error {
-  constructor(message: string, readonly issues: ReadonlyArray<{ path: string; message: string }>) {
+  constructor(
+    message: string,
+    readonly issues: ReadonlyArray<{ path: string; message: string }>,
+  ) {
     super(`Verifier schema violation: ${message}`);
     this.name = "SchemaViolationError";
   }
@@ -78,13 +81,15 @@ const isApplicableNow = (
 const findProvision = (
   ctx: VerifyContext,
   provisionId: string,
-): {
-  documentId: string;
-  source: string;
-  effectiveFrom: string | null;
-  effectiveTo: string | null;
-  text: string | undefined;
-} | undefined => {
+):
+  | {
+      documentId: string;
+      source: string;
+      effectiveFrom: string | null;
+      effectiveTo: string | null;
+      text: string | undefined;
+    }
+  | undefined => {
   const meta = ctx.retrieval.find((entry) => entry.provisionId === provisionId);
   if (!meta) return undefined;
   return {
@@ -118,10 +123,7 @@ const buildCitation = (
   return citations;
 };
 
-const determineApplicability = (
-  ctx: VerifyContext,
-  on: string,
-): "current" | "upcoming" => {
+const determineApplicability = (ctx: VerifyContext, on: string): "current" | "upcoming" => {
   for (const entry of ctx.retrieval) {
     if (
       entry.effectiveFrom &&
@@ -203,10 +205,7 @@ export const verifyFinding = (
 
   // 6. High-risk requires confidence >= threshold; otherwise downgrade.
   let severity: "high" | "review" | "pass" = safeDraft.severity;
-  if (
-    severity === "high" &&
-    safeDraft.confidence < ctx.highRiskConfidenceThreshold
-  ) {
+  if (severity === "high" && safeDraft.confidence < ctx.highRiskConfidenceThreshold) {
     severity = "review";
   }
 

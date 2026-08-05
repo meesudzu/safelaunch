@@ -4,16 +4,16 @@
   "headline": "Ra mắt toàn cầu. Tuân thủ ngay từ đầu.",
   "subhead": "Một báo cáo tín hiệu tuân thủ dựa trên văn bản pháp luật hiện hành — trước khi ra mắt.",
   "trust.signals": "Không yêu cầu tài khoản · Trích dẫn đầy đủ · Mã nguồn có thể kiểm chứng",
-  "source.citation": "Cơ sở pháp lý: vbpl.vn — Nghị định 13/2023, 72/2013 và Luật An toàn thông tin mạng 2015.",
+  "source.citation": "Cơ sở pháp lý: vbpl.vn — Nghị định 13/2023/NĐ-CP, 72/2013/NĐ-CP, 27/2018/NĐ-CP; Luật Báo chí 2016; Luật An toàn thông tin mạng 2015.",
   "form.url.label": "URL website",
   "form.url.placeholder": "https://example.com",
   "form.url.help": "Chỉ URL công khai (http/https). Chúng tôi không lưu trữ nội dung trang sau quét.",
   "form.category.label": "Loại ứng dụng",
   "form.category.online_game": "Trò chơi điện tử — Nghị định 72/2013/NĐ-CP",
   "form.category.electronic_press": "Báo chí điện tử — Luật Báo chí 2016",
-  "form.category.digital_entertainment": "Giải trí số — Luật An toàn thông tin mạng 2015",
+  "form.category.digital_entertainment": "Giải trí số & dịch vụ trực tuyến khác",
   "form.jurisdiction.label": "Khu vực pháp lý",
-  "form.jurisdiction.value": "Việt Nam (MVP)",
+  "form.jurisdiction.value": "Việt Nam",
   "form.submit": "Kiểm tra website",
   "form.submitting": "Đang quét…",
   "form.error.url": "Vui lòng nhập URL hợp lệ (http hoặc https).",
@@ -21,5 +21,27 @@
   "form.error.submit": "Không thể gửi yêu cầu quét. Vui lòng thử lại.",
   "disclosure": "Báo cáo này là tín hiệu tuân thủ dựa trên các quy định hiện hành tại thời điểm quét, không phải tư vấn pháp lý. Vui lòng tham vấn luật sư có chứng chỉ cho quyết định cuối cùng.",
   "footer.disclosure": "Báo cáo này là tín hiệu tham khảo, không phải tư vấn pháp lý.",
-  "footer.version": "v0.1 · SafeLaunch"
+  "footer.version": "v0.1 · SafeLaunch",
+  "quota": {
+    "disclaimer": "Mỗi website chỉ được quét 1 lần mỗi ngày (UTC). Gói mở rộng đang hoàn thiện — liên hệ admin để nhận redeem code.",
+    "redeem.toggle": "Tôi có redeem code",
+    "redeem.label": "Redeem code",
+    "redeem.placeholder": "SL-XXXX-XXXX",
+    "redeem.invalid": "Redeem code không hợp lệ hoặc đã hết hạn.",
+    "redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
+    "cached.banner": "Domain này đã được quét hôm nay. Đây là kết quả trước đó.",
+    "cached.cta": "Mở báo cáo",
+    "cached.failed": "Quét trước đó thất bại lúc {{time}} UTC. Để quét lại, cần redeem code."
+  },
+  "package": {
+    "title": "Gói mở rộng",
+    "status": "Đang hoàn thiện",
+    "body": "Gói mở rộng cho phép quét không giới hạn trong ngày. Tính năng đang được phát triển. Hiện tại, vui lòng liên hệ admin để nhận redeem code."
+  },
+  "service.signals.title": "Đặc tính dịch vụ đã phát hiện",
+  "license.checks.title": "Kiểm tra giấy phép",
+  "asset.inventory.title": "Inventory tài sản số",
+  "asset.inventory.summary": "Tài sản được site tham chiếu",
+  "asset.inventory.flagged": "Cần kiểm tra license",
+  "status.high_risk": "Phát hiện tín hiệu rủi ro cao"
 }

@@ -67,6 +67,7 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
     return { token, url };
   };
   const logger = captureLogger();
+  const terminalStates: unknown[] = [];
   const updateStateCalls: { scanId: string; state: string; coverage: unknown }[] = [];
   const updateState = async (input: {
     scanId: string;
@@ -84,12 +85,16 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
         await Promise.resolve();
         return { status: "no_significant_risk" as const, findings: [] };
       }),
+    persistTerminalState: (input: unknown) => {
+      terminalStates.push(input);
+      return Promise.resolve();
+    },
     persistReport,
     updateState,
     now: () => "2026-07-29T00:00:00.000Z",
     log: logger.log,
   };
-  return { deps, logger, issued, updateStateCalls };
+  return { deps, logger, issued, updateStateCalls, terminalStates };
 };
 
 type ScanRunDeps = Parameters<typeof runScan>[1];
@@ -136,12 +141,20 @@ describe("runScan", () => {
 
   it("returns failed when the homepage fetch fails", async () => {
     const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
-    const { deps, updateStateCalls } = makeDeps({ fetch });
+    const { deps, terminalStates, updateStateCalls } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("failed");
     expect(result.status).toBe("needs_review");
     expect(result.coverage.failed).toContain("homepage");
     expect(result.reportUrl).toBeUndefined();
+    expect(terminalStates).toEqual([
+      {
+        scanId: baseParams.scanId,
+        state: "failed",
+        status: "needs_review",
+        coverage: { fetched: [], failed: ["homepage"], skipped: [], degradedPhases: [] },
+      },
+    ]);
     expect(updateStateCalls).toContainEqual({
       scanId: baseParams.scanId,
       state: "failed",
@@ -193,6 +206,17 @@ describe("runScan", () => {
     expect(result.coverage.fetched.sort()).toEqual(["about", "homepage", "privacy"].sort());
     expect(result.coverage.failed).toEqual([]);
     expect(result.coverage.skipped).toEqual([]);
+  });
+
+  it("never puts 'homepage' in coverage.failed when homepage fetch succeeded", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps } = makeDeps({ fetch });
+    const result = await runScan({ ...baseParams, failedPages: ["privacy"] }, deps);
+    expect(result.coverage.fetched).toContain("homepage");
+    expect(result.coverage.failed).not.toContain("homepage");
+    // No page may appear in both lists.
+    const overlap = result.coverage.fetched.filter((p) => result.coverage.failed.includes(p));
+    expect(overlap).toEqual([]);
   });
 
   it("isolates the coverage fields so subsequent runs do not pollute state", async () => {

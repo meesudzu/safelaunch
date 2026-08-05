@@ -5,7 +5,9 @@
   "compatibility_date": "2026-07-28",
   "compatibility_flags": ["nodejs_compat"],
 
-  "vars": { "WEB_ORIGIN": "https://safelaunch.runany.dev" },
+  "vars": {
+    "WEB_ORIGIN": "https://safelaunch.runany.dev"
+  },
   "observability": { "enabled": true, "head_sampling_rate": 1 },
 
   // Durable Object: AbuseRateLimiter (B6).
@@ -56,6 +58,17 @@
   "queues": {
     "producers": [
       { "binding": "LEGAL_INGESTION_QUEUE", "queue": "safelaunch-legal-ingestion" },
+    ],
+    // The API Worker also owns the queue consumer. Without this declaration,
+    // messages can be produced successfully but are never delivered to the
+    // Worker (the queue only shows a Producer in the dashboard).
+    "consumers": [
+      {
+        "queue": "safelaunch-legal-ingestion",
+        "max_batch_size": 10,
+        "max_batch_timeout": 30,
+        "max_retries": 3,
+      },
     ],
   },
 }

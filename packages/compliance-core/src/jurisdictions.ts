@@ -24,19 +24,15 @@ export const jurisdictions: readonly JurisdictionSpec[] = [
   },
 ] as const;
 
-export const findJurisdiction = (
-  code: string,
-): JurisdictionSpec | undefined => jurisdictions.find((entry) => entry.code === code);
+export const findJurisdiction = (code: string): JurisdictionSpec | undefined =>
+  jurisdictions.find((entry) => entry.code === code);
 
 export const isEnabledJurisdiction = (code: string): boolean => {
   const spec = findJurisdiction(code);
   return Boolean(spec?.enabled);
 };
 
-export const supportsCategory = (
-  jurisdiction: string,
-  category: SupportedCategory,
-): boolean => {
+export const supportsCategory = (jurisdiction: string, category: SupportedCategory): boolean => {
   const spec = findJurisdiction(jurisdiction);
   if (!spec) return false;
   return spec.ruleset.includes(category);

@@ -2,10 +2,17 @@ import { z } from "zod";
 
 export const JurisdictionCode = z.enum(["VN"]);
 export const AppCategory = z.enum(["online_game", "electronic_press", "digital_entertainment"]);
+
+// Safe alphabet excludes ambiguous chars O, I, L, 0, 1.
+export const RedeemCodeShape = z
+  .string()
+  .regex(/^SL-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/);
+
 export const CreateScanInput = z.object({
   url: z.string().url(),
   jurisdiction: JurisdictionCode,
   category: AppCategory,
+  redeemCode: RedeemCodeShape.optional(),
 });
 export const ScanState = z.enum([
   "queued",

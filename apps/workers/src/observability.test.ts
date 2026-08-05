@@ -39,7 +39,10 @@ describe("toLogEvent", () => {
   });
 
   it("includes a stable event name and timestamp", async () => {
-    const event = await toLogEvent(baseRequest, { event: "scan.created", now: "2026-07-29T00:00:00.000Z" });
+    const event = await toLogEvent(baseRequest, {
+      event: "scan.created",
+      now: "2026-07-29T00:00:00.000Z",
+    });
     expect(event.event).toBe("scan.created");
     expect(event.at).toBe("2026-07-29T00:00:00.000Z");
   });

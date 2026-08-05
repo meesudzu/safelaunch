@@ -1,17 +1,36 @@
 import { Hono } from "hono";
-import { CreateScanInput, ScanState } from "@safelaunch/contracts";
-import { ScanRepository, ReportRepository, BURNED_TOKEN_HASH } from "@safelaunch/db";
+import {
+  CreateScanInput,
+  ScanState,
+  ScanCoverage,
+  ScanCachedResponse,
+} from "@safelaunch/contracts";
+import {
+  ScanRepository,
+  ReportRepository,
+  RedeemRepository,
+  BURNED_TOKEN_HASH,
+} from "@safelaunch/db";
+import { domainKey } from "@safelaunch/compliance-core";
 import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
+import {
+  resolveScanRequest,
+  toQuotaDay,
+  type ScanLookup,
+  type ReportGet,
+} from "../services/quota-service";
+import { hashRedeemCode } from "../services/redeem-codes";
 import type { ScanResult, ScanTerminalState } from "../workflows/scan-workflow";
 
 const SCAN_TTL_SECONDS = 7 * 24 * 60 * 60;
-const ANALYSIS_VERSION = "vn-mvp-v1";
+const ANALYSIS_VERSION = "vn-mvp-v2-licensing-digital-rights-strict";
 
 export interface RoutesEnv {
   DB: D1Database;
   WEB_ORIGIN?: string;
   SCAN_WORKFLOW?: Workflow;
   ABUSE_RATE_LIMITER?: DurableObjectNamespace;
+  ENABLE_DAILY_QUOTA?: string;
 }
 
 interface StoredScanRow {
@@ -34,16 +53,11 @@ const generateScanId = (): string => {
   const bytes = new Uint8Array(18);
   crypto.getRandomValues(bytes);
   let out = "";
-  for (const byte of bytes) {
-    out += byte.toString(16).padStart(2, "0");
-  }
+  for (const byte of bytes) out += byte.toString(16).padStart(2, "0");
   return `scan_${out}`;
 };
 
 const extractTurnstileToken = (request: Request): string | null => {
-  // The browser submits the Turnstile token as `cf-turnstile-response` on
-  // POST /v1/scans. We never log or persist it; it's forwarded to the
-  // siteverify endpoint in enforceAbuseControls.
   const form = request.headers.get("content-type") ?? "";
   if (!form.includes("application/json")) return null;
   return request.headers.get("cf-turnstile-response");
@@ -52,6 +66,27 @@ const extractTurnstileToken = (request: Request): string | null => {
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
 
 const isTerminal = (state: string): state is ScanTerminalState => TERMINAL_SCAN_STATES.has(state);
+
+/**
+ * Normalize persisted coverage to the canonical {@link ScanCoverage} shape.
+ *
+ * The DB row's `coverage_json` defaults to `'{}'` for freshly queued scans
+ * (see `ScanRepository.create`). The client render tree assumes
+ * `coverage.fetched`, `coverage.failed`, and `coverage.skipped` are all
+ * arrays and `.map()` on them — an empty object would raise
+ * `Cannot read properties of undefined (reading 'map')` and crash the
+ * màn trạng thái scan. We coerce here so the API contract holds even
+ * for in-flight scans that the workflow hasn't updated yet.
+ */
+const normalizeCoverage = (raw: Record<string, unknown> | null | undefined): ScanCoverage => {
+  const safeStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  return {
+    fetched: safeStringArray(raw?.fetched),
+    failed: safeStringArray(raw?.failed),
+    skipped: safeStringArray(raw?.skipped),
+  };
+};
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
@@ -73,6 +108,51 @@ export interface ScanProgressResponse {
 
 export const scansRouter = new Hono<{ Bindings: RoutesEnv }>();
 
+const isQuotaEnabled = (env: RoutesEnv): boolean => env.ENABLE_DAILY_QUOTA === "true";
+
+/**
+ * Build a ScanLookup bound to the given D1. The lookup uses the URL `host`
+ * (via `LIKE`) so the quota check is per-host per day, without requiring
+ * a new `domain_key` column on `scans`. The query is bounded by an inner
+ * LIMIT so it cannot full-scan the table.
+ */
+const makeScanLookup =
+  (db: D1Database): ScanLookup =>
+  async (key, day, terminal) => {
+    const placeholder = `https://%${key}/%`;
+    const inner = await db
+      .prepare(
+        `SELECT id, state, created_at, expires_at FROM scans
+         WHERE url LIKE ? AND substr(created_at, 1, 10) = ?
+         ORDER BY created_at DESC LIMIT 50`,
+      )
+      .bind(placeholder, day)
+      .all<{ id: string; state: string; created_at: string; expires_at: string }>();
+    const rows = (inner.results ?? []).filter((r) => terminal.includes(r.state));
+    if (rows.length === 0) return null;
+    const top = rows[0]!;
+    // status is determined by the report row; the lookup returns null and
+    // the route hydrates it from the report if needed.
+    return {
+      id: top.id,
+      state: top.state,
+      status: null,
+      createdAt: top.created_at,
+      expiresAt: top.expires_at,
+    };
+  };
+
+const makeReportGet =
+  (db: D1Database): ReportGet =>
+  async (scanId) => {
+    const row = await db
+      .prepare("SELECT scan_id, payload_json FROM reports WHERE scan_id = ?")
+      .bind(scanId)
+      .first<{ scan_id: string; payload_json: string }>();
+    if (!row) return null;
+    return { payloadJson: row.payload_json };
+  };
+
 scansRouter.post("/v1/scans", async (context) => {
   let payload: unknown;
   try {
@@ -86,9 +166,7 @@ scansRouter.post("/v1/scans", async (context) => {
   }
   const input = parsed.data;
 
-  // Anonymous abuse controls: per-(hashed-IP, hashed-hostname) sliding window
-  // via the AbuseRateLimiter Durable Object. Turnstile verification is skipped
-  // unless the secret is configured in the environment.
+  // Anonymous abuse controls: unchanged.
   if (context.env.ABUSE_RATE_LIMITER) {
     const clientIp = context.req.header("cf-connecting-ip") ?? "unknown";
     const submittedHost = context.req.header("origin") ?? new URL(input.url).host;
@@ -114,9 +192,77 @@ scansRouter.post("/v1/scans", async (context) => {
       throw cause;
     }
   }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const origin = context.env.WEB_ORIGIN ?? "http://localhost:3000";
+
+  // New code path: only when the feature flag is on.
+  if (isQuotaEnabled(context.env)) {
+    const key = domainKey(input.url);
+    const quotaDay = toQuotaDay(nowIso);
+    const redeemRepo = new RedeemRepository(context.env.DB);
+    const result = await resolveScanRequest({
+      domainKey: key,
+      quotaDay,
+      now: nowIso,
+      redeemCode: input.redeemCode ?? null,
+      redeemRepo,
+      scanLookup: makeScanLookup(context.env.DB),
+      reportGet: makeReportGet(context.env.DB),
+      hashCode: hashRedeemCode,
+      buildReportUrl: (token) => buildReportUrl(origin, token),
+    });
+
+    if (result.kind === "rejected") {
+      const status = result.reason === "INVALID_REDEEM_CODE" ? 400 : 401;
+      return context.json({ code: result.reason }, status);
+    }
+
+    if (result.kind === "cached") {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "scan.cached_served",
+          originalScanId: result.originalScanId,
+          domainKey: key,
+          quotaDay,
+        }),
+      );
+      const cached: ScanCachedResponse = {
+        scanId: result.originalScanId,
+        state: result.state as ScanCachedResponse["state"],
+        status: result.status as ScanCachedResponse["status"],
+        coverage: { fetched: [], failed: [], skipped: [] },
+        createdAt: result.createdAt,
+        expiresAt: result.expiresAt,
+        reportUrl: result.reportUrl,
+        cached: true,
+        quotaDay,
+        domainKey: key,
+        message: result.message,
+      };
+      return context.json(cached, 200);
+    }
+
+    // result.kind === "fresh" — log if a code unlocked it.
+    if (result.codeId) {
+      console.log(
+        JSON.stringify({
+          level: "info",
+          event: "redeem.applied",
+          codeId: result.codeId,
+          domainKey: key,
+          quotaDay,
+          actor: "anonymous",
+        }),
+      );
+    }
+  }
+
+  // Original fresh-scan path (unchanged when ENABLE_DAILY_QUOTA is off).
   const repository = new ScanRepository(context.env.DB);
   const scanId = generateScanId();
-  const now = new Date();
   const expiresAt = new Date(now.getTime() + SCAN_TTL_SECONDS * 1000);
   await repository.create({
     id: scanId,
@@ -124,13 +270,10 @@ scansRouter.post("/v1/scans", async (context) => {
     jurisdiction: input.jurisdiction,
     category: input.category,
     analysisVersion: ANALYSIS_VERSION,
-    now: now.toISOString(),
+    now: nowIso,
     expiresAt: expiresAt.toISOString(),
   });
-  // The actual scan execution is triggered by the Workflow binding at the
-  // platform boundary; the API contract only persists the scan row. Logging
-  // here intentionally avoids the reportUrl/token (none exists yet at create
-  // time).
+
   console.log(
     JSON.stringify({
       level: "info",
@@ -140,10 +283,7 @@ scansRouter.post("/v1/scans", async (context) => {
       category: input.category,
     }),
   );
-  // Trigger the scan workflow. The API contract only persists the scan row
-  // here; the workflow performs fetching, evaluation, and report persistence
-  // asynchronously. If the workflow binding is absent (local dev without
-  // Workflows), the scan stays in `queued` until the cron sweep notices it.
+
   const workflow = context.env.SCAN_WORKFLOW;
   if (workflow) {
     try {
@@ -169,7 +309,7 @@ scansRouter.post("/v1/scans", async (context) => {
   }
 
   const response: CreateScanResponse = { scanId, state: "queued" };
-  return context.json(response satisfies CreateScanResponse, 202);
+  return context.json(response, 202);
 });
 
 scansRouter.get("/v1/scans/:id", async (context) => {
@@ -186,7 +326,7 @@ scansRouter.get("/v1/scans/:id", async (context) => {
   const progress: ScanProgressResponse = {
     scanId: stored.id,
     state: stored.state,
-    coverage: stored.coverage,
+    coverage: normalizeCoverage(stored.coverage),
     createdAt: stored.createdAt,
     expiresAt: stored.expiresAt,
   };
@@ -204,11 +344,9 @@ scansRouter.get("/v1/scans/:id", async (context) => {
       try {
         const payload = JSON.parse(storedReport.payloadJson) as Record<string, unknown>;
         const token = typeof payload._reportToken === "string" ? payload._reportToken : null;
-        if (token) {
-          progress.reportUrl = buildReportUrl(origin, token);
-        }
+        if (token) progress.reportUrl = buildReportUrl(origin, token);
       } catch {
-        // Malformed payload — treat as no report available.
+        // ignore
       }
     }
   }

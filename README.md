@@ -1,7 +1,7 @@
 # SafeLaunch — README
 
-> *"Ra mắt toàn cầu. Tuân thủ ngay từ đầu."*
-> *Launch globally. Compliant from day one.*
+> _"Ra mắt toàn cầu. Tuân thủ ngay từ đầu."_
+> _Launch globally. Compliant from day one._
 
 SafeLaunch is an **AI-assisted legal & regulatory compliance platform** that
 detects risks in a website **before** it ships. The MVP focuses on the
@@ -22,6 +22,7 @@ that identifies potential legal risks and cites the relevant provisions
 from official Vietnamese legal documents.
 
 **MVP guarantees**
+
 - No account, no signup, no payment.
 - Every legal claim is cited (article + URL + retrieval date).
 - Source-attributed answers: no hand-waving, no hidden legal advice.
@@ -30,6 +31,7 @@ from official Vietnamese legal documents.
   in logs.
 
 **MVP non-goals** (per `docs/superpowers/specs/2026-07-28-safelaunch-mvp-design.md`)
+
 - No definitive legal opinion.
 - No Vietnam-only handling beyond VN (multi-jurisdiction is future work).
 - No authenticated areas, no credential submission, no form submission.
@@ -147,17 +149,17 @@ from official Vietnamese legal documents.
 
 Components (one-line summary):
 
-| Layer | Component | File |
-|---|---|---|
-| Edge | AbuseRateLimiter DO | `apps/workers/src/services/abuse-rate-limiter-do.ts` |
-| Edge | Workflow `scan-workflow` | `apps/workers/src/workflows/scan-workflow.ts` |
-| API | Hono app + routers | `apps/workers/src/index.ts`, `src/routes/*.ts` |
-| Scanner | safe-fetch (SSRF) | `apps/workers/src/services/safe-fetch.ts` |
-| Scanner | evidence extractor | `apps/workers/src/services/evidence.ts` |
-| Domain | rules + scoring | `packages/compliance-core/src/{rules,scoring,aggregate,verify}.ts` |
-| AI | retrieval + LLM | `packages/ai/src/{retrieval,provider,evaluate,translate}.ts` |
-| Data | D1 repositories | `packages/db/src/{scan,legal}-repository.ts` |
-| UI | Next.js pages | `apps/web/src/app/` |
+| Layer   | Component                | File                                                               |
+| ------- | ------------------------ | ------------------------------------------------------------------ |
+| Edge    | AbuseRateLimiter DO      | `apps/workers/src/services/abuse-rate-limiter-do.ts`               |
+| Edge    | Workflow `scan-workflow` | `apps/workers/src/workflows/scan-workflow.ts`                      |
+| API     | Hono app + routers       | `apps/workers/src/index.ts`, `src/routes/*.ts`                     |
+| Scanner | safe-fetch (SSRF)        | `apps/workers/src/services/safe-fetch.ts`                          |
+| Scanner | evidence extractor       | `apps/workers/src/services/evidence.ts`                            |
+| Domain  | rules + scoring          | `packages/compliance-core/src/{rules,scoring,aggregate,verify}.ts` |
+| AI      | retrieval + LLM          | `packages/ai/src/{retrieval,provider,evaluate,translate}.ts`       |
+| Data    | D1 repositories          | `packages/db/src/{scan,legal}-repository.ts`                       |
+| UI      | Next.js pages            | `apps/web/src/app/`                                                |
 
 ---
 
@@ -180,12 +182,12 @@ Components (one-line summary):
 
 ### 5.1 Prerequisites
 
-| Tool | Version | Why |
-|---|---|---|
-| Node.js | 22.x (matches `.nvmrc`) | Runtime |
-| pnpm | 10.13.1 (`corepack enable`) | Workspace package manager |
-| Wrangler | 4.114.0 (`pnpm dlx wrangler`) | Worker tooling |
-| Git | any | Standard |
+| Tool     | Version                       | Why                       |
+| -------- | ----------------------------- | ------------------------- |
+| Node.js  | 22.x (matches `.nvmrc`)       | Runtime                   |
+| pnpm     | 10.13.1 (`corepack enable`)   | Workspace package manager |
+| Wrangler | 4.114.0 (`pnpm dlx wrangler`) | Worker tooling            |
+| Git      | any                           | Standard                  |
 
 ### 5.2 Bootstrap
 
@@ -255,6 +257,7 @@ pnpm exec wrangler d1 execute DB --remote --file ../../scripts/seed-legal-corpus
 ```
 
 Verify:
+
 ```bash
 pnpm exec wrangler d1 execute DB --remote --command \
   "SELECT id, status, effective_from FROM legal_documents ORDER BY id"
@@ -299,12 +302,14 @@ export CF_API_TOKEN=...
 on every PR and push to `main`.
 
 `.github/workflows/deploy-staging.yml` runs on push to `main` (after CI passes):
+
 - D1 migrations applied to staging
 - API + Web deployed
 - Smoke + eval + latency probes
 - Redacted artifacts uploaded
 
 `.github/workflows/deploy-production.yml` is `workflow_dispatch`:
+
 - Re-runs CI against the chosen commit
 - Exports D1 snapshot as 90-day rollback artifact
 - Traffic shifts 10% → 50% → 100%
@@ -410,15 +415,15 @@ POST /v1/scans                    (apps/workers/src/routes/scans.ts)
 
 ## 9. Hard gates (every PR)
 
-| Gate | Command | Expected |
-|---|---|---|
-| Typecheck | `pnpm -r typecheck` | 6 packages, all pass |
-| Lint | `pnpm -r lint` | 6 packages, all pass |
-| Unit tests | `pnpm -r test` | 148 tests pass |
-| Worker build | `cd apps/workers && pnpm build` | wrangler dry-run OK |
-| Web build | `cd apps/web && NEXT_PUBLIC_API_ORIGIN=... pnpm build` | next build OK |
-| Eval gate | `pnpm -C packages/ai test -- eval-runner` | citationValidity=1.0, highRiskPrecision≥0.9, unsupportedHighRisk=0 |
-| Latency probe | `node scripts/check-latency.mjs --base-url $STAGING_URL` | P95 < 60s |
+| Gate          | Command                                                  | Expected                                                           |
+| ------------- | -------------------------------------------------------- | ------------------------------------------------------------------ |
+| Typecheck     | `pnpm -r typecheck`                                      | 6 packages, all pass                                               |
+| Lint          | `pnpm -r lint`                                           | 6 packages, all pass                                               |
+| Unit tests    | `pnpm -r test`                                           | 148 tests pass                                                     |
+| Worker build  | `cd apps/workers && pnpm build`                          | wrangler dry-run OK                                                |
+| Web build     | `cd apps/web && NEXT_PUBLIC_API_ORIGIN=... pnpm build`   | next build OK                                                      |
+| Eval gate     | `pnpm -C packages/ai test -- eval-runner`                | citationValidity=1.0, highRiskPrecision≥0.9, unsupportedHighRisk=0 |
+| Latency probe | `node scripts/check-latency.mjs --base-url $STAGING_URL` | P95 < 60s                                                          |
 
 ---
 

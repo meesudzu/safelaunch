@@ -11,7 +11,6 @@ Roll back when **any** of the following is true after a production
 deploy:
 
 - The eval gate fails on the live URL.
-- The latency probe P95 is sustained at or above 60 s.
 - The smoke script reports a failure on a critical endpoint.
 - The D1 migrations introduced a schema that breaks report generation.
 - The new Worker version is causing 5xx rates > 1 % over a 5-minute
@@ -96,8 +95,6 @@ restore from the **D1 snapshot** captured by the production workflow
 - `rtk node scripts/smoke.mjs --base-url "$PRODUCTION_URL"` — must PASS.
 - `rtk pnpm -C packages/ai test -- eval-runner` — must PASS (regression
   suite is reproducible).
-- `rtk node scripts/check-latency.mjs --base-url "$PRODUCTION_URL" --samples 50` — P95
-  must be below 60 000 ms.
 - Manually open the marketing homepage in both locales and submit a
   scan on a public URL.
 - Manually open a previously-issued private report URL and confirm
@@ -111,7 +108,7 @@ Before you close the rollback ticket:
 
 1. Attach the **Worker version diff** (old version ID → new version
    ID) to the incident.
-2. Attach the **smoke + latency output** (with timestamps) to the
+2. Attach the **smoke output** (with timestamps) to the
    incident.
 3. Attach the **D1 snapshot** (from the failed deploy) and any post-
    rollback verification snapshots.
@@ -126,7 +123,7 @@ Before you close the rollback ticket:
 Within 24 hours, the release captain writes a one-page incident note
 covering:
 
-- What failed (eval gate, latency, smoke, 5xx rate, schema).
+- What failed (eval gate, smoke, 5xx rate, schema).
 - When it failed (timestamp of first signal vs. deploy).
 - What was rolled back (Worker / Worker + flag / Worker + flag + D1).
 - What the customer impact was (number of failed scans, if any).
@@ -140,7 +137,7 @@ release. To re-run the drill:
 ```bash
 # 1. Pick any previous staging deploy (Artifacts → D1 snapshot).
 # 2. Roll traffic to the previous version (Section 3) on staging.
-# 3. Run smoke + eval + latency probes.
+# 3. Run smoke + eval probes.
 # 4. Optionally restore the D1 snapshot (Section 5) on a throwaway
 #    staging environment.
 # 5. Paste the command output into the next release PR.
@@ -149,3 +146,5 @@ release. To re-run the drill:
 ## 10 · Change log
 
 - `2026-07-30` — v1 runbook. First rehearsal pending.
+- `2026-08-04` — Removed `scripts/check-latency.mjs` and its CICD step.
+  Smoke + eval gate are now the only post-deploy gates.
