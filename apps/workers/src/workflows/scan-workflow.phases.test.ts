@@ -7,6 +7,7 @@ import {
   persistReportPhase,
   persistProgressPhase,
   persistTerminalPhase,
+  extractEvidencePhase,
   type EvaluatePhaseDeps,
   type FetchPhaseDeps,
   type PersistDeps,
@@ -310,4 +311,67 @@ describe("persistProgressPhase", () => {
       expect(db.calls[0]?.args[0]).toBe(state);
     }
   });
+});
+
+describe("extractEvidencePhase per-page isolation", () => {
+  it("skips a page that throws and continues with the rest of the pages", async () => {
+    // F2: previously, an oversized page (sanitizePageText throws
+    // SanitizationError) would abort the entire phase, leaving the scan
+    // with zero evidence even though other pages were perfectly fine.
+    // Now each page is wrapped in try/catch: a failing page is logged
+    // and skipped, the rest still produce evidence. We exercise the
+    // isolation by spying on `extractEvidence` and forcing it to throw
+    // for the privacy page only.
+    const { vi } = await import("vitest");
+    const evidenceModule = await import("../services/evidence");
+    const spy = vi.spyOn(evidenceModule, "extractEvidence");
+    const okHtml = "<p>Công ty TNHH Example contact@example.com</p>";
+    spy.mockImplementation((input: { sourceUrl: string; html: string }) => {
+      if (input.sourceUrl.includes("/poison")) {
+        throw new Error("synthetic extract failure for isolation test");
+      }
+      // Fall through to the real implementation by re-importing the
+      // underlying pure function — but since spy wraps it, call the
+      // non-throwing logic manually via sanitize + simple regex pass.
+      // To keep this isolated from internals we return an empty list;
+      // the assertion below verifies only the THROWING page is skipped.
+      return [];
+    });
+
+    const result = extractEvidencePhase(
+      [
+        { type: "privacy", url: "https://example.com/poison", status: 200 },
+        { type: "terms", url: "https://example.com/terms", status: 200 },
+      ],
+      new Map<string, Uint8Array>([
+        ["https://example.com/poison", new TextEncoder().encode(okHtml)],
+        ["https://example.com/terms", new TextEncoder().encode(okHtml)],
+      ]),
+    );
+
+    // The throwing page is skipped; the surviving page still decodes.
+    expect(result.pages.find((p) => p.url === "https://example.com/poison")).toBeUndefined();
+    expect(result.pages.find((p) => p.url === "https://example.com/terms")).toBeDefined();
+    // The phase returned a normal shape (no throw).
+    expect(Array.isArray(result.evidence)).toBe(true);
+    spy.mockRestore();
+  });
+
+  it(
+    "survives a 810 KB HTML payload without throwing (chunked sanitization)",
+    { timeout: 30_000 },
+    () => {
+      // Regression test for the dantri.com.vn failure mode: previously the
+      // phase would terminate on the first oversized page. The chunked
+      // sanitization in `sanitizePageText` + the per-page try/catch in
+      // `extractEvidencePhase` together guarantee the phase completes.
+      const hugeHtml = "<div>" + "x".repeat(810_000) + "</div>";
+      const result = extractEvidencePhase(
+        [{ type: "homepage", url: "https://example.com/", status: 200 }],
+        new Map([["https://example.com/", new TextEncoder().encode(hugeHtml)]]),
+      );
+      expect(result.pages.length).toBe(1);
+      expect(result.evidence.length).toBe(0);
+    },
+  );
 });
