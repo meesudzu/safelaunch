@@ -14,22 +14,23 @@ Tài liệu này là điểm bắt đầu bằng tiếng Việt cho toàn bộ d
 ## Mục lục
 
 1. [Tổng quan sản phẩm](#1-tổng-quan-sản-phẩm)
-2. [Phạm vi MVP](#2-phạm-vi-mvp)
-3. [Kiến trúc hệ thống](#3-kiến-trúc-hệ-thống)
-4. [Luồng quét và tạo báo cáo](#4-luồng-quét-và-tạo-báo-cáo)
-5. [Rules engine và rubric tuân thủ](#5-rules-engine-và-rubric-tuân-thủ)
-6. [LLM, RAG và xác minh kết quả](#6-llm-rag-và-xác-minh-kết-quả)
-7. [Nguồn luật và quy trình quản trị corpus](#7-nguồn-luật-và-quy-trình-quản-trị-corpus)
-8. [Mô hình dữ liệu và quyền riêng tư](#8-mô-hình-dữ-liệu-và-quyền-riêng-tư)
-9. [API và giao diện người dùng](#9-api-và-giao-diện-người-dùng)
-10. [Thiết kế giao diện](#10-thiết-kế-giao-diện)
-11. [Cấu trúc repository](#11-cấu-trúc-repository)
-12. [Phát triển cục bộ](#12-phát-triển-cục-bộ)
-13. [Kiểm thử và quality gates](#13-kiểm-thử-và-quality-gates)
-14. [Triển khai Cloudflare](#14-triển-khai-cloudflare)
-15. [Phát hành và rollback](#15-phát-hành-và-rollback)
-16. [Quy trình đóng góp](#16-quy-trình-đóng-góp)
-17. [Danh mục tài liệu nguồn](#17-danh-mục-tài-liệu-nguồn)
+2. [Chiến lược kinh doanh](#2-chiến-lược-kinh-doanh)
+3. [Phạm vi MVP](#3-phạm-vi-mvp)
+4. [Kiến trúc hệ thống](#4-kiến-trúc-hệ-thống)
+5. [Luồng quét và tạo báo cáo](#5-luồng-quét-và-tạo-báo-cáo)
+6. [Rules engine và rubric tuân thủ](#6-rules-engine-và-rubric-tuân-thủ)
+7. [LLM, RAG và xác minh kết quả](#7-llm-rag-và-xác-minh-kết-quả)
+8. [Nguồn luật và quy trình quản trị corpus](#8-nguồn-luật-và-quy-trình-quản-trị-corpus)
+9. [Mô hình dữ liệu và quyền riêng tư](#9-mô-hình-dữ-liệu-và-quyền-riêng-tư)
+10. [API và giao diện người dùng](#10-api-và-giao-diện-người-dùng)
+11. [Thiết kế giao diện](#11-thiết-kế-giao-diện)
+12. [Cấu trúc repository](#12-cấu-trúc-repository)
+13. [Phát triển cục bộ](#13-phát-triển-cục-bộ)
+14. [Kiểm thử và quality gates](#14-kiểm-thử-và-quality-gates)
+15. [Triển khai Cloudflare](#15-triển-khai-cloudflare)
+16. [Phát hành và rollback](#16-phát-hành-và-rollback)
+17. [Quy trình đóng góp](#17-quy-trình-đóng-góp)
+18. [Danh mục tài liệu nguồn](#18-danh-mục-tài-liệu-nguồn)
 
 ---
 
@@ -67,7 +68,69 @@ Mục tiêu trải nghiệm của MVP là hoàn tất một lượt quét trong 
 
 ---
 
-## 2. Phạm vi MVP
+## 2. Chiến lược kinh doanh
+
+### Vị thế sản phẩm
+
+SafeLaunch dịch chuyển hoạt động tuân thủ về trước thời điểm phát hành. Khác với tư vấn luật ad-hoc hoặc công cụ đơn jurisdiction, sản phẩm phủ nhiều hệ pháp lý trong cùng một lượt quét — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC. Mỗi phát hiện kèm trích dẫn nguồn luật với article, URL và ngày truy xuất, neo vào bằng chứng thực từ website chứ không suy đoán. Hệ thống thu thập tối thiểu — chỉ host đã chuẩn hoá và ngày UTC, không IP, không email, không cookie — để quota công bằng và bảo vệ quyền riêng tư.
+
+### Khách hàng mục tiêu
+
+Founder hoặc product manager tại Việt Nam chuẩn bị ra mắt sản phẩm số thuộc ba nhóm MVP — trò chơi điện tử trực tuyến, báo điện tử hoặc giải trí số — cần biết điểm nào trên site có thể vi phạm trước khi công bố. SafeLaunch cung cấp báo cáo song ngữ Việt–Anh trong khoảng 60 giây, kèm trích dẫn nguồn luật để nhóm tự xử lý phần lớn vấn đề.
+
+Legal hoặc ops lead tại doanh nghiệp nhỏ và vừa thường phải review nhiều site cùng lúc và dễ sót chi tiết khi làm thủ công. SafeLaunch chạy lại được trên cùng một URL, dùng rules engine có xác minh bắt buộc nên kết quả ổn định giữa các lượt.
+
+Agency hoặc reseller hỗ trợ nhiều khách hàng mỗi tuần cần cách phân bổ quota công bằng giữa các domain. SafeLaunch áp dụng quota 1 lượt mỗi domain trong ngày UTC và admin có thể cấp redeem code để mở rộng cho từng trường hợp cần quét lại.
+
+### Giá trị theo nhóm
+
+| Nhóm khách hàng   | Pain point                                             | Cách SafeLaunch giải quyết                                                                                                         |
+| ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                             |
+| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót       | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                      |
+| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần           | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts` |
+
+### Mô hình thương mại hoá
+
+Ba giai đoạn, không kèm số liệu cụ thể.
+
+Hiện tại (MVP) — miễn phí với quota 1 lượt mỗi domain trong ngày UTC. Admin có thể cấp redeem code để mở rộng quota khi cần quét lại hoặc hỗ trợ khách hàng; cơ chế đã chạy trong mã nguồn tại `apps/workers/src/services/redeem-codes.ts` và có giao diện quản trị tại `apps/web/src/app/[locale]/admin/redeem-codes/page.tsx`.
+
+Sắp tới — gói trả phí mở rộng, hiện là UI stub với tên "Gói mở rộng / Extension package". Mô hình giá và phạm vi đang được thiết kế, chưa công bố.
+
+Cam kết dài hạn:
+
+- Không bán dữ liệu scan.
+- Không nhúng quảng cáo vào báo cáo.
+- Không thu thập IP hoặc email tuỳ vị để theo dõi cá nhân.
+
+### Ranh giới cạnh tranh
+
+| Cách tiếp cận hiện có                | Cách SafeLaunch làm                                                                      |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Tự review thủ công trước khi ra mắt  | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật              |
+| Tư vấn luật ad-hoc từng dự án        | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                      |
+| Công cụ nước ngoài đơn jurisdiction  | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC |
+| Thu thập IP và cookie để chống abuse | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`     |
+
+### Cam kết với khách hàng
+
+SafeLaunch sẽ:
+
+- Trích dẫn nguồn luật với article, URL và ngày truy xuất cho mỗi phát hiện.
+- Trả báo cáo song ngữ Việt–Anh.
+- Neo phát hiện vào bằng chứng thực từ website, không suy đoán.
+- Mặc định đa jurisdiction; một jurisdiction duy nhất chỉ khi người dùng yêu cầu.
+- Báo rõ khi bằng chứng chưa đủ và đề xuất bước tiếp theo.
+
+SafeLaunch sẽ không:
+
+- Đưa ý kiến pháp lý có tính quyết định thay chuyên gia.
+- Bán dữ liệu scan hoặc báo cáo.
+- Nhúng quảng cáo vào báo cáo.
+- Theo dõi cá nhân qua IP, email hoặc cookie tuỳ vị.
+
+## 3. Phạm vi MVP
 
 ### Jurisdiction và nhóm sản phẩm
 
@@ -91,7 +154,7 @@ Kiến trúc được thiết kế để mở rộng đa jurisdiction, nhưng b�
 
 ---
 
-## 3. Kiến trúc hệ thống
+## 4. Kiến trúc hệ thống
 
 SafeLaunch là monorepo TypeScript chạy chủ yếu trên Cloudflare.
 
@@ -137,7 +200,7 @@ Cấu hình hiện tại dùng **một môi trường Cloudflare production**, k
 
 ---
 
-## 4. Luồng quét và tạo báo cáo
+## 5. Luồng quét và tạo báo cáo
 
 ### 4.1 Tiếp nhận yêu cầu
 
@@ -206,7 +269,7 @@ Lỗi kỹ thuật hoặc coverage thiếu không được phép bị diễn gi�
 
 ---
 
-## 5. Rules engine và rubric tuân thủ
+## 6. Rules engine và rubric tuân thủ
 
 Rubric hiện hành có mã `vn-mvp-v1`. Với cùng input và cùng phiên bản rubric, kết quả phải tái lập được.
 
@@ -246,7 +309,7 @@ Mỗi `RuleResult` phải có:
 
 ---
 
-## 6. LLM, RAG và xác minh kết quả
+## 7. LLM, RAG và xác minh kết quả
 
 ### 6.1 Retrieval pháp lý
 
@@ -301,7 +364,7 @@ Package AI có abstraction `Translator` để tạo báo cáo Việt–Anh. Ch�
 
 ---
 
-## 7. Nguồn luật và quy trình quản trị corpus
+## 8. Nguồn luật và quy trình quản trị corpus
 
 ### Nguồn production
 
@@ -343,7 +406,7 @@ Muốn kích hoạt phải xác định chính xác Điều/Khoản, applicabili
 
 ---
 
-## 8. Mô hình dữ liệu và quyền riêng tư
+## 9. Mô hình dữ liệu và quyền riêng tư
 
 ### Hai nhóm dữ liệu
 
@@ -386,7 +449,7 @@ Retention service phải idempotent và xóa các bản ghi hết hạn cùng ar
 
 ---
 
-## 9. API và giao diện người dùng
+## 10. API và giao diện người dùng
 
 ### Endpoint chính
 
@@ -412,7 +475,7 @@ UI phải thể hiện rõ trạng thái AI-assisted, độ không chắc chắn
 
 ---
 
-## 10. Thiết kế giao diện
+## 11. Thiết kế giao diện
 
 Homepage dùng hướng thiết kế **Trust Sand**, thiên về bố cục biên tập hai cột thay vì landing page AI mặc định.
 
@@ -434,7 +497,7 @@ Homepage dùng hướng thiết kế **Trust Sand**, thiên về bố cục biê
 
 ---
 
-## 11. Cấu trúc repository
+## 12. Cấu trúc repository
 
 ```text
 .
@@ -477,7 +540,7 @@ Homepage dùng hướng thiết kế **Trust Sand**, thiên về bố cục biê
 
 ---
 
-## 12. Phát triển cục bộ
+## 13. Phát triển cục bộ
 
 ### Yêu cầu
 
@@ -528,7 +591,7 @@ Một số binding như Workers AI có thể cần remote access cho scan end-to
 
 ---
 
-## 13. Kiểm thử và quality gates
+## 14. Kiểm thử và quality gates
 
 ### Lệnh kiểm tra cơ bản
 
@@ -569,7 +632,7 @@ Trước release phải xác nhận:
 
 ---
 
-## 14. Triển khai Cloudflare
+## 15. Triển khai Cloudflare
 
 ### Resource bindings
 
@@ -598,7 +661,7 @@ Hướng dẫn tạo D1, R2, Vectorize, Queue, Access policy, GitHub secrets và
 
 ---
 
-## 15. Phát hành và rollback
+## 16. Phát hành và rollback
 
 ### Release
 
@@ -636,7 +699,7 @@ Không xóa hoặc sửa ngược migration đã chạy trên production; ưu ti
 
 ---
 
-## 16. Quy trình đóng góp
+## 17. Quy trình đóng góp
 
 ### Nguyên tắc bắt buộc
 
@@ -674,7 +737,7 @@ rtk git status
 
 ---
 
-## 17. Danh mục tài liệu nguồn
+## 18. Danh mục tài liệu nguồn
 
 README này tổng hợp các tài liệu vận hành và đặc tả hiện hành sau:
 
