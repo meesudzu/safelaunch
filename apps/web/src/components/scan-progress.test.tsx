@@ -171,9 +171,7 @@ describe("ScanProgress", () => {
     // Stepper: queued row should now show the completed marker, fetching
     // row should be the only aria-current="step".
     const stepperList = screen.getByRole("list", { name: /scan steps/i });
-    const activeAfterFirst = stepperList.querySelectorAll<HTMLElement>(
-      "[aria-current='step']",
-    );
+    const activeAfterFirst = stepperList.querySelectorAll<HTMLElement>("[aria-current='step']");
     expect(activeAfterFirst).toHaveLength(1);
     expect(activeAfterFirst[0]?.textContent).toContain("Fetching");
 
@@ -258,8 +256,6 @@ describe("ScanProgress", () => {
         poll={vi.fn().mockResolvedValue(progress("fetching"))}
       />,
     );
-    expect(
-      screen.getByRole("heading", { name: messages["coverage.title"] }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: messages["coverage.title"] })).toBeInTheDocument();
   });
 });
