@@ -62,4 +62,49 @@ describe("ScanProgress", () => {
       "/vi/report/report-token",
     );
   });
+
+  it("does not crash when coverage is an empty object (server default)", () => {
+    // Bug repro: GET /v1/scans/:id returns `coverage: {}` for a fresh scan
+    // (DB default `coverage_json = '{}'`). The client must not call
+    // `.map()` on undefined sub-fields.
+    const incompleteState = {
+      scanId: "scan_test",
+      state: "queued",
+      // Intentionally not conforming to ScanProgressState.coverage — no
+      // fetched/failed/skipped keys. Cast to satisfy the type at the call
+      // site; the point is that the runtime value is malformed.
+      coverage: {},
+    } as unknown as ScanProgressState;
+
+    expect(() =>
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={incompleteState}
+          poll={vi.fn().mockResolvedValue(incompleteState)}
+        />,
+      ),
+    ).not.toThrow();
+
+    expect(screen.getByTestId("progress-state")).toHaveTextContent("Queued");
+  });
+
+  it("does not crash when coverage is missing entirely", () => {
+    const incompleteState = {
+      scanId: "scan_test",
+      state: "queued",
+    } as unknown as ScanProgressState;
+
+    expect(() =>
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={incompleteState}
+          poll={vi.fn().mockResolvedValue(incompleteState)}
+        />,
+      ),
+    ).not.toThrow();
+  });
 });
