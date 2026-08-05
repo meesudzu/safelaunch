@@ -49,14 +49,13 @@ User report (2026-08-05) of three production defects on `/vi/report/rpt_9c2c4a2e
 A small allow-list is added to the web app for citation hosts (used by the UI guard in `report-view.tsx`). The list mirrors the source-authority list already present in `apps/workers/src/services/url-policy.ts` and `packages/compliance-core/src/jurisdictions.ts` (which whitelist `vbpl.vn`).
 
 ```ts
-// apps/web/src/lib/citation-hosts.ts (new)
-export const APPROVED_CITATION_HOSTS = [
-  "vbpl.vn",
-  "hoidapphapluat.vn",
-  "thuvienphapluat.vn",
-] as const;
+// apps/web/src/lib/citation-hosts.ts
+// Updated: secondary mirrors (hoidapphapluat.vn, thuvienphapluat.vn) removed
+// so every rendered citation link resolves to the canonical vbpl.vn corpus.
+export const APPROVED_CITATION_HOSTS = ["vbpl.vn"] as const;
 
 export const isApprovedCitationUrl = (url: string): boolean => {
+  if (typeof url !== "string" || url.length === 0) return false;
   try {
     const host = new URL(url).hostname.toLowerCase();
     return APPROVED_CITATION_HOSTS.some(

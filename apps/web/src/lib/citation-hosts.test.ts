@@ -8,9 +8,13 @@ describe("citation host allow-list", () => {
     expect(isApprovedCitationUrl("HTTPS://VBPL.VN/bar")).toBe(true);
   });
 
-  it("accepts hoidapphapluat.vn and thuvienphapluat.vn URLs", () => {
-    expect(isApprovedCitationUrl("https://hoidapphapluat.vn/q/123")).toBe(true);
-    expect(isApprovedCitationUrl("https://thuvienphapluat.vn/van-ban/abc")).toBe(true);
+  it("rejects previously-allowed mirror hosts that are no longer in the allow-list", () => {
+    // Secondary mirrors (hoidapphapluat.vn, thuvienphapluat.vn) were removed
+    // so every rendered citation link must resolve to the canonical vbpl.vn corpus.
+    expect(isApprovedCitationUrl("https://hoidapphapluat.vn/q/123")).toBe(false);
+    expect(isApprovedCitationUrl("https://www.hoidapphapluat.vn/q/123")).toBe(false);
+    expect(isApprovedCitationUrl("https://thuvienphapluat.vn/van-ban/abc")).toBe(false);
+    expect(isApprovedCitationUrl("https://www.thuvienphapluat.vn/van-ban/abc")).toBe(false);
   });
 
   it("rejects hosts outside the allow-list", () => {
@@ -24,8 +28,7 @@ describe("citation host allow-list", () => {
     expect(isApprovedCitationUrl("")).toBe(false);
   });
 
-  it("exports a frozen-typed list of approved hosts", () => {
-    expect(APPROVED_CITATION_HOSTS).toContain("vbpl.vn");
-    expect(APPROVED_CITATION_HOSTS.length).toBeGreaterThan(0);
+  it("exports vbpl.vn as the sole approved citation host", () => {
+    expect(APPROVED_CITATION_HOSTS).toEqual(["vbpl.vn"]);
   });
 });
