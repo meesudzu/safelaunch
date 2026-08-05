@@ -68,6 +68,7 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
   };
   const logger = captureLogger();
   const terminalStates: unknown[] = [];
+  const progressStates: Array<{ scanId: string; state: string }> = [];
   const deps = {
     fetch: overrides.fetch,
     evaluate:
@@ -81,10 +82,14 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
       terminalStates.push(input);
       return Promise.resolve();
     },
+    persistProgressState: (input: { scanId: string; state: string }) => {
+      progressStates.push(input);
+      return Promise.resolve();
+    },
     now: () => "2026-07-29T00:00:00.000Z",
     log: logger.log,
   };
-  return { deps, logger, issued, terminalStates };
+  return { deps, logger, issued, terminalStates, progressStates };
 };
 
 type ScanRunDeps = Parameters<typeof runScan>[1];
@@ -207,5 +212,60 @@ describe("runScan", () => {
     expect(first.coverage.fetched).toContain("homepage");
     // Same scan should not duplicate the homepage entry.
     expect(first.coverage.fetched.filter((entry) => entry === "homepage").length).toBe(1);
+  });
+});
+
+describe("runScan progress publishing", () => {
+  // G1/G2: runScan must emit at least two intermediate progress updates
+  // so the polling UI can render step-level progress while the scan is
+  // running. The entrypoint also publishes "reporting" before phase-9
+  // (covered separately in scan-workflow.entrypoint.test.ts).
+
+  it("publishes 'extracting' after the fetch phase completes", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const states = progressStates.map((p) => p.state);
+    expect(states).toContain("extracting");
+  });
+
+  it("publishes 'evaluating' after the evaluation phase completes", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const states = progressStates.map((p) => p.state);
+    expect(states).toContain("evaluating");
+  });
+
+  it("emits 'extracting' before 'evaluating' (phase order)", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const extractingIndex = progressStates.findIndex((p) => p.state === "extracting");
+    const evaluatingIndex = progressStates.findIndex((p) => p.state === "evaluating");
+    expect(extractingIndex).toBeGreaterThanOrEqual(0);
+    expect(evaluatingIndex).toBeGreaterThanOrEqual(0);
+    expect(extractingIndex).toBeLessThan(evaluatingIndex);
+  });
+
+  it("scopes every progress publish to the same scanId", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    expect(progressStates.length).toBeGreaterThan(0);
+    for (const entry of progressStates) {
+      expect(entry.scanId).toBe(baseParams.scanId);
+    }
+  });
+
+  it("does not publish intermediate progress when the homepage fetch fails", async () => {
+    // G3: the homepage-fail path short-circuits straight to a terminal
+    // "failed" state via persistTerminalState. No intermediate progress
+    // should be emitted so the API does not flip from queued to
+    // extracting to failed on a one-shot failure.
+    const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    expect(progressStates).toEqual([]);
   });
 });

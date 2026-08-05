@@ -328,3 +328,84 @@ describe("scans router", () => {
     expect(coverage.skipped).toEqual([]);
   });
 });
+
+describe("GET /v1/scans/:id live progress", () => {
+  // G1: the route must surface the workflow's current state, including
+  // the intermediate values defined in ScanState. Before this fix the
+  // DB row only flipped to a terminal state at phase-10, so the polling
+  // UI stayed pinned on "queued" for the entire run.
+
+  it("returns an in-flight 'extracting' state from the DB (not 'queued')", async () => {
+    const db = new FakeD1Database();
+    db.rows.push({
+      sql: "SELECT * FROM scans WHERE id = ?",
+      firstReturn: {
+        id: "scan_extracting",
+        url: "https://game.test/",
+        jurisdiction: "VN",
+        category: "online_game",
+        state: "extracting",
+        coverage_json: '{"fetched":["homepage","about"],"failed":[],"skipped":[]}',
+        analysis_version: "vn-mvp-v1",
+        created_at: "2026-07-29T00:00:00.000Z",
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+    const response = await runWithDb(db, new Request("http://local/v1/scans/scan_extracting"));
+    expect(response.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { state?: string; reportUrl?: string };
+    expect(body.state).toBe("extracting");
+  });
+
+  it("returns an in-flight 'evaluating' state with the in-progress coverage snapshot", async () => {
+    const db = new FakeD1Database();
+    db.rows.push({
+      sql: "SELECT * FROM scans WHERE id = ?",
+      firstReturn: {
+        id: "scan_evaluating",
+        url: "https://game.test/",
+        jurisdiction: "VN",
+        category: "online_game",
+        state: "evaluating",
+        coverage_json: '{"fetched":["homepage","about","privacy"],"failed":[],"skipped":[]}',
+        analysis_version: "vn-mvp-v1",
+        created_at: "2026-07-29T00:00:00.000Z",
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+    const response = await runWithDb(db, new Request("http://local/v1/scans/scan_evaluating"));
+    expect(response.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { state?: string; coverage?: { fetched?: string[] } };
+    expect(body.state).toBe("evaluating");
+    expect(body.coverage?.fetched).toEqual(["homepage", "about", "privacy"]);
+  });
+
+  it("returns an in-flight 'reporting' state but no reportUrl yet", async () => {
+    const db = new FakeD1Database();
+    db.rows.push({
+      sql: "SELECT * FROM scans WHERE id = ?",
+      firstReturn: {
+        id: "scan_reporting",
+        url: "https://game.test/",
+        jurisdiction: "VN",
+        category: "online_game",
+        state: "reporting",
+        coverage_json: '{"fetched":["homepage"],"failed":[],"skipped":[]}',
+        analysis_version: "vn-mvp-v1",
+        created_at: "2026-07-29T00:00:00.000Z",
+        expires_at: "2026-08-05T00:00:00.000Z",
+      },
+      runReturn: null,
+    });
+    const response = await runWithDb(db, new Request("http://local/v1/scans/scan_reporting"));
+    expect(response.status).toBe(200);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+    const body = (await response.json()) as { state?: string; reportUrl?: string };
+    expect(body.state).toBe("reporting");
+    expect(body.reportUrl).toBeUndefined();
+  });
+});

@@ -30,7 +30,12 @@ flowchart TD
   H --> PR[phase-1.2: fetch:privacy]
   H --> C[phase-1.3: fetch:contact]
   H --> T[phase-1.4: fetch:terms]
-  A --> E2[phase-2: extract-evidence]
+  H --> PUBX[publish: extracting]
+  A --> PUBX
+  PR --> PUBX
+  C --> PUBX
+  T --> PUBX
+  PUBX --> E2[phase-2: extract-evidence]
   PR --> E2
   C --> E2
   T --> E2
@@ -41,7 +46,10 @@ flowchart TD
   E5 --> E6[phase-6: evaluate-license]
   E6 --> E7[phase-7: evaluate-rules]
   E7 --> E8[phase-8: aggregate-findings]
-  E8 --> E9[phase-9: persist-report]
+  E8 --> PUBD[publish: reporting]
+  PUBD --> E9[phase-9: persist-report]
+  E5 --> PUBY[publish: evaluating]
+  PUBY --> E6[phase-6: evaluate-license]
   E9 --> E10[phase-10: persist-terminal]
 ```
 
@@ -58,13 +66,16 @@ Quy ước `phase-0` và `phase-1.x` theo spec tại
 | 1.2 | `fetch:privacy`                  | `fetchSinglePagePhase`                    | HTTP bounded                 | không            | 1        |
 | 1.3 | `fetch:contact`                  | `fetchSinglePagePhase`                    | HTTP bounded                 | không            | 1        |
 | 1.4 | `fetch:terms`                    | `fetchSinglePagePhase`                    | HTTP bounded                 | không            | 1        |
-| 2   | `phase-2:extract-evidence`       | `extractEvidencePhase`                    | không                        | không            | mặc định |
+| 1.5 | `publish:extracting`             | `persistProgressPhase`                    | không                        | update `scans`   | 1        |
+| 2   | `phase-2:extract-evidence`       | `extractEvidencePhase`                    | không                        | không            | 1        |
 | 3   | `phase-3:extract-signals`        | `extractServiceSignalsPhase`              | không                        | không            | mặc định |
 | 4   | `phase-4:scan-assets-references` | `collectAssetReferencesPhase`             | HTTP bounded tới stylesheet  | không            | mặc định |
 | 5   | `phase-5:classify-asset-rights`  | `classifyAssetRightsPhase`                | HTTP bounded theo từng asset | không            | mặc định |
+| 5.5 | `publish:evaluating`             | `persistProgressPhase`                    | không                        | update `scans`   | 1        |
 | 6   | `phase-6:evaluate-license`       | `evaluateLicenseRequirementsPhase`        | chỉ registry lookup          | không            | mặc định |
 | 7   | `phase-7:evaluate-rules`         | `evaluatePhase` + `makeWorkflowEvaluator` | có thể gọi AI                | không            | mặc định |
 | 8   | `phase-8:aggregate-findings`     | `aggregateFindings`                       | không                        | không            | mặc định |
+| 8.5 | `publish:reporting`              | `persistProgressPhase`                    | không                        | update `scans`   | 1        |
 | 9   | `phase-9:persist-report`         | `persistReportPhase`                      | không                        | upsert `reports` | 5        |
 | 10  | `phase-10:persist-terminal`      | `persistTerminalPhase`                    | không                        | update `scans`   | 5        |
 

@@ -32,18 +32,21 @@ flowchart TD
   H --> PR[phase-1.2: fetch:privacy]
   H --> C[phase-1.3: fetch:contact]
   H --> T[phase-1.4: fetch:terms]
-  A --> E2[phase-2: extract-evidence]
-  PR --> E2
-  C --> E2
-  T --> E2
-  H --> E2
+  H --> PUBX[publish: extracting]
+  A --> PUBX
+  PR --> PUBX
+  C --> PUBX
+  T --> PUBX
+  PUBX --> E2[phase-2: extract-evidence]
   E2 --> E3[phase-3: extract-signals]
   E3 --> E4[phase-4: scan-assets-references]
   E4 --> E5[phase-5: classify-asset-rights]
-  E5 --> E6[phase-6: evaluate-license]
+  E5 --> PUBY[publish: evaluating]
+  PUBY --> E6[phase-6: evaluate-license]
   E6 --> E7[phase-7: evaluate-rules]
   E7 --> E8[phase-8: aggregate-findings]
-  E8 --> E9[phase-9: persist-report]
+  E8 --> PUBD[publish: reporting]
+  PUBD --> E9[phase-9: persist-report]
   E9 --> E10[phase-10: persist-terminal]
 ```
 
@@ -60,19 +63,27 @@ flowchart TD
 | 1.2 | `fetch:privacy`                  | `fetchSinglePagePhase`                    | bounded HTTP                | none             | 1       |
 | 1.3 | `fetch:contact`                  | `fetchSinglePagePhase`                    | bounded HTTP                | none             | 1       |
 | 1.4 | `fetch:terms`                    | `fetchSinglePagePhase`                    | bounded HTTP                | none             | 1       |
-| 2   | `phase-2:extract-evidence`       | `extractEvidencePhase`                    | none                        | none             | default |
+| 1.5 | `publish:extracting`             | `persistProgressPhase`                    | none                        | `scans` update   | 1       |
+| 2   | `phase-2:extract-evidence`       | `extractEvidencePhase`                    | none                        | none             | 1       |
 | 3   | `phase-3:extract-signals`        | `extractServiceSignalsPhase`              | none                        | none             | default |
 | 4   | `phase-4:scan-assets-references` | `collectAssetReferencesPhase`             | bounded HTTP to stylesheets | none             | default |
 | 5   | `phase-5:classify-asset-rights`  | `classifyAssetRightsPhase`                | bounded HTTP per asset      | none             | default |
+| 5.5 | `publish:evaluating`             | `persistProgressPhase`                    | none                        | `scans` update   | 1       |
 | 6   | `phase-6:evaluate-license`       | `evaluateLicenseRequirementsPhase`        | registry lookup only        | none             | default |
 | 7   | `phase-7:evaluate-rules`         | `evaluatePhase` + `makeWorkflowEvaluator` | optional AI call            | none             | default |
 | 8   | `phase-8:aggregate-findings`     | `aggregateFindings`                       | none                        | none             | default |
+| 8.5 | `publish:reporting`              | `persistProgressPhase`                    | none                        | `scans` update   | 1       |
 | 9   | `phase-9:persist-report`         | `persistReportPhase`                      | none                        | `reports` upsert | 5       |
 | 10  | `phase-10:persist-terminal`      | `persistTerminalPhase`                    | none                        | `scans` update   | 5       |
 
 `default` = Cloudflare's standard retry policy (Cloudflare retries
 transient failures). `5` = the explicit `retries: { limit: 5, delay: "2 seconds",
 backoff: "exponential" }` policy used for DB writes.
+
+`publish:*` rows update the `state` column of the `scans` row only
+(`coverage_json` is left for `phase-10`). They are best-effort -- a
+transient D1 failure surfaces as a `scan.step_fallback` log line and the
+workflow continues. See `docs/superpowers/specs/2026-08-05-scan-api-progress-design.md`.
 
 ### Step 0 — `parse-params`
 

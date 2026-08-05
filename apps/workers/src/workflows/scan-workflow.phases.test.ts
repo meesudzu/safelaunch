@@ -5,6 +5,7 @@ import {
   evaluatePhase,
   fetchPhase,
   persistReportPhase,
+  persistProgressPhase,
   persistTerminalPhase,
   type EvaluatePhaseDeps,
   type FetchPhaseDeps,
@@ -246,5 +247,67 @@ describe("persistTerminalPhase", () => {
     expect(call.sql).toMatch(/UPDATE scans SET state = \?, coverage_json = \? WHERE id = \?/);
     expect(call.args[0]).toBe("completed");
     expect(call.args[2]).toBe("scan-term");
+  });
+});
+
+describe("persistProgressPhase", () => {
+  it("updates only the state column without touching coverage_json", async () => {
+    // G1/G4: the progress writes must NOT clobber the in-flight
+    // coverage_json (still owned by phase-10:persist-terminal). The
+    // SQL must therefore set state only, so the API's coverage contract
+    // is unchanged during the run.
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistProgressPhase({ scanId: "scan-extracting", state: "extracting" }, deps);
+    expect(db.calls.length).toBe(1);
+    const call = db.calls[0]!;
+    expect(call.sql).toMatch(/UPDATE scans SET state = \? WHERE id = \?/);
+    expect(call.sql).not.toMatch(/coverage_json/);
+    expect(call.args[0]).toBe("extracting");
+    expect(call.args[1]).toBe("scan-extracting");
+  });
+
+  it("logs scan.progress_persisted with the new state so operators can spot live progress", async () => {
+    // G7: the new event name carries only scanId + state (both already
+    // present in existing log lines). Make sure no other fields leak.
+    const db = stubDb();
+    const entries: Array<Record<string, unknown>> = [];
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: (entry) => entries.push(entry),
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistProgressPhase({ scanId: "scan-eval", state: "evaluating" }, deps);
+    const matched = entries.find((e) => e["event"] === "scan.progress_persisted");
+    expect(matched).toBeDefined();
+    expect(matched).toMatchObject({
+      scanId: "scan-eval",
+      state: "evaluating",
+      level: "info",
+    });
+    // No PII or compliance claim fields.
+    expect(JSON.stringify(matched)).not.toMatch(/url|findings|token|coverage/);
+  });
+
+  it("accepts every intermediate ScanState value without rejecting", async () => {
+    // G1: every intermediate value in the public ScanState enum must
+    // be acceptable. Terminal values pass through too -- the route
+    // already gates which states surface a report URL.
+    const { ScanState } = await import("@safelaunch/contracts");
+    const states = ScanState.options;
+    for (const state of states) {
+      const db = stubDb();
+      const deps: PersistDeps = {
+        db: db as unknown as D1Database,
+        log: () => {},
+        now: () => "2026-08-04T00:00:00.000Z",
+      };
+      await persistProgressPhase({ scanId: "scan-iter", state }, deps);
+      expect(db.calls[0]?.args[0]).toBe(state);
+    }
   });
 });

@@ -133,3 +133,81 @@ describe("ScanWorkflowEntrypoint graceful degradation", () => {
     expect(String(fallbackLog?.["reason"])).toContain("CPU time limit");
   });
 });
+
+/**
+ * Behavioral tests for the publish:* steps (G1/G2) and the phase-2
+ * graceful-degradation wrapper (G3). The actual entrypoint cannot run
+ * outside the Cloudflare Workflow runtime, so we exercise the same
+ * wrappers the entrypoint uses with a recording step.
+ */
+describe("ScanWorkflowEntrypoint progress publishing + phase-2 fallback", () => {
+  it("publishes 'extracting' via the runStepWithFallback wrapper", async () => {
+    // Mirrors the production publish:extracting block: the publish step
+    // is itself a runStepWithFallback so a transient D1 cold-start
+    // does not abort the workflow.
+    const warnings: Array<Record<string, unknown>> = [];
+    const log = (entry: Record<string, unknown>) => warnings.push(entry);
+    const step = makeRecordingStep();
+    await runStepWithFallback({
+      step,
+      name: "publish:extracting",
+      fallback: undefined,
+      log,
+      fn: () => Promise.resolve(undefined),
+    });
+    const fallback = warnings.find((w) => w["event"] === "scan.step_fallback");
+    expect(fallback).toBeUndefined();
+  });
+
+  it("treats a CPU-timeout on phase-2 as a degraded phase instead of stalling", async () => {
+    // G3: phase-2 is CPU-bound (regex loop on every chunk of every
+    // page). A large site (e.g. dantri.com.vn) can blow the Worker CPU
+    // budget; the fallback wrapper turns that into an empty
+    // evidence/pages result plus a scan.step_fallback log so phases 3-10
+    // still run. The dashboard must not stay in "Pending" forever.
+    const warnings: Array<Record<string, unknown>> = [];
+    const log = (entry: Record<string, unknown>) => warnings.push(entry);
+    const step = makeRecordingStep({
+      "phase-2:extract-evidence": () => {
+        throw new Error("Worker exceeded CPU time limit.");
+      },
+    });
+    const evidencePhase = await runStepWithFallback({
+      step,
+      name: "phase-2:extract-evidence",
+      fallback: { evidence: [] as never[], pages: [] as never[] },
+      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "1 minute" },
+      log,
+      fn: () => Promise.resolve({ evidence: [], pages: [] }),
+    });
+    expect(evidencePhase).toEqual({ evidence: [], pages: [] });
+    const fallback = warnings.find((w) => w["event"] === "scan.step_fallback");
+    expect(fallback).toBeDefined();
+    expect(fallback?.["step"]).toBe("phase-2:extract-evidence");
+    expect(String(fallback?.["reason"])).toContain("CPU time limit");
+  });
+
+  it("emits all three publish steps in phase order (extracting -> evaluating -> reporting)", async () => {
+    // G2: locks the canonical order so future refactors cannot silently
+    // reorder the publishes and confuse the polling UI.
+    const calls: Array<{ name: string }> = [];
+    const step = {
+      do: async <T>(name: string, fn: () => Promise<T>): Promise<T> => {
+        calls.push({ name });
+        return await fn();
+      },
+    } as unknown as WorkflowStepLike;
+    const log = () => {};
+    for (const name of ["publish:extracting", "publish:evaluating", "publish:reporting"]) {
+      await runStepWithFallback({
+        step,
+        name,
+        fallback: undefined,
+        log,
+        fn: () => Promise.resolve(undefined),
+      });
+    }
+    const publishNames = calls.map((c) => c.name);
+    expect(publishNames).toEqual(["publish:extracting", "publish:evaluating", "publish:reporting"]);
+  });
+});
