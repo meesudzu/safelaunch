@@ -25,7 +25,8 @@ describe("admin layout", () => {
       "aria-current",
       "page",
     );
-    expect(screen.getByText("Metrics")).toHaveAttribute("aria-disabled", "true");
+    expect(screen.getByRole("link", { name: "Metrics" })).toHaveAttribute("href", "/admin/metrics");
+    expect(screen.getByText("Logs")).toHaveAttribute("aria-disabled", "true");
     expect(screen.getByText("Nội dung trang")).toBeInTheDocument();
   });
 });

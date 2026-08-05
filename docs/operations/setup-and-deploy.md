@@ -202,6 +202,16 @@ The production token does **not** need:
 Store the token as `CLOUDFLARE_API_TOKEN`; never commit it or print it in CI
 logs. Store the account ID as `CLOUDFLARE_ACCOUNT_ID`.
 
+Create the hostname-HMAC secret used by privacy-preserving admin usage metrics:
+
+```bash
+pnpm --filter @safelaunch/workers exec wrangler secret put METRICS_HASH_SALT
+```
+
+Use a random value of at least 32 bytes. Never reuse an API token or commit this
+secret. Scans remain available when it is missing, but the admin dashboard marks
+the unique-site metric incomplete.
+
 Verify the token locally:
 
 ```bash

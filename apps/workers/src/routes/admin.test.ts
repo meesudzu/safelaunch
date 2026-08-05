@@ -80,6 +80,151 @@ const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
 };
 
 describe("admin router", () => {
+  describe("admin scan operations", () => {
+    it("lists scans with truncated hashes and no raw URL", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT s.id, s.url_hash",
+        firstReturn: null,
+        allReturn: [
+          {
+            id: "scan-1",
+            url_hash: "abcdef1234567890",
+            jurisdiction: "VN",
+            category: "online_game",
+            state: "fetching",
+            created_at: "2026-08-05T00:00:00.000Z",
+            expires_at: "2026-08-12T00:00:00.000Z",
+            pages_done: 1,
+            pages_total: 3,
+          },
+        ],
+      });
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/scans?from=2026-08-01T00%3A00%3A00.000Z&live=true"),
+      );
+      const body = await jsonBody<{ items: Array<{ urlHash: string }> }>(response);
+      expect(body.items[0]?.urlHash).toBe("abcdef123456");
+      expect(JSON.stringify(body)).not.toContain("https://");
+      expect(db.preparedCalls[0]?.sql).not.toMatch(/s\.url(?:\s|,)/);
+    });
+
+    it("returns aggregate-only scan detail without report token", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT id, url_hash, jurisdiction",
+        firstReturn: {
+          id: "scan-1",
+          url_hash: "abcdef1234567890",
+          jurisdiction: "VN",
+          category: "online_game",
+          state: "completed",
+          coverage_json: JSON.stringify({
+            fetched: ["https://secret.example/"],
+            failed: [],
+            skipped: [],
+          }),
+          analysis_version: "v1",
+          created_at: "2026-08-05T00:00:00.000Z",
+          expires_at: "2026-08-12T00:00:00.000Z",
+        },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT state, COUNT(*) AS count FROM scan_pages",
+        firstReturn: null,
+        allReturn: [{ state: "fetched", count: 1 }],
+      });
+      db.rows.push({
+        sql: "SELECT severity, COUNT(*) AS count FROM findings",
+        firstReturn: null,
+        allReturn: [{ severity: "pass", count: 2 }],
+      });
+      db.rows.push({ sql: "SELECT model_id, prompt_version", firstReturn: null, allReturn: [] });
+      db.rows.push({
+        sql: "SELECT scan_id, token_hash IS NOT NULL",
+        firstReturn: {
+          scan_id: "scan-1",
+          available: 1,
+          expires_at: "2026-08-12T00:00:00.000Z",
+          token_hash: "never-return",
+        },
+        allReturn: [],
+      });
+      const response = await runWithDb(db, new Request("http://local/v1/admin/scans/scan-1"));
+      const text = await response.text();
+      expect(text).not.toContain("secret.example");
+      expect(text).not.toContain("never-return");
+    const body = JSON.parse(text) as { coverage: { fetched: number } };
+    expect(body.coverage.fetched).toBe(1);
+    });
+  });
+
+  describe("GET /v1/admin/metrics/compliance", () => {
+    it("returns rubric-ordered totals and category median", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT f.severity, s.category, COUNT(*) AS count",
+        firstReturn: null,
+        allReturn: [
+          { severity: "pass", category: "online_game", count: 1 },
+          { severity: "review", category: "online_game", count: 2 },
+          { severity: "high", category: "online_game", count: 1 },
+        ],
+      });
+      db.rows.push({
+        sql: "SELECT ar.rule_version_id",
+        firstReturn: {
+          rule_version_id: "vn-mvp-v1",
+          prompt_version: "p1",
+          retrieval_version: "r1",
+        },
+        allReturn: [],
+      });
+      const response = await runWithDb(db, new Request("http://local/v1/admin/metrics/compliance"));
+      const body = await jsonBody<{
+        severityOrder: string[];
+        totals: Record<string, number>;
+        categories: Array<{ medianSeverity: string }>;
+      }>(response);
+      expect(body.severityOrder).toEqual(["pass", "review", "high"]);
+      expect(body.totals.review).toBe(2);
+      expect(body.categories[0]?.medianSeverity).toBe("review");
+    });
+  });
+
+  describe("GET /v1/admin/health", () => {
+    it("returns D1 aggregates and explicit unknown sections without leaking details", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT\n      (SELECT COUNT(*) FROM scans)",
+        firstReturn: {
+          scans: 4,
+          reports: 2,
+          legal_documents: 3,
+          review_events: 1,
+          oldest_active_scan: null,
+          oldest_pending_review: null,
+        },
+        allReturn: [],
+      });
+      const response = await runWithDb(db, new Request("http://local/v1/admin/health"));
+      const body = await jsonBody<{
+        sections: Record<
+          string,
+          { status: string; reason?: string; metrics?: Record<string, unknown> }
+        >;
+      }>(response);
+      expect(body.sections.d1?.metrics?.scans).toBe(4);
+      expect(body.sections.queue).toMatchObject({
+        status: "unknown",
+        reason: "analytics_not_configured",
+      });
+      expect(JSON.stringify(body)).not.toContain("SELECT");
+    });
+  });
+
   describe("GET /v1/admin/metrics/usage", () => {
     it("returns current, previous, deltas, and hash completeness", async () => {
       const db = new FakeD1();

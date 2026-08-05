@@ -7,6 +7,8 @@ const links = [
   { href: "/admin/legal", label: messages["shell.legal"] },
   { href: "/admin/audit", label: messages["shell.audit"] },
   { href: "/admin/metrics", label: messages["shell.metrics"] },
+  { href: "/admin/scans", label: messages["shell.scans"] },
+  { href: "/admin/health", label: messages["shell.health"] },
 ] as const;
 
 const future = [messages["shell.logs"]] as const;

@@ -13,7 +13,7 @@ const ACTOR = (req: Request): string =>
 
 export const adminRedeemCodesRouter = new Hono<{ Bindings: { DB: D1Database } }>();
 
-adminRedeemCodesRouter.post("/v1/admin/redeem-codes", async (context) => {
+adminRedeemCodesRouter.post("/redeem-codes", async (context) => {
   let body: unknown;
   try {
     body = await context.req.json();
@@ -62,7 +62,7 @@ adminRedeemCodesRouter.post("/v1/admin/redeem-codes", async (context) => {
   );
 });
 
-adminRedeemCodesRouter.get("/v1/admin/redeem-codes", async (context) => {
+adminRedeemCodesRouter.get("/redeem-codes", async (context) => {
   const repo = new RedeemRepository(context.env.DB);
   const codes = await repo.listCodes({ limit: 100, offset: 0 });
   return context.json(
@@ -78,7 +78,7 @@ adminRedeemCodesRouter.get("/v1/admin/redeem-codes", async (context) => {
   );
 });
 
-adminRedeemCodesRouter.delete("/v1/admin/redeem-codes/:id", async (context) => {
+adminRedeemCodesRouter.delete("/redeem-codes/:id", async (context) => {
   const id = context.req.param("id");
   if (!id || id.length > 256) return context.json({ code: "INVALID_ID" }, 400);
   const repo = new RedeemRepository(context.env.DB);
@@ -86,7 +86,7 @@ adminRedeemCodesRouter.delete("/v1/admin/redeem-codes/:id", async (context) => {
   return context.json({ ok: true, id, revokedAt: new Date().toISOString() });
 });
 
-adminRedeemCodesRouter.get("/v1/admin/redeem-codes/:id/grants", async (context) => {
+adminRedeemCodesRouter.get("/redeem-codes/:id/grants", async (context) => {
   const id = context.req.param("id");
   if (!id || id.length > 256) return context.json({ code: "INVALID_ID" }, 400);
   const repo = new RedeemRepository(context.env.DB);

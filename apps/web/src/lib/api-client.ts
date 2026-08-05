@@ -215,6 +215,60 @@ export interface AdminUsageMetricsDto {
   activeReviewers: { value: number; previous: number; delta: number };
   uniqueSitesComplete: boolean;
 }
+export interface AdminHealthDto {
+  checkedAt: string;
+  sections: Record<
+    string,
+    {
+      status: "available" | "degraded" | "unknown";
+      checkedAt: string;
+      reason?: string;
+      metrics?: Record<string, number | string | null>;
+    }
+  >;
+}
+export interface AdminComplianceMetricsDto {
+  window: { from: string; to: string };
+  severityOrder: readonly ["pass", "review", "high"];
+  totals: Record<"pass" | "review" | "high", number>;
+  categories: Array<{
+    category: string;
+    counts: Record<"pass" | "review" | "high", number>;
+    total: number;
+    medianSeverity: "pass" | "review" | "high" | null;
+  }>;
+  version: { rule_version_id: string; prompt_version: string; retrieval_version: string } | null;
+}
+export interface AdminScanSummaryDto {
+  id: string;
+  urlHash: string | null;
+  jurisdiction: string;
+  category: string;
+  state: string;
+  createdAt: string;
+  expiresAt: string;
+  pagesDone: number;
+  pagesTotal: number;
+}
+export interface AdminScanListDto {
+  items: AdminScanSummaryDto[];
+  nextCursor: string | null;
+  window: { from: string; to: string | null };
+}
+export interface AdminScanDetailDto extends Omit<AdminScanSummaryDto, "pagesDone" | "pagesTotal"> {
+  coverage: Record<"fetched" | "failed" | "skipped", number>;
+  analysisVersion: string;
+  pageStates: Array<{ state: string; count: number }>;
+  findingSeverities: Array<{ severity: string; count: number }>;
+  analysisRuns: Array<{
+    model_id: string;
+    prompt_version: string;
+    retrieval_version: string;
+    rule_version_id: string;
+    created_at: string;
+  }>;
+  report: { available: boolean; expiresAt: string } | null;
+}
 
 export interface ApiClientEnv {
   readonly NEXT_PUBLIC_API_ORIGIN?: string | undefined;
@@ -323,6 +377,46 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
       });
       if (!response.ok) throw await toApiClientError(response, "GET_ADMIN_USAGE_METRICS_FAILED");
       return (await response.json()) as AdminUsageMetricsDto;
+    },
+    getAdminComplianceMetrics: async (): Promise<AdminComplianceMetricsDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/metrics/compliance`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok)
+        throw await toApiClientError(response, "GET_ADMIN_COMPLIANCE_METRICS_FAILED");
+      return (await response.json()) as AdminComplianceMetricsDto;
+    },
+    listAdminScans: async (
+      filters: Record<string, string | undefined> = {},
+    ): Promise<AdminScanListDto> => {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/scans${params.size ? `?${params}` : ""}`,
+        { headers: { accept: "application/json" }, credentials: "include", cache: "no-store" },
+      );
+      if (!response.ok) throw await toApiClientError(response, "LIST_ADMIN_SCANS_FAILED");
+      return (await response.json()) as AdminScanListDto;
+    },
+    getAdminScan: async (scanId: string): Promise<AdminScanDetailDto | null> => {
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/scans/${encodeURIComponent(scanId)}`,
+        { headers: { accept: "application/json" }, credentials: "include", cache: "no-store" },
+      );
+      if (response.status === 404) return null;
+      if (!response.ok) throw await toApiClientError(response, "GET_ADMIN_SCAN_FAILED");
+      return (await response.json()) as AdminScanDetailDto;
+    },
+    getAdminHealth: async (): Promise<AdminHealthDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/health`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) throw await toApiClientError(response, "GET_ADMIN_HEALTH_FAILED");
+      return (await response.json()) as AdminHealthDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(
