@@ -91,6 +91,17 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
     };
   }, [isTerminal, poll, state.scanId]);
 
+  // The server may return coverage without fetched/failed/skipped
+  // (DB default for a freshly queued scan is `coverage_json='{}'`).
+  // Defensively coerce to arrays so a malformed payload never crashes
+  // the render tree. The API is also expected to normalize, but never
+  // trust the wire.
+  const coverage = {
+    fetched: Array.isArray(state.coverage?.fetched) ? state.coverage.fetched : [],
+    failed: Array.isArray(state.coverage?.failed) ? state.coverage.failed : [],
+    skipped: Array.isArray(state.coverage?.skipped) ? state.coverage.skipped : [],
+  };
+
   const stateLabel = ((): string => {
     const key = `state.${state.state}` as keyof ScanProgressMessages;
     return messages[key] ?? state.state;
@@ -128,15 +139,20 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
           <p className="text-xs text-ink-soft">{messages["view.retrying"]}</p>
         ) : null}
 
-        <ul className="flex flex-col gap-1 text-sm">
-          {state.coverage.fetched.map((page) => (
+        <ul data-testid="coverage-list" className="flex flex-col gap-1 text-sm">
+          {coverage.fetched.map((page) => (
             <li key={`f-${page}`} className="text-success">
               ✓ {page}
             </li>
           ))}
-          {state.coverage.failed.map((page) => (
+          {coverage.failed.map((page) => (
             <li key={`x-${page}`} className="text-error">
               ! {page}
+            </li>
+          ))}
+          {coverage.skipped.map((page) => (
+            <li key={`s-${page}`} className="text-ink-soft">
+              · {page}
             </li>
           ))}
         </ul>

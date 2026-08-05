@@ -1,5 +1,10 @@
 import { Hono } from "hono";
-import { CreateScanInput, ScanState, ScanCachedResponse } from "@safelaunch/contracts";
+import {
+  CreateScanInput,
+  ScanState,
+  ScanCoverage,
+  ScanCachedResponse,
+} from "@safelaunch/contracts";
 import { ScanRepository, ReportRepository, RedeemRepository } from "@safelaunch/db";
 import { domainKey } from "@safelaunch/compliance-core";
 import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
@@ -56,6 +61,27 @@ const extractTurnstileToken = (request: Request): string | null => {
 const TERMINAL_SCAN_STATES = new Set<string>(["completed", "partial", "failed"]);
 
 const isTerminal = (state: string): state is ScanTerminalState => TERMINAL_SCAN_STATES.has(state);
+
+/**
+ * Normalize persisted coverage to the canonical {@link ScanCoverage} shape.
+ *
+ * The DB row's `coverage_json` defaults to `'{}'` for freshly queued scans
+ * (see `ScanRepository.create`). The client render tree assumes
+ * `coverage.fetched`, `coverage.failed`, and `coverage.skipped` are all
+ * arrays and `.map()` on them — an empty object would raise
+ * `Cannot read properties of undefined (reading 'map')` and crash the
+ * màn trạng thái scan. We coerce here so the API contract holds even
+ * for in-flight scans that the workflow hasn't updated yet.
+ */
+const normalizeCoverage = (raw: Record<string, unknown> | null | undefined): ScanCoverage => {
+  const safeStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  return {
+    fetched: safeStringArray(raw?.fetched),
+    failed: safeStringArray(raw?.failed),
+    skipped: safeStringArray(raw?.skipped),
+  };
+};
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
@@ -295,7 +321,7 @@ scansRouter.get("/v1/scans/:id", async (context) => {
   const progress: ScanProgressResponse = {
     scanId: stored.id,
     state: stored.state,
-    coverage: stored.coverage,
+    coverage: normalizeCoverage(stored.coverage),
     createdAt: stored.createdAt,
     expiresAt: stored.expiresAt,
   };
