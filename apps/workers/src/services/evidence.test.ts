@@ -145,7 +145,6 @@ describe("sanitizePageText chunked path", () => {
   });
 });
 
-
 describe("evidence fixtures (real files)", () => {
   it("sanitizes the dantri-style footer fixture and still finds extractable signals", () => {
     // The fixture is a Vietnamese news site with a real footer. The
@@ -172,4 +171,3 @@ describe("evidence fixtures (real files)", () => {
     expect(result.text.toLowerCase()).not.toContain("<script");
   });
 });
-

@@ -77,10 +77,7 @@ export const normalizeForMatching = (text: string): string =>
  * Returns the index of the first match, or -1. Used for both anchor text
  * and URL slug matching.
  */
-const matchKeyword = (
-  normalized: string,
-  keywords: readonly string[],
-): number => {
+const matchKeyword = (normalized: string, keywords: readonly string[]): number => {
   for (let i = 0; i < keywords.length; i += 1) {
     const kw = keywords[i];
     if (!kw) continue;
@@ -101,7 +98,11 @@ const matchKeyword = (
  */
 const ANCHOR_PATTERN = /<a\b[^>]*?href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/giu;
 
-const stripTags = (s: string): string => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+const stripTags = (s: string): string =>
+  s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
 /**
  * Resolve `href` against the base URL. Returns null for:

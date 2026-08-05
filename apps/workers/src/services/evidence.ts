@@ -132,9 +132,7 @@ export const sanitizePageText = (html: string): string => {
  * `coverage.degradedPhases` so operators can spot scans where the
  * chunked path produced partial evidence.
  */
-export const sanitizePageTextSafe = (
-  html: string,
-): { text: string; truncated: boolean } => {
+export const sanitizePageTextSafe = (html: string): { text: string; truncated: boolean } => {
   const truncated = html.length > MAX_HTML_BYTES;
   return { text: sanitizePageText(html), truncated };
 };

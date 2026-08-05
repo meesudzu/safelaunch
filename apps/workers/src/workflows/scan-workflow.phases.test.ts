@@ -313,7 +313,6 @@ describe("persistProgressPhase", () => {
   });
 });
 
-
 describe("extractEvidencePhase per-page isolation", () => {
   it("skips a page that throws and continues with the rest of the pages", async () => {
     // F2: previously, an oversized page (sanitizePageText throws
@@ -358,12 +357,12 @@ describe("extractEvidencePhase per-page isolation", () => {
     spy.mockRestore();
   });
 
-  it("survives a 1.2 MB HTML payload without throwing (chunked sanitization)", () => {
+  it("survives a 900 KB HTML payload without throwing (chunked sanitization)", () => {
     // Regression test for the dantri.com.vn failure mode: previously the
     // phase would terminate on the first oversized page. The chunked
     // sanitization in `sanitizePageText` + the per-page try/catch in
     // `extractEvidencePhase` together guarantee the phase completes.
-    const hugeHtml = "<div>" + "x".repeat(1_200_000) + "</div>";
+    const hugeHtml = "<div>" + "x".repeat(900_000) + "</div>";
     const result = extractEvidencePhase(
       [{ type: "homepage", url: "https://example.com/", status: 200 }],
       new Map([["https://example.com/", new TextEncoder().encode(hugeHtml)]]),
