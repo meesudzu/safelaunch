@@ -1,5 +1,13 @@
 {
   "title": "Quản lý văn bản pháp luật",
+  "admin.title": "SafeLaunch Admin",
+  "admin.local_actor": "local-dev-reviewer",
+  "admin.logout": "Đăng xuất",
+  "nav.label": "Điều hướng quản trị",
+  "nav.legal": "Hàng đợi xét duyệt",
+  "nav.audit": "Audit log",
+  "nav.metrics": "Metrics",
+  "nav.logs": "Logs",
   "list.title": "Hàng đợi xét duyệt",
   "list.empty": "Không có văn bản nào đang chờ xét duyệt.",
   "list.open": "Mở",
