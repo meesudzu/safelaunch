@@ -28,6 +28,24 @@ export const EMPTY_DIGITAL_ASSET_COLLECTION: DigitalAssetCollection = {
  * this interface (or use the real `step.do` directly when they want the
  * full type information).
  */
+
+/**
+ * Default `WorkflowStepConfig` applied to every scan-workflow step.
+ *
+ * Cloudflare Workers Paid gives each invocation a 5 minute (300 000 ms)
+ * CPU ceiling. Setting the per-step timeout to the same value means a
+ * step can run as long as its CPU budget allows without being killed
+ * prematurely by a tighter per-step timeout. Phases that want a tighter
+ * bound can still pass an explicit `timeout` in their own config — the
+ * default is the floor, not the ceiling.
+ *
+ * Mirrored on the Worker side via `limits.cpu_ms` in wrangler.jsonc so
+ * HTTP handlers and step closures see the same envelope.
+ */
+export const DEFAULT_SCAN_STEP_CONFIG: WorkflowStepConfig = {
+  timeout: "5 minutes",
+};
+
 export interface WorkflowStepLike {
   do<T>(name: string, callback: () => Promise<T>): Promise<T>;
   do<T>(name: string, config: WorkflowStepConfig, callback: () => Promise<T>): Promise<T>;
@@ -67,10 +85,10 @@ export const runStepWithFallback = async <T>(
 ): Promise<T> => {
   const { step, name, fallback, fn, config, log } = options;
   try {
-    if (config) {
-      return await step.do(name, config, fn);
-    }
-    return await step.do(name, fn);
+    const mergedConfig: WorkflowStepConfig = config
+      ? { ...DEFAULT_SCAN_STEP_CONFIG, ...config }
+      : DEFAULT_SCAN_STEP_CONFIG;
+    return await step.do(name, mergedConfig, fn);
   } catch (cause) {
     const reason =
       cause instanceof Error

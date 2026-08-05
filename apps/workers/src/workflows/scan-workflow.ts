@@ -7,6 +7,7 @@ import type {
   ScanStatus,
   ServiceSignal,
 } from "@safelaunch/contracts";
+import type { WorkflowStepConfig } from "cloudflare:workers";
 import { extractEvidence } from "../services/evidence";
 import {
   collectDigitalAssets,
@@ -30,7 +31,7 @@ import {
   evaluateLicenseRequirementsPhase,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
-import { EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
+import { DEFAULT_SCAN_STEP_CONFIG, EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
 import { discoverPageUrls, type PageUrlMap } from "../services/page-url-discovery";
 import {
   runRules,
@@ -367,12 +368,12 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     // 1. parse-params: validate and freeze the payload.
     // eslint-disable-next-line @typescript-eslint/require-await
-    const parsed = await step.do<ScanWorkflowPayload>("parse-params", async () =>
+    const parsed = await step.do<ScanWorkflowPayload, WorkflowStepConfig>("parse-params", DEFAULT_SCAN_STEP_CONFIG, async () =>
       ScanParamsSchema.parse(params),
     );
 
     // 2. fetch:homepage (must succeed for the scan to continue).
-    const homepagePage = await step.do("fetch:homepage", async () => {
+    const homepagePage = await step.do("fetch:homepage", DEFAULT_SCAN_STEP_CONFIG, async () => {
       const fetcher = makeWorkflowFetch();
       try {
         const r = await fetcher.fetch(parsed.url);
@@ -392,7 +393,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
         skipped: [] as SupportedPageType[],
         degradedPhases: [],
       };
-      await step.do("phase-10:persist-terminal", async () =>
+      await step.do("phase-10:persist-terminal", DEFAULT_SCAN_STEP_CONFIG, async () =>
         persistTerminalPhase(
           {
             scanId: parsed.scanId,
@@ -485,26 +486,26 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     perPageResults.push(
       requiredPages.has("about")
-        ? await step.do("fetch:about", async () => fetchSinglePagePhase(makeBaseDeps("about"), log))
+        ? await step.do("fetch:about", DEFAULT_SCAN_STEP_CONFIG, async () => fetchSinglePagePhase(makeBaseDeps("about"), log))
         : { ok: true, pageType: "about", status: 200, html: new Uint8Array() },
     );
     perPageResults.push(
       requiredPages.has("privacy")
-        ? await step.do("fetch:privacy", async () =>
+        ? await step.do("fetch:privacy", DEFAULT_SCAN_STEP_CONFIG, async () =>
             fetchSinglePagePhase(makeBaseDeps("privacy"), log),
           )
         : { ok: true, pageType: "privacy", status: 200, html: new Uint8Array() },
     );
     perPageResults.push(
       requiredPages.has("contact")
-        ? await step.do("fetch:contact", async () =>
+        ? await step.do("fetch:contact", DEFAULT_SCAN_STEP_CONFIG, async () =>
             fetchSinglePagePhase(makeBaseDeps("contact"), log),
           )
         : { ok: true, pageType: "contact", status: 200, html: new Uint8Array() },
     );
     perPageResults.push(
       requiredPages.has("terms")
-        ? await step.do("fetch:terms", async () => fetchSinglePagePhase(makeBaseDeps("terms"), log))
+        ? await step.do("fetch:terms", DEFAULT_SCAN_STEP_CONFIG, async () => fetchSinglePagePhase(makeBaseDeps("terms"), log))
         : { ok: true, pageType: "terms", status: 200, html: new Uint8Array() },
     );
 
@@ -594,7 +595,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       // returned content that should have produced evidence.
       degradedPhases.push("phase-2:extract-evidence");
     }
-    const serviceSignals = await step.do("phase-3:extract-signals", async () => {
+    const serviceSignals = await step.do("phase-3:extract-signals", DEFAULT_SCAN_STEP_CONFIG, async () => {
       const result = extractServiceSignalsPhase(evidencePhase.pages);
       return await Promise.resolve(result);
     });
@@ -658,7 +659,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       jurisdiction: parsed.jurisdiction,
       licenseType: "online_game",
     });
-    const licenseChecks = await step.do("phase-6:evaluate-license", async () => {
+    const licenseChecks = await step.do("phase-6:evaluate-license", DEFAULT_SCAN_STEP_CONFIG, async () => {
       const result = evaluateLicenseRequirementsPhase({
         jurisdiction: parsed.jurisdiction,
         category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
@@ -669,7 +670,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       });
       return await Promise.resolve(result);
     });
-    const evaluation = await step.do("phase-7:evaluate-rules", () =>
+    const evaluation = await step.do("phase-7:evaluate-rules", DEFAULT_SCAN_STEP_CONFIG, () =>
       evaluatePhase(
         {
           scanId: parsed.scanId,
@@ -685,7 +686,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // 6. aggregate-findings
     const complete = coverage.failed.length === 0;
     // eslint-disable-next-line @typescript-eslint/require-await
-    const aggregated = await step.do("phase-8:aggregate", async () =>
+    const aggregated = await step.do("phase-8:aggregate", DEFAULT_SCAN_STEP_CONFIG, async () =>
       aggregateFindings(evaluation.findings, { complete }),
     );
 
@@ -721,7 +722,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     });
 
     // 7. persist-report (deterministic token, idempotent upsert)
-    const report = await step.do("phase-9:persist-report", async () =>
+    const report = await step.do("phase-9:persist-report", DEFAULT_SCAN_STEP_CONFIG, async () =>
       persistReportPhase(
         {
           scanId: parsed.scanId,
@@ -742,7 +743,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
 
     // 8. persist-terminal (last; same coverage shape)
-    await step.do("phase-10:persist-terminal", async () =>
+    await step.do("phase-10:persist-terminal", DEFAULT_SCAN_STEP_CONFIG, async () =>
       persistTerminalPhase(
         { scanId: parsed.scanId, state, status: finalStatus, coverage },
         { db: this.env.DB, log, now },
