@@ -31,7 +31,11 @@ import {
   evaluateLicenseRequirementsPhase,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
-import { DEFAULT_SCAN_STEP_CONFIG, EMPTY_DIGITAL_ASSET_COLLECTION, runStepWithFallback } from "./scan-workflow.steps";
+import {
+  DEFAULT_SCAN_STEP_CONFIG,
+  EMPTY_DIGITAL_ASSET_COLLECTION,
+  runStepWithFallback,
+} from "./scan-workflow.steps";
 import { discoverPageUrls, type PageUrlMap } from "../services/page-url-discovery";
 import {
   runRules,
@@ -367,9 +371,16 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     const now = () => new Date().toISOString();
 
     // 1. parse-params: validate and freeze the payload.
-    // eslint-disable-next-line @typescript-eslint/require-await
-    const parsed = await step.do<ScanWorkflowPayload, WorkflowStepConfig>("parse-params", DEFAULT_SCAN_STEP_CONFIG, async () =>
-      ScanParamsSchema.parse(params),
+    //
+    // The callback is intentionally non-async: it returns `ScanWorkflowPayload`
+    // wrapped in `Promise.resolve(...)` so the value satisfies WorkflowStep's
+    // `() => Promise<T>` contract without triggering
+    // `@typescript-eslint/require-await`. The outer `await step.do(...)` is what
+    // actually drives the durable step.
+    const parsed = await step.do<ScanWorkflowPayload, WorkflowStepConfig>(
+      "parse-params",
+      DEFAULT_SCAN_STEP_CONFIG,
+      () => Promise.resolve(ScanParamsSchema.parse(params)),
     );
 
     // 2. fetch:homepage (must succeed for the scan to continue).
@@ -486,7 +497,9 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     perPageResults.push(
       requiredPages.has("about")
-        ? await step.do("fetch:about", DEFAULT_SCAN_STEP_CONFIG, async () => fetchSinglePagePhase(makeBaseDeps("about"), log))
+        ? await step.do("fetch:about", DEFAULT_SCAN_STEP_CONFIG, async () =>
+            fetchSinglePagePhase(makeBaseDeps("about"), log),
+          )
         : { ok: true, pageType: "about", status: 200, html: new Uint8Array() },
     );
     perPageResults.push(
@@ -505,7 +518,9 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
     perPageResults.push(
       requiredPages.has("terms")
-        ? await step.do("fetch:terms", DEFAULT_SCAN_STEP_CONFIG, async () => fetchSinglePagePhase(makeBaseDeps("terms"), log))
+        ? await step.do("fetch:terms", DEFAULT_SCAN_STEP_CONFIG, async () =>
+            fetchSinglePagePhase(makeBaseDeps("terms"), log),
+          )
         : { ok: true, pageType: "terms", status: 200, html: new Uint8Array() },
     );
 
@@ -595,10 +610,14 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       // returned content that should have produced evidence.
       degradedPhases.push("phase-2:extract-evidence");
     }
-    const serviceSignals = await step.do("phase-3:extract-signals", DEFAULT_SCAN_STEP_CONFIG, async () => {
-      const result = extractServiceSignalsPhase(evidencePhase.pages);
-      return await Promise.resolve(result);
-    });
+    const serviceSignals = await step.do(
+      "phase-3:extract-signals",
+      DEFAULT_SCAN_STEP_CONFIG,
+      async () => {
+        const result = extractServiceSignalsPhase(evidencePhase.pages);
+        return await Promise.resolve(result);
+      },
+    );
     const assetFetcher = makeWorkflowAssetFetcher();
     // Phases 4 and 5 do network fetches (stylesheet download + per-asset
     // probe). On a busy page the loop can blow past the per-Worker CPU
@@ -659,17 +678,21 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       jurisdiction: parsed.jurisdiction,
       licenseType: "online_game",
     });
-    const licenseChecks = await step.do("phase-6:evaluate-license", DEFAULT_SCAN_STEP_CONFIG, async () => {
-      const result = evaluateLicenseRequirementsPhase({
-        jurisdiction: parsed.jurisdiction,
-        category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
-        signals: serviceSignals,
-        licenseClaims,
-        registry,
-        on: new Date().toISOString().slice(0, 10),
-      });
-      return await Promise.resolve(result);
-    });
+    const licenseChecks = await step.do(
+      "phase-6:evaluate-license",
+      DEFAULT_SCAN_STEP_CONFIG,
+      async () => {
+        const result = evaluateLicenseRequirementsPhase({
+          jurisdiction: parsed.jurisdiction,
+          category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
+          signals: serviceSignals,
+          licenseClaims,
+          registry,
+          on: new Date().toISOString().slice(0, 10),
+        });
+        return await Promise.resolve(result);
+      },
+    );
     const evaluation = await step.do("phase-7:evaluate-rules", DEFAULT_SCAN_STEP_CONFIG, () =>
       evaluatePhase(
         {
