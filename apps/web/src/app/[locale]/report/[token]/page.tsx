@@ -25,12 +25,16 @@ const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
     citations: finding.citations,
     recommendedAction: finding.recommendedAction,
     applicability: finding.applicability,
-    evidenceExcerpt: finding.evidenceExcerpt,
-    upcomingEffectiveAt: finding.upcomingEffectiveAt,
+    evidenceExcerpt: finding.evidenceExcerpt ?? "",
+    upcomingEffectiveAt: finding.upcomingEffectiveAt ?? null,
+    domain: finding.domain,
   })),
   generatedAt: dto.generatedAt,
   expiresAt: dto.expiresAt,
   rubricVersion: dto.rubricVersion,
+  ...(dto.serviceSignals === undefined ? {} : { serviceSignals: dto.serviceSignals }),
+  ...(dto.licenseChecks === undefined ? {} : { licenseChecks: dto.licenseChecks }),
+  ...(dto.assetInventory === undefined ? {} : { assetInventory: dto.assetInventory }),
 });
 
 export default async function ReportPage({

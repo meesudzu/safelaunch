@@ -1,3 +1,9 @@
+import type {
+  AssetLicenseEvidence,
+  DigitalAssetKind,
+  LicenseCheckStatus,
+  ServiceSignalKind,
+} from "@safelaunch/contracts";
 /**
  * Typed wrapper around the public SafeLaunch API.
  *
@@ -52,6 +58,50 @@ export interface ScanProgress {
   reportUrl?: string;
 }
 
+export interface ReportServiceSignalDto {
+  id: string;
+  kind: ServiceSignalKind;
+  observed: boolean;
+  confidence: number;
+  sourceUrl: string;
+  excerpt: string;
+  evidenceId: string;
+}
+
+export interface ReportLicenseCheckDto {
+  id: string;
+  licenseType: string;
+  status: LicenseCheckStatus;
+  severity: "high" | "review" | "pass";
+  rationale: string;
+  confidence: number;
+  evidenceIds: string[];
+  citations: Array<{
+    provisionId: string;
+    source: string;
+    url: string;
+    retrievedAt: string;
+    excerpt: string;
+  }>;
+  recommendedAction: string;
+  registrySourceUrl?: string | null;
+  retrievedAt?: string | null;
+}
+
+export interface ReportDigitalAssetDto {
+  id: string;
+  kind: DigitalAssetKind;
+  url: string;
+  host: string;
+  sourceUrl: string;
+  contentType: string | null;
+  sha256: string | null;
+  status: "fetched" | "inaccessible" | "blocked";
+  licenseEvidence: AssetLicenseEvidence;
+  licenseExcerpt: string | null;
+  confidence: number;
+}
+
 export interface ReportFindingDto {
   id: string;
   severity: "high" | "review" | "pass";
@@ -67,8 +117,9 @@ export interface ReportFindingDto {
   }>;
   recommendedAction: string;
   applicability: "current" | "upcoming";
-  evidenceExcerpt: string;
-  upcomingEffectiveAt: string | null;
+  evidenceExcerpt?: string;
+  upcomingEffectiveAt?: string | null;
+  domain?: "regulatory" | "license" | "digital-rights";
 }
 
 export interface ReportPayloadDto {
@@ -81,6 +132,12 @@ export interface ReportPayloadDto {
   generatedAt: string;
   expiresAt: string;
   rubricVersion: string;
+  serviceSignals?: readonly ReportServiceSignalDto[];
+  licenseChecks?: readonly ReportLicenseCheckDto[];
+  assetInventory?: {
+    assets: readonly ReportDigitalAssetDto[];
+    summary: { total: number; byKind: Record<string, number>; flagged: number };
+  };
 }
 
 export interface PendingDocumentSummary {

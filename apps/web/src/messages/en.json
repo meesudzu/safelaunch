@@ -37,5 +37,11 @@
     "title": "Extension package",
     "status": "Coming soon",
     "body": "The extension package unlocks unlimited scans per day. Currently in development. For now, contact an admin to receive a redeem code."
-  }
+  },
+  "service.signals.title": "Detected service characteristics",
+  "license.checks.title": "License checks",
+  "asset.inventory.title": "Digital asset inventory",
+  "asset.inventory.summary": "Assets referenced by the site",
+  "asset.inventory.flagged": "Assets requiring license review",
+  "status.high_risk": "High-risk signals detected"
 }

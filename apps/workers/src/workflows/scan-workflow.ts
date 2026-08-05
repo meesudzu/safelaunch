@@ -1,6 +1,18 @@
 import { z } from "zod";
-import type { EvidenceItem, ReportFinding } from "@safelaunch/contracts";
+import type {
+  DigitalAsset,
+  EvidenceItem,
+  LicenseCheck,
+  ReportFinding,
+  ServiceSignal,
+} from "@safelaunch/contracts";
 import { extractEvidence } from "../services/evidence";
+import {
+  collectDigitalAssets,
+  type AssetFetcher,
+  type AssetFinding,
+} from "../services/digital-assets";
+import { detectServiceSignals } from "../services/service-signals";
 import {
   evaluatePhase,
   fetchPhase,
@@ -14,6 +26,7 @@ import {
   verifyFinding,
   aggregateFindings,
   RUBRIC_VERSION,
+  evaluateLicenseRequirements,
 } from "@safelaunch/compliance-core";
 import {
   retrieveLegalContext,
@@ -64,6 +77,13 @@ export interface PageFetcher {
 export interface EvaluateOutcome {
   status: ScanTerminalStatus;
   findings: ReportFinding[];
+  serviceSignals?: ServiceSignal[];
+  licenseChecks?: LicenseCheck[];
+  assetInventory?: {
+    assets: DigitalAsset[];
+    findings: AssetFinding[];
+    summary: { total: number; byKind: Record<string, number>; flagged: number };
+  };
 }
 
 export interface ScanResult {
@@ -204,6 +224,9 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
         status,
         coverage,
         findings: evaluation.findings,
+        serviceSignals: evaluation.serviceSignals,
+        licenseChecks: evaluation.licenseChecks,
+        assetInventory: evaluation.assetInventory,
         generatedAt: deps.now(),
       },
     });
@@ -465,6 +488,9 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
             status: finalStatus,
             coverage,
             findings: evaluation.findings,
+            serviceSignals: evaluation.serviceSignals,
+            licenseChecks: evaluation.licenseChecks,
+            assetInventory: evaluation.assetInventory,
             generatedAt: now(),
           },
         },
@@ -532,13 +558,17 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
   return async (input): Promise<EvaluateOutcome> => {
     const { scanId, jurisdiction, category, pages, coverage } = input;
 
-    // 1. Extract evidence from every fetched HTML page.
+    // 1. Extract text evidence and deterministic service signals from every fetched page.
     const evidence: EvidenceItem[] = [];
+    const serviceSignals: ServiceSignal[] = [];
+    const pageHtml: Array<{ url: string; html: string }> = [];
     for (const page of pages) {
       if (page.status < 200 || page.status >= 300) continue;
       try {
         const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(page.html);
+        pageHtml.push({ url: page.url, html });
         evidence.push(...extractEvidence({ sourceUrl: page.url, html }));
+        serviceSignals.push(...detectServiceSignals({ sourceUrl: page.url, html }));
       } catch (cause) {
         // sanitizePageText may throw SanitizationError; we log and continue.
         console.log(
@@ -553,7 +583,66 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       }
     }
 
-    // 2. Deterministic rubric: filter out rules whose evidence type doesn't
+    // 2. Inspect referenced assets and resolve license requirements. Registry
+    //    adapters are optional; absent adapters deliberately produce a strict
+    //    high-risk signal rather than claiming a license was verified.
+    const assetFetcher: AssetFetcher = {
+      fetch: async (url) => {
+        const { fetchBoundedResource } = await import("../services/safe-fetch");
+        const result = await fetchBoundedResource({ url, resolve: resolvePublicAddresses });
+        return {
+          status: result.status,
+          bytes: result.bytes,
+          contentType: result.contentType,
+          finalUrl: result.finalUrl,
+        };
+      },
+    };
+    const assetCollections = [];
+    for (const page of pageHtml) {
+      assetCollections.push(
+        await collectDigitalAssets({ sourceUrl: page.url, html: page.html, fetcher: assetFetcher }),
+      );
+    }
+    const assets = assetCollections.flatMap((collection) => collection.assets);
+    const assetFindings = assetCollections.flatMap((collection) => collection.findings);
+    const assetSeen = new Set<string>();
+    const dedupedAssets = assets.filter((asset) => {
+      if (assetSeen.has(asset.id)) return false;
+      assetSeen.add(asset.id);
+      return true;
+    });
+    const assetInventory = {
+      assets: dedupedAssets,
+      findings: assetFindings.filter(
+        (finding, index, all) =>
+          all.findIndex((candidate) => candidate.id === finding.id) === index,
+      ),
+      summary: {
+        total: dedupedAssets.length,
+        byKind: dedupedAssets.reduce<Record<string, number>>((counts, asset) => {
+          counts[asset.kind] = (counts[asset.kind] ?? 0) + 1;
+          return counts;
+        }, {}),
+        flagged: assetFindings.filter(
+          (finding, index, all) =>
+            all.findIndex((candidate) => candidate.id === finding.id) === index,
+        ).length,
+      },
+    };
+    const licenseClaims = evidence
+      .filter((item) => item.type === "license_claim")
+      .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
+    const licenseChecks = evaluateLicenseRequirements({
+      jurisdiction,
+      category,
+      signals: serviceSignals,
+      licenseClaims,
+      registry: undefined,
+      on: new Date().toISOString().slice(0, 10),
+    });
+
+    // 3. Deterministic rubric: filter out rules whose evidence type doesn't
     //    appear at all. runRules already applies coverage semantics
     //    (`present` / `absent` / `unknown`) per the rubric.
     const ruleResults = runRules({
@@ -572,6 +661,41 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
     //    We only spin up the AI/Vectorize dependencies if we actually need
     //    them — most rule outcomes are already decided by the rubric.
     const findings: ReportFinding[] = [];
+    for (const check of licenseChecks) {
+      findings.push({
+        id: check.id,
+        severity: check.severity,
+        rationale: check.rationale,
+        confidence: check.confidence,
+        evidenceIds:
+          check.evidenceIds.length > 0 ? [...check.evidenceIds] : [`${check.id}::missing`],
+        citations: [...check.citations],
+        recommendedAction: check.recommendedAction,
+        applicability: "current",
+        domain: "license",
+        evidenceExcerpt:
+          check.evidenceIds.length > 0
+            ? (evidence.find((item) => item.id === check.evidenceIds[0])?.excerpt ?? "")
+            : "Chưa tìm thấy bằng chứng giấy phép.",
+      });
+    }
+    for (const assetFinding of assetInventory.findings) {
+      const asset = assetInventory.assets.find(
+        (candidate) => candidate.id === assetFinding.assetId,
+      );
+      findings.push({
+        id: assetFinding.id,
+        severity: assetFinding.severity,
+        rationale: assetFinding.rationale,
+        confidence: assetFinding.confidence,
+        evidenceIds: assetFinding.evidenceIds,
+        citations: assetFinding.citations,
+        recommendedAction: assetFinding.recommendedAction,
+        applicability: assetFinding.applicability,
+        domain: assetFinding.domain,
+        evidenceExcerpt: asset ? `${asset.kind} · ${asset.url} · ${asset.licenseEvidence}` : "",
+      });
+    }
     const needsRag = ruleResults.some((r) => r.outcome === "unknown");
     const retrievalDeps: RetrievalDeps | null =
       needsRag && aiBinding && vectorIndex
@@ -586,6 +710,9 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
         : null;
 
     for (const rule of ruleResults) {
+      // The typed license check above replaces the legacy game-license rule so
+      // a scan emits one actionable license result rather than two duplicates.
+      if (rule.ruleId === "license-claim-game") continue;
       if (rule.outcome === "present") {
         findings.push({
           id: `${rule.ruleId}::pass`,
@@ -755,7 +882,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       }),
     );
 
-    return { status, findings };
+    return { status, findings, serviceSignals, licenseChecks, assetInventory };
   };
 };
 

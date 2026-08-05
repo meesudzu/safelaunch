@@ -163,6 +163,82 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
   throw new FetchLimitError(`exceeded redirect limit ${limits.redirects}`);
 };
 
+/** Fetches a referenced binary/text asset with the same public-URL and
+ * redirect protections as page fetches, without retaining the original. */
+export const fetchBoundedResource = async (request: FetchRequest): Promise<FetchResult> => {
+  const limits = {
+    ...DEFAULT_FETCH_LIMITS,
+    compressedBytes: 2_000_000,
+    decodedBytes: 2_000_000,
+    accept: ["*/*"],
+    ...(request.limits ?? {}),
+  };
+  const fetchImpl = request.fetchImpl ?? fetch;
+  const validated = await validateOrThrow(request.url, request.resolve);
+  let currentUrl = validated.url.toString();
+  for (let redirect = 0; redirect <= limits.redirects; redirect += 1) {
+    const signal = mergeAbort(limits.durationMs);
+    const response = await fetchImpl(currentUrl, {
+      method: "GET",
+      redirect: "manual",
+      signal,
+      headers: {
+        "user-agent": "SafeLaunchBot/1.0 (+https://safelaunch.app/bot)",
+        accept: limits.accept.join(", "),
+      },
+    });
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location)
+        throw new FetchLimitError(`redirect ${response.status} without location header`);
+      const next = new URL(location, currentUrl);
+      const nextValidated = await validateOrThrow(next.toString(), request.resolve);
+      currentUrl = nextValidated.url.toString();
+      continue;
+    }
+    if (!response.ok)
+      throw new FetchLimitError(`unexpected status ${response.status} from ${currentUrl}`);
+    const contentLength = response.headers.get("content-length");
+    if (contentLength) {
+      const total = Number.parseInt(contentLength, 10);
+      if (Number.isFinite(total) && total > limits.compressedBytes) {
+        throw new FetchLimitError(
+          `response body exceeds compressed limit ${limits.compressedBytes}`,
+        );
+      }
+    }
+    const reader = response.body?.getReader();
+    if (!reader) throw new FetchLimitError(`response body is not readable for ${currentUrl}`);
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    while (true) {
+      const readResult = (await reader.read()) as { value: Uint8Array | undefined; done: boolean };
+      if (readResult.done) break;
+      if (!readResult.value) continue;
+      total += readResult.value.byteLength;
+      if (total > limits.decodedBytes) {
+        await reader.cancel();
+        throw new FetchLimitError(`decoded payload exceeded ${limits.decodedBytes} bytes`);
+      }
+      chunks.push(readResult.value);
+    }
+    const bytes = new Uint8Array(total);
+    let offset = 0;
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset);
+      offset += chunk.byteLength;
+    }
+    return {
+      url: request.url,
+      finalUrl: currentUrl,
+      status: response.status,
+      contentType: response.headers.get("content-type"),
+      bytes,
+    };
+  }
+  throw new FetchLimitError(`exceeded redirect limit ${limits.redirects}`);
+};
+
 export const isHtmlAcceptable = isHtmlContentType;
 export const rethrowAsUnsafe = (cause: unknown, url: string): never => {
   if (cause instanceof UnsafeUrlError) throw cause;
