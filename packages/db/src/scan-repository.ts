@@ -6,6 +6,7 @@ export interface NewScan {
   analysisVersion: string;
   now: string;
   expiresAt: string;
+  urlHash?: string | null;
 }
 
 export interface StoredScan {
@@ -38,11 +39,12 @@ export class ScanRepository {
   async create(scan: NewScan): Promise<void> {
     await this.db
       .prepare(
-        "INSERT INTO scans (id, url, jurisdiction, category, state, coverage_json, analysis_version, created_at, expires_at) VALUES (?, ?, ?, ?, 'queued', '{}', ?, ?, ?)",
+        "INSERT INTO scans (id, url, url_hash, jurisdiction, category, state, coverage_json, analysis_version, created_at, expires_at) VALUES (?, ?, ?, ?, ?, 'queued', '{}', ?, ?, ?)",
       )
       .bind(
         scan.id,
         scan.url,
+        scan.urlHash ?? null,
         scan.jurisdiction,
         scan.category,
         scan.analysisVersion,
@@ -144,10 +146,12 @@ export class ReportRepository {
     return row ? toReport(row) : null;
   }
 
-  async burnToken(scanId: string): Promise<void> {
+  async burnToken(scanId: string, openedAt: string = new Date().toISOString()): Promise<void> {
     await this.db
-      .prepare("UPDATE reports SET token_hash = NULL WHERE scan_id = ?")
-      .bind(scanId)
+      .prepare(
+        "UPDATE reports SET token_hash = NULL, opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      )
+      .bind(openedAt, scanId)
       .run();
   }
 }

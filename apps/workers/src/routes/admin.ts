@@ -106,6 +106,72 @@ const RESOLVED_ACTOR = (request: Request): string => {
 
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
 
+interface UsageMetricsRow {
+  scans_current: number;
+  scans_previous: number;
+  sites_current: number;
+  sites_previous: number;
+  reports_current: number;
+  reports_previous: number;
+  reviewers_current: number;
+  reviewers_previous: number;
+  unhashed_current: number;
+}
+
+adminRouter.get("/metrics/usage", async (context) => {
+  const now = new Date();
+  const currentFrom = new Date(now.getTime() - 24 * 60 * 60 * 1_000).toISOString();
+  const previousFrom = new Date(now.getTime() - 48 * 60 * 60 * 1_000).toISOString();
+  const until = now.toISOString();
+  const row = await context.env.DB.prepare(
+    `SELECT
+      (SELECT COUNT(*) FROM scans WHERE created_at >= ? AND created_at < ?) AS scans_current,
+      (SELECT COUNT(*) FROM scans WHERE created_at >= ? AND created_at < ?) AS scans_previous,
+      (SELECT COUNT(DISTINCT url_hash) FROM scans WHERE created_at >= ? AND created_at < ? AND url_hash IS NOT NULL) AS sites_current,
+      (SELECT COUNT(DISTINCT url_hash) FROM scans WHERE created_at >= ? AND created_at < ? AND url_hash IS NOT NULL) AS sites_previous,
+      (SELECT COUNT(*) FROM reports WHERE opened_at >= ? AND opened_at < ?) AS reports_current,
+      (SELECT COUNT(*) FROM reports WHERE opened_at >= ? AND opened_at < ?) AS reports_previous,
+      (SELECT COUNT(DISTINCT actor) FROM legal_review_events WHERE created_at >= ? AND created_at < ?) AS reviewers_current,
+      (SELECT COUNT(DISTINCT actor) FROM legal_review_events WHERE created_at >= ? AND created_at < ?) AS reviewers_previous,
+      (SELECT COUNT(*) FROM scans WHERE created_at >= ? AND created_at < ? AND url_hash IS NULL) AS unhashed_current`,
+  )
+    .bind(
+      currentFrom,
+      until,
+      previousFrom,
+      currentFrom,
+      currentFrom,
+      until,
+      previousFrom,
+      currentFrom,
+      currentFrom,
+      until,
+      previousFrom,
+      currentFrom,
+      currentFrom,
+      until,
+      previousFrom,
+      currentFrom,
+      currentFrom,
+      until,
+    )
+    .first<UsageMetricsRow>();
+  if (!row) return context.json({ code: "METRICS_UNAVAILABLE" }, 503);
+  const metric = (value: number, previous: number) => ({
+    value,
+    previous,
+    delta: value - previous,
+  });
+  return context.json({
+    window: { from: currentFrom, to: until, previousFrom },
+    scans: metric(row.scans_current, row.scans_previous),
+    uniqueSites: metric(row.sites_current, row.sites_previous),
+    reportsOpened: metric(row.reports_current, row.reports_previous),
+    activeReviewers: metric(row.reviewers_current, row.reviewers_previous),
+    uniqueSitesComplete: row.unhashed_current === 0,
+  });
+});
+
 adminRouter.get("/audit", async (context) => {
   const query = context.req.query();
   const fromInput = query.from ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1_000).toISOString();

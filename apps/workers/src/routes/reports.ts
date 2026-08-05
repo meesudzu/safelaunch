@@ -100,7 +100,7 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
   // Single-use: invalidate the stored hash so the second open returns 410.
   // We do this BEFORE returning the response so the URL is consumed atomically.
   const repo = new ReportRepository(context.env.DB);
-  await repo.burnToken(scanId);
+  await repo.burnToken(scanId, now.toISOString());
   return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,
@@ -151,7 +151,7 @@ reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
   }
   // Single-use: invalidate the stored hash before returning the response
   // so the URL is consumed atomically.
-  await repo.burnToken(row.scanId);
+  await repo.burnToken(row.scanId, now.toISOString());
   return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,

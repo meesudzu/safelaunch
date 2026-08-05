@@ -6,9 +6,10 @@ import messages from "../../messages/admin-vi.json";
 const links = [
   { href: "/admin/legal", label: messages["shell.legal"] },
   { href: "/admin/audit", label: messages["shell.audit"] },
+  { href: "/admin/metrics", label: messages["shell.metrics"] },
 ] as const;
 
-const future = [messages["shell.metrics"], messages["shell.logs"]] as const;
+const future = [messages["shell.logs"]] as const;
 
 export function AdminNav() {
   const pathname = usePathname();

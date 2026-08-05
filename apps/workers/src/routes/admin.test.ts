@@ -80,6 +80,38 @@ const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
 };
 
 describe("admin router", () => {
+  describe("GET /v1/admin/metrics/usage", () => {
+    it("returns current, previous, deltas, and hash completeness", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT\n      (SELECT COUNT(*) FROM scans",
+        firstReturn: {
+          scans_current: 12,
+          scans_previous: 9,
+          sites_current: 7,
+          sites_previous: 8,
+          reports_current: 5,
+          reports_previous: 2,
+          reviewers_current: 3,
+          reviewers_previous: 1,
+          unhashed_current: 1,
+        },
+        allReturn: [],
+      });
+      const response = await runWithDb(db, new Request("http://local/v1/admin/metrics/usage"));
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        scans: { delta: number };
+        uniqueSites: { delta: number };
+        uniqueSitesComplete: boolean;
+      }>(response);
+      expect(body.scans.delta).toBe(3);
+      expect(body.uniqueSites.delta).toBe(-1);
+      expect(body.uniqueSitesComplete).toBe(false);
+      expect(db.preparedCalls[0]?.bindings).toHaveLength(18);
+    });
+  });
+
   describe("GET /v1/admin/audit", () => {
     it("returns normalized events and a stable next cursor", async () => {
       const db = new FakeD1();

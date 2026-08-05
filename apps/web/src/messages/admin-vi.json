@@ -34,5 +34,13 @@
   "audit.document": "Văn bản",
   "audit.reason": "Lý do",
   "audit.time": "Thời gian",
+  "metrics.title": "Chỉ số sử dụng",
+  "metrics.scans": "Lượt quét",
+  "metrics.sites": "Website duy nhất",
+  "metrics.reports": "Báo cáo đã mở",
+  "metrics.reviewers": "Reviewer hoạt động",
+  "metrics.window": "24 giờ gần nhất",
+  "metrics.previous": "24 giờ trước",
+  "metrics.incomplete": "Một số lượt quét chưa có hash riêng tư; số website duy nhất có thể thấp hơn thực tế.",
   "footer.disclosure": "Hoạt động quản trị được ghi log để phục vụ kiểm toán."
 }

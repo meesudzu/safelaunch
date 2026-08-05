@@ -207,6 +207,15 @@ export interface AdminAuditFilters {
   cursor?: string;
 }
 
+export interface AdminUsageMetricsDto {
+  window: { from: string; to: string; previousFrom: string };
+  scans: { value: number; previous: number; delta: number };
+  uniqueSites: { value: number; previous: number; delta: number };
+  reportsOpened: { value: number; previous: number; delta: number };
+  activeReviewers: { value: number; previous: number; delta: number };
+  uniqueSitesComplete: boolean;
+}
+
 export interface ApiClientEnv {
   readonly NEXT_PUBLIC_API_ORIGIN?: string | undefined;
 }
@@ -306,6 +315,14 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "LIST_ADMIN_AUDIT_FAILED");
       }
       return (await response.json()) as AdminAuditPageDto;
+    },
+    getAdminUsageMetrics: async (): Promise<AdminUsageMetricsDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/metrics/usage`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) throw await toApiClientError(response, "GET_ADMIN_USAGE_METRICS_FAILED");
+      return (await response.json()) as AdminUsageMetricsDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(
