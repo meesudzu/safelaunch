@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SCAN_PIPELINE, ScanStepper, type ScanStepperMessages } from "./scan-stepper";
 
 export type ScanTerminalState = "completed" | "partial" | "failed";
 
@@ -17,8 +18,9 @@ export interface ScanProgressState {
   readonly reportUrl?: string;
 }
 
-export interface ScanProgressMessages {
+export interface ScanProgressMessages extends ScanStepperMessages {
   readonly headline: string;
+  readonly "headline.scanning": string;
   readonly "state.queued": string;
   readonly "state.fetching": string;
   readonly "state.extracting": string;
@@ -29,8 +31,8 @@ export interface ScanProgressMessages {
   readonly "state.partial": string;
   readonly "state.failed": string;
   readonly "view.report": string;
-  readonly "view.retrying": string;
   readonly "expiry.label": string;
+  readonly "coverage.title": string;
 }
 
 export interface ScanProgressProps {
@@ -40,7 +42,7 @@ export interface ScanProgressProps {
   readonly poll: (scanId: string) => Promise<ScanProgressState>;
 }
 
-const TERMINAL_STATES = new Set(["completed", "partial", "failed"]);
+const TERMINAL_STATES = new Set<string>(["completed", "partial", "failed"]);
 
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -48,6 +50,43 @@ const backoffMs = (attempt: number): number => {
   if (attempt <= 1) return 1000;
   if (attempt === 2) return 2000;
   return 3000;
+};
+
+const formatExpiry = (iso: string, locale: "vi" | "en"): string => {
+  // Use Intl.DateTimeFormat so the same ISO string renders as a localized
+  // date in both vi (Asia/Ho_Chi_Minh) and en (UTC) without leaking the
+  // raw ISO shape to the user.
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  try {
+    return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-US", {
+      dateStyle: "long",
+      timeStyle: "short",
+    }).format(date);
+  } catch {
+    return iso;
+  }
+};
+
+const formatHeadline = (messages: ScanProgressMessages, state: string): string => {
+  if (state === "completed") return messages["state.completed"];
+  if (state === "partial") return messages["state.partial"];
+  if (state === "failed") return messages["state.failed"];
+  const activeIndex = SCAN_PIPELINE.findIndex((step) => step === state);
+  if (activeIndex < 0) {
+    // Unknown state — keep the original static headline so the screen never
+    // blanks out before the first valid poll lands.
+    return messages["headline"];
+  }
+  return messages["headline.scanning"]
+    .replace("{current}", String(activeIndex + 1))
+    .replace("{total}", String(SCAN_PIPELINE.length));
+};
+
+const stateLabel = (messages: ScanProgressMessages, state: string): string => {
+  const key = `state.${state}` as keyof ScanProgressMessages;
+  const value = messages[key];
+  return typeof value === "string" ? value : state;
 };
 
 export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
@@ -96,13 +135,12 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
   // Defensively coerce to arrays so a malformed payload never crashes
   // the render tree. The API is also expected to normalize, but never
   // trust the wire.
-  // Defensive coverage normalization:
-  //   1. coerce each list to an array (server may send missing sub-fields);
-  //   2. deduplicate across fetched / failed / skipped — fetched wins, then
-  //      failed, then skipped. The server is the source of truth, but legacy
-  //      DB rows (and a transient bug in the workflow entrypoint) could ship
-  //      a page in more than one list, which renders as contradictory "Đã
-  //      quét" + "Không thể quét" rows on the dashboard.
+  // The server may return coverage without fetched/failed/skipped
+  // (DB default for a freshly queued scan is `coverage_json='{}'`).
+  // Defensively coerce to arrays so a malformed payload never crashes
+  // the render tree. Then dedupe across lists — fetched wins, then
+  // failed, then skipped. Legacy DB rows can ship a page in more than
+  // one list, which would otherwise render as contradictory rows.
   const dedupeCoverageLists = (
     fetchedList: readonly string[],
     failedList: readonly string[],
@@ -131,10 +169,8 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
     Array.isArray(state.coverage?.skipped) ? state.coverage.skipped : [],
   );
 
-  const stateLabel = ((): string => {
-    const key = `state.${state.state}` as keyof ScanProgressMessages;
-    return messages[key] ?? state.state;
-  })();
+  const headline = formatHeadline(messages, state.state);
+  const announcement = stateLabel(messages, state.state);
 
   return (
     <section
@@ -144,17 +180,36 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
       className="bg-bg text-ink font-sans antialiased"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-16">
-        <h1
-          id="progress-heading"
-          className="font-serif text-3xl font-semibold leading-tight md:text-4xl"
-        >
-          {messages.headline}
-        </h1>
-        <p data-testid="progress-state" className="text-base text-ink-soft">
-          {stateLabel}
-        </p>
+        <header className="flex flex-col gap-2">
+          <h1
+            id="progress-heading"
+            className="font-serif text-3xl font-semibold leading-tight md:text-4xl"
+          >
+            {headline}
+          </h1>
+          {/* Visually hidden but announced: this is the single source of
+              truth for "what step is the scan on right now" that screen
+              readers read on every state transition. The visual stepper
+              below carries the same information for sighted users. */}
+          <span
+            data-testid="progress-state"
+            aria-live="polite"
+            aria-atomic="true"
+            className="sr-only"
+          >
+            {announcement}
+          </span>
+        </header>
 
-        {state.reportUrl && TERMINAL_STATES.has(state.state) ? (
+        <ScanStepper locale={locale} messages={messages} currentState={state.state} />
+
+        {state.expiresAt && isTerminal ? (
+          <p data-testid="progress-expiry" className="text-xs text-ink-soft">
+            {messages["expiry.label"]} {formatExpiry(state.expiresAt, locale)}
+          </p>
+        ) : null}
+
+        {state.reportUrl && isTerminal ? (
           <a
             data-testid="view-report-link"
             href={state.reportUrl}
@@ -164,27 +219,31 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
           </a>
         ) : null}
 
-        {!TERMINAL_STATES.has(state.state) ? (
-          <p className="text-xs text-ink-soft">{messages["view.retrying"]}</p>
-        ) : null}
-
-        <ul data-testid="coverage-list" className="flex flex-col gap-1 text-sm">
-          {coverage.fetched.map((page) => (
-            <li key={`f-${page}`} className="text-success">
-              ✓ {page}
-            </li>
-          ))}
-          {coverage.failed.map((page) => (
-            <li key={`x-${page}`} className="text-error">
-              ! {page}
-            </li>
-          ))}
-          {coverage.skipped.map((page) => (
-            <li key={`s-${page}`} className="text-ink-soft">
-              · {page}
-            </li>
-          ))}
-        </ul>
+        <section aria-labelledby="coverage-heading" className="flex flex-col gap-2">
+          <h2
+            id="coverage-heading"
+            className="font-serif text-sm font-semibold uppercase tracking-[0.18em] text-ink-soft"
+          >
+            {messages["coverage.title"]}
+          </h2>
+          <ul data-testid="coverage-list" className="flex flex-col gap-1 text-sm">
+            {coverage.fetched.map((page) => (
+              <li key={`f-${page}`} className="text-success">
+                ✓ {page}
+              </li>
+            ))}
+            {coverage.failed.map((page) => (
+              <li key={`x-${page}`} className="text-error">
+                ! {page}
+              </li>
+            ))}
+            {coverage.skipped.map((page) => (
+              <li key={`s-${page}`} className="text-ink-soft">
+                · {page}
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </section>
   );

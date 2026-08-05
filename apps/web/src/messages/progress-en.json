@@ -1,5 +1,6 @@
 {
   "headline": "Scanning website…",
+  "headline.scanning": "Scanning website — step {current} / {total}",
   "state.queued": "Queued…",
   "state.fetching": "Fetching pages…",
   "state.extracting": "Extracting content…",
@@ -10,6 +11,20 @@
   "state.partial": "Partially completed — needs expert review",
   "state.failed": "Scan failed — please try again",
   "view.report": "View report",
-  "view.retrying": "Retrying automatically…",
-  "expiry.label": "Report expires on"
+  "expiry.label": "Report expires on",
+  "steps.title": "Scan steps",
+  "steps.subtitle": "Step {current} / {total}",
+  "coverage.title": "Scanned pages",
+  "step.queued.label": "Queued",
+  "step.queued.description": "Waiting in line to start the scan",
+  "step.fetching.label": "Fetching pages",
+  "step.fetching.description": "Reading each URL in the scan scope",
+  "step.extracting.label": "Extracting content",
+  "step.extracting.description": "Pulling out text, links, and digital assets",
+  "step.retrieving.label": "Looking up legal provisions",
+  "step.retrieving.description": "Finding relevant articles in the legal corpus",
+  "step.evaluating.label": "Evaluating evidence",
+  "step.evaluating.description": "Matching evidence against each provision",
+  "step.reporting.label": "Composing report",
+  "step.reporting.description": "Compiling findings and notes for you"
 }

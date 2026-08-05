@@ -1,5 +1,6 @@
 {
   "headline": "Đang quét website…",
+  "headline.scanning": "Đang quét website — bước {current} / {total}",
   "state.queued": "Đang chờ…",
   "state.fetching": "Đang tải trang…",
   "state.extracting": "Đang trích xuất nội dung…",
@@ -10,6 +11,20 @@
   "state.partial": "Hoàn tất một phần — cần chuyên gia xem xét",
   "state.failed": "Quét thất bại — vui lòng thử lại",
   "view.report": "Xem báo cáo",
-  "view.retrying": "Đang tự động thử lại…",
-  "expiry.label": "Báo cáo hết hạn vào"
+  "expiry.label": "Báo cáo hết hạn vào",
+  "steps.title": "Các bước quét",
+  "steps.subtitle": "Bước {current} / {total}",
+  "coverage.title": "Các trang đã quét",
+  "step.queued.label": "Đang chờ",
+  "step.queued.description": "Đang xếp hàng để bắt đầu quét",
+  "step.fetching.label": "Đang tải trang",
+  "step.fetching.description": "Đang đọc từng URL trong phạm vi quét",
+  "step.extracting.label": "Đang trích xuất nội dung",
+  "step.extracting.description": "Đang tách văn bản, liên kết và tài sản số",
+  "step.retrieving.label": "Đang tra cứu văn bản pháp luật",
+  "step.retrieving.description": "Đang tìm điều khoản liên quan trong kho dữ liệu pháp lý",
+  "step.evaluating.label": "Đang đánh giá",
+  "step.evaluating.description": "Đang so khớp bằng chứng với từng điều khoản",
+  "step.reporting.label": "Đang soạn báo cáo",
+  "step.reporting.description": "Đang tổng hợp kết quả và ghi chú cho bạn"
 }
