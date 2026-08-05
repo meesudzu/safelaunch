@@ -336,7 +336,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
         failed: ["homepage"] as SupportedPageType[],
         skipped: [] as SupportedPageType[],
       };
-      await step.do("persist-terminal", async () =>
+      await step.do("phase-10:persist-terminal", async () =>
         persistTerminalPhase(
           {
             scanId: parsed.scanId,
@@ -451,23 +451,23 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     };
     const rawHtml = new Map<string, Uint8Array>();
     for (const row of fetchedRows) rawHtml.set(row.url, row.html);
-    const evidencePhase = await step.do("extract:evidence", async () => {
+    const evidencePhase = await step.do("phase-2:extract-evidence", async () => {
       const result = extractEvidencePhase(
         fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
         rawHtml,
       );
       return await Promise.resolve(result);
     });
-    const serviceSignals = await step.do("extract:service-signals", async () => {
+    const serviceSignals = await step.do("phase-3:extract-signals", async () => {
       const result = extractServiceSignalsPhase(evidencePhase.pages);
       return await Promise.resolve(result);
     });
     const assetFetcher = makeWorkflowAssetFetcher();
-    const assetRefs = await step.do("scan-assets:references", async () => {
+    const assetRefs = await step.do("phase-4:scan-assets-references", async () => {
       const result = collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher);
       return await Promise.resolve(result);
     });
-    const assetInventory = await step.do("classify:asset-rights", async () => {
+    const assetInventory = await step.do("phase-5:classify-asset-rights", async () => {
       const result = classifyAssetRightsPhase(
         assetRefs,
         assetFetcher,
@@ -482,7 +482,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       jurisdiction: parsed.jurisdiction,
       licenseType: "online_game",
     });
-    const licenseChecks = await step.do("evaluate:license-requirements", async () => {
+    const licenseChecks = await step.do("phase-6:evaluate-license", async () => {
       const result = evaluateLicenseRequirementsPhase({
         jurisdiction: parsed.jurisdiction,
         category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
@@ -493,7 +493,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       });
       return await Promise.resolve(result);
     });
-    const evaluation = await step.do("evaluate-rules", () =>
+    const evaluation = await step.do("phase-7:evaluate-rules", () =>
       evaluatePhase(
         {
           scanId: parsed.scanId,
@@ -509,7 +509,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // 6. aggregate-findings
     const complete = coverage.failed.length === 0;
     // eslint-disable-next-line @typescript-eslint/require-await
-    const aggregated = await step.do("aggregate-findings", async () =>
+    const aggregated = await step.do("phase-8:aggregate", async () =>
       aggregateFindings(evaluation.findings, { complete }),
     );
 
@@ -528,7 +528,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     }
 
     // 7. persist-report (deterministic token, idempotent upsert)
-    const report = await step.do("persist-report", async () =>
+    const report = await step.do("phase-9:persist-report", async () =>
       persistReportPhase(
         {
           scanId: parsed.scanId,
@@ -549,7 +549,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
 
     // 8. persist-terminal (last; same coverage shape)
-    await step.do("persist-terminal", async () =>
+    await step.do("phase-10:persist-terminal", async () =>
       persistTerminalPhase(
         { scanId: parsed.scanId, state, status: finalStatus, coverage },
         { db: this.env.DB, log, now },
