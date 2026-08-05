@@ -74,11 +74,19 @@ const PRESS_CITATION = citation(
   "https://vbpl.vn/van-ban/trung-uong/luat-bao-chi-2016",
 );
 
+/**
+ * Citation for the social-network license gate.
+ *
+ * Source of authority: Nghị định 27/2018/NĐ-CP (which amends Nghị định
+ * 72/2013/NĐ-CP) defines "mạng xã hội" (social network) and the four
+ * community/sharing behaviors that distinguish it from a generic
+ * identity-only service.
+ */
 const SOCIAL_CITATION = citation(
-  "vn-cyber-safety-2015",
-  "Luật An toàn thông tin mạng 2015",
-  "Tổ chức, doanh nghiệp cung cấp dịch vụ trên mạng phải công bố thông tin liên lạc và chịu trách nhiệm quản lý nội dung theo quy định pháp luật.",
-  "https://vbpl.vn/van-ban/trung-uong/luat-an-toan-thong-tin-mang-2015",
+  "vn-pd-27-2018-social-network",
+  "Nghị định 27/2018/NĐ-CP sửa đổi, bổ sung Nghị định 72/2013/NĐ-CP",
+  "Dịch vụ mạng xã hội là dịch vụ cho phép người dùng tạo trang cá nhân, đăng tải nội dung, tương tác đa chiều (theo dõi, kết bạn, bình luận, chia sẻ) và/hoặc lập nhóm/diễn đàn thảo luận; phải xin phép trước khi cung cấp.",
+  "https://vbpl.vn/van-ban/trung-uong/nghi-dinh-27-2018-nd-cp",
 );
 
 const citationFor = (licenseType: string): LegalCitation => {
@@ -87,20 +95,58 @@ const citationFor = (licenseType: string): LegalCitation => {
   return SOCIAL_CITATION;
 };
 
-const socialInteractionKinds: readonly ServiceSignalKind[] = [
+/**
+ * Service-signal kinds that map to the four community/sharing behaviors in
+ * Nghị định 27/2018/NĐ-CP (amending Nghị định 72/2013/NĐ-CP):
+ *
+ *   1. Tạo trang cá nhân (Profile):                public_profile
+ *   2. Tự do đăng tải nội dung (Self-publish):     ugc
+ *   3. Tương tác đa chiều (Interaction):          follow_or_friend, comment, share
+ *   4. Tạo diễn đàn / Hội nhóm (Forum / Group):   content_feed
+ *
+ * The "login" signal is intentionally excluded — registration / sign-in
+ * is an identity feature, not a community/sharing behavior, and is not
+ * sufficient on its own to require a social-network license.
+ */
+const SOCIAL_NETWORK_BEHAVIORS: readonly ServiceSignalKind[] = [
   "public_profile",
-  "content_feed",
+  "ugc",
   "follow_or_friend",
   "comment",
   "share",
+  "content_feed",
 ];
 
+const SOCIAL_NETWORK_MIN_DISTINCT_KINDS = 2;
+
+/**
+ * Decide whether the observed service signals indicate the website is a
+ * "mạng xã hội" (social network) per Nghị định 27/2018/NĐ-CP (amending
+ * Nghị định 72/2013/NĐ-CP).
+ *
+ * Returns `true` when at least {@link SOCIAL_NETWORK_MIN_DISTINCT_KINDS}
+ * distinct community/sharing behaviors are observed, otherwise `false`.
+ *
+ * Examples:
+ *   [login]                                            → false
+ *   [login, public_profile]                            → false
+ *   [login, ugc]                                       → false
+ *   [login, ugc, public_profile]                       → true  (criteria 1 + 2)
+ *   [login, ugc, comment]                              → true  (criteria 2 + 3)
+ *   [login, public_profile, follow_or_friend]          → true  (criteria 1 + 3)
+ *   [login, content_feed, comment]                     → true  (criteria 3 + 4)
+ */
 export const hasSocialNetworkSignals = (signals: readonly ServiceSignal[]): boolean => {
-  const hasUgc = signals.some((signal) => signal.observed && signal.kind === "ugc");
-  const hasInteraction = signals.some(
-    (signal) => signal.observed && socialInteractionKinds.includes(signal.kind),
+  const observed = new Set(
+    signals.filter((signal) => signal.observed).map((signal) => signal.kind),
   );
-  return hasUgc && hasInteraction;
+  let distinct = 0;
+  for (const kind of SOCIAL_NETWORK_BEHAVIORS) {
+    if (!observed.has(kind)) continue;
+    distinct += 1;
+    if (distinct >= SOCIAL_NETWORK_MIN_DISTINCT_KINDS) return true;
+  }
+  return false;
 };
 
 const statusFromRegistry = (
@@ -145,8 +191,12 @@ const rationaleFor = (
     return `Thông tin ${label} không khớp với loại giấy phép hoặc chủ thể được phát hiện.`;
   if (status === "required_expired")
     return `${label} được phát hiện nhưng nguồn registry cho biết đã hết hiệu lực.`;
-  if (status === "required_unavailable")
+  if (status === "required_unavailable") {
+    if (licenseType === "social_network") {
+      return `Phát hiện các tín hiệu cộng đồng (trang cá nhân, đăng tải nội dung, tương tác đa chiều, diễn đàn/hội nhóm) cho thấy dịch vụ thuộc phạm vi mạng xã hội theo Nghị định 27/2018/NĐ-CP sửa đổi Nghị định 72/2013/NĐ-CP; chưa đủ bằng chứng để xác minh ${label}, đây là tín hiệu rủi ro, không phải kết luận vi phạm.`;
+    }
     return `Chưa có đủ bằng chứng để xác minh ${label}; đây là tín hiệu rủi ro, không phải kết luận vi phạm.`;
+  }
   return registry?.rationale ?? `Chưa xác định yêu cầu về ${label}.`;
 };
 

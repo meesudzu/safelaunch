@@ -222,9 +222,13 @@ pages: { url, html, type }[] }`. The `evidence` array is fed into the
   - `online_game` always fires when the category is `online_game`.
   - `electronic_press` fires when the category is `electronic_press` or the
     page emits an `editorial_publishing` signal.
-  - `social_network` fires only when `ugc` is observed **and** at least one
-    of `public_profile`, `content_feed`, `follow_or_friend`, `comment`,
-    `share` is also observed. Login alone is not enough.
+  - `social_network` fires when at least **two** distinct non-login
+    community/sharing behaviors are observed: `public_profile` (profile
+    creation), `ugc` (self-publishing), `follow_or_friend` / `comment` /
+    `share` (multi-directional interaction), or `content_feed` (forum
+    / group). This mirrors the four distinguishing behaviors in
+    Nghị định 27/2018/NĐ-CP amending Nghị định 72/2013/NĐ-CP. Login /
+    registration alone is identity only and is not enough.
 - **Registry adapter.** The InMemoryLicenseRegistry is queried with
   `licenseType: "online_game"` and the `jurisdiction` from the request.
   The current production registry is in-memory; replacing it with
@@ -234,7 +238,8 @@ pages: { url, html, type }[] }`. The `evidence` array is fed into the
 - **Output.** `ReportFinding[]` (one per license check) with
   `domain: "license"` and a `citation` array pointing at the official
   Vietnamese instrument (e.g. `Nghị định 72/2013/NĐ-CP`,
-  `Luật Báo chí 2016`, `Luật An toàn thông tin mạng 2015`).
+  `Nghị định 27/2018/NĐ-CP` amending `Nghị định 72/2013/NĐ-CP` for the
+  social-network gate, `Luật Báo chí 2016`).
 - **Severity policy.** `pass` only when the registry reports
   `verified`; `high` when the registry reports
   `not_found | mismatch | expired | unavailable` or when the requirement

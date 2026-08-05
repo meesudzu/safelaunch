@@ -27,7 +27,10 @@ describe("license requirements", () => {
     ).toEqual([]);
   });
 
-  it("requires a social-network review for UGC plus an interaction signal", () => {
+  it("requires a social-network review for UGC plus another community behavior", () => {
+    // Per Nghị định 27/2018/NĐ-CP amending Nghị định 72/2013/NĐ-CP, any two
+    // distinct non-login community/sharing behaviors qualify. UGC (criterion 2)
+    // plus a profile (criterion 1) is one common combination.
     expect(hasSocialNetworkSignals([signal("ugc"), signal("public_profile")])).toBe(true);
     const checks = evaluateLicenseRequirements({
       jurisdiction: "VN",
@@ -43,8 +46,55 @@ describe("license requirements", () => {
       severity: "high",
     });
     expect(checks[0]?.citations[0]?.url).toBe(
-      "https://vbpl.vn/van-ban/trung-uong/luat-an-toan-thong-tin-mang-2015",
+      "https://vbpl.vn/van-ban/trung-uong/nghi-dinh-27-2018-nd-cp",
     );
+  });
+
+  it("flags a pure forum pattern (content_feed + comment) as a social network", () => {
+    // Criterion 3 (interaction) + criterion 4 (forum/group) per the decree.
+    expect(hasSocialNetworkSignals([signal("content_feed"), signal("comment")])).toBe(true);
+    const checks = evaluateLicenseRequirements({
+      jurisdiction: "VN",
+      category: "digital_entertainment",
+      signals: [signal("login"), signal("content_feed"), signal("comment")],
+      licenseClaims: [],
+      registry: undefined,
+      on: "2026-08-04",
+    });
+    expect(checks[0]).toMatchObject({ licenseType: "social_network", severity: "high" });
+  });
+
+  it("flags a social-discovery pattern (profile + follow) as a social network", () => {
+    // Criterion 1 (profile) + criterion 3 (interaction) per the decree.
+    expect(
+      hasSocialNetworkSignals([signal("public_profile"), signal("follow_or_friend")]),
+    ).toBe(true);
+  });
+
+  it("does not flag a single community behavior as a social network", () => {
+    // Just a profile, just publishing, just commenting — each on its own
+    // is not enough; login alone is also not enough.
+    expect(hasSocialNetworkSignals([signal("login"), signal("public_profile")])).toBe(false);
+    expect(hasSocialNetworkSignals([signal("login"), signal("ugc")])).toBe(false);
+    expect(hasSocialNetworkSignals([signal("login"), signal("comment")])).toBe(false);
+    expect(hasSocialNetworkSignals([signal("login"), signal("content_feed")])).toBe(false);
+    expect(hasSocialNetworkSignals([signal("login"), signal("share")])).toBe(false);
+    expect(hasSocialNetworkSignals([signal("login"), signal("follow_or_friend")])).toBe(false);
+  });
+
+  it("counts editorial publishing plus UGC as a social-network gate", () => {
+    // An editorial press product that also enables user publishing is a
+    // social network per the decree.
+    expect(
+      hasSocialNetworkSignals([signal("editorial_publishing"), signal("ugc")]),
+    ).toBe(false); // editorial_publishing is not in the social-network set
+    expect(
+      hasSocialNetworkSignals([
+        signal("editorial_publishing"),
+        signal("ugc"),
+        signal("comment"),
+      ]),
+    ).toBe(true);
   });
 
   it("marks a declared and verified license as pass", () => {
@@ -69,5 +119,19 @@ describe("license requirements", () => {
       on: "2026-08-04",
     });
     expect(checks[0]).toMatchObject({ status: "required_verified", severity: "pass" });
+  });
+
+  it("explains the login-alone exclusion in the rationale when no other behavior is present", () => {
+    // No license checks are emitted (login alone is not a social network),
+    // so the rationale we care about lives in the empty-checks path.
+    const checks = evaluateLicenseRequirements({
+      jurisdiction: "VN",
+      category: "digital_entertainment",
+      signals: [signal("login")],
+      licenseClaims: [],
+      registry: undefined,
+      on: "2026-08-04",
+    });
+    expect(checks).toEqual([]);
   });
 });
