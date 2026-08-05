@@ -113,6 +113,7 @@ describe("admin router", () => {
           reason: string;
         }>;
         nextCursor: string | null;
+        summary: { total: number; approved: number; rejected: number; pending: number };
       }>(response);
       expect(body.events).toEqual([
         {
@@ -126,6 +127,7 @@ describe("admin router", () => {
         },
       ]);
       expect(body.nextCursor).toBeNull();
+      expect(body.summary).toEqual({ total: 1, approved: 1, rejected: 0, pending: 0 });
       expect(db.preparedCalls[0]?.bindings).toHaveLength(2);
       expect(typeof db.preparedCalls[0]?.bindings[0]).toBe("string");
       expect(db.preparedCalls[0]?.bindings[1]).toBe(51);
@@ -160,6 +162,37 @@ describe("admin router", () => {
         "evt-3",
         11,
       ]);
+    });
+
+    it("rejects malformed date filters before querying D1", async () => {
+      const db = new FakeD1();
+
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/audit?from=not-a-date"),
+      );
+
+      expect(response.status).toBe(400);
+      const body = await jsonBody<{ code: string }>(response);
+      expect(body.code).toBe("INVALID_DATE");
+      expect(db.preparedCalls).toHaveLength(0);
+    });
+
+    it("rejects cursors with malformed timestamps", async () => {
+      const db = new FakeD1();
+      const cursor = Buffer.from(JSON.stringify({ createdAt: "not-a-date", id: "evt-3" })).toString(
+        "base64url",
+      );
+
+      const response = await runWithDb(
+        db,
+        new Request(`http://local/v1/admin/audit?cursor=${cursor}`),
+      );
+
+      expect(response.status).toBe(400);
+      const body = await jsonBody<{ code: string }>(response);
+      expect(body.code).toBe("INVALID_CURSOR");
+      expect(db.preparedCalls).toHaveLength(0);
     });
   });
 

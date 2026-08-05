@@ -20,10 +20,14 @@ const formatDateTime = (iso: string): string => {
 };
 
 const startOfDayIso = (date: string | undefined): string | undefined =>
-  date ? new Date(`${date}T00:00:00.000Z`).toISOString() : undefined;
+  date && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T00:00:00.000Z`).toISOString()
+    : undefined;
 
 const endOfDayIso = (date: string | undefined): string | undefined =>
-  date ? new Date(`${date}T23:59:59.999Z`).toISOString() : undefined;
+  date && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? new Date(`${date}T23:59:59.999Z`).toISOString()
+    : undefined;
 
 const decisionParam = (
   decision: string | undefined,
@@ -50,6 +54,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   });
 
   let events: AuditEventDto[] = [];
+  let summary = { total: 0, approved: 0, rejected: 0, pending: 0 };
   let nextCursor: string | null = null;
   let error: string | null = null;
   try {
@@ -64,6 +69,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
 
     const response = await client.listAuditEvents(auditQuery);
     events = response.events;
+    summary = response.summary;
     nextCursor = response.nextCursor;
   } catch (cause: unknown) {
     if (cause instanceof Error && /403|401/.test(cause.message)) {
@@ -144,33 +150,52 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           {messages["audit.empty"]}
         </p>
       ) : (
-        <div className="mt-6 overflow-x-auto border border-rule bg-surface">
-          <table aria-label="Audit log" className="min-w-full text-left text-sm">
-            <thead className="border-b border-rule text-xs uppercase tracking-wider text-ink-soft">
-              <tr>
-                <th className="px-3 py-2">{messages["audit.created_at"]}</th>
-                <th className="px-3 py-2">{messages["audit.actor"]}</th>
-                <th className="px-3 py-2">{messages["audit.document"]}</th>
-                <th className="px-3 py-2">{messages["audit.jurisdiction"]}</th>
-                <th className="px-3 py-2">{messages["audit.decision"]}</th>
-                <th className="px-3 py-2">{messages["audit.reason"]}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((event) => (
-                <tr key={event.id} className="border-b border-rule last:border-b-0">
-                  <td className="whitespace-nowrap px-3 py-3 text-ink-soft">
-                    {formatDateTime(event.createdAt)}
-                  </td>
-                  <td className="px-3 py-3 font-mono text-xs">{event.actor}</td>
-                  <td className="px-3 py-3 font-medium">{event.documentTitle}</td>
-                  <td className="px-3 py-3">{event.jurisdiction}</td>
-                  <td className="px-3 py-3">{event.decision}</td>
-                  <td className="px-3 py-3">{event.reason}</td>
+        <div className="mt-6">
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div className="border border-rule bg-surface p-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                {messages["audit.loaded"]}
+              </p>
+              <p className="mt-1 font-serif text-2xl font-semibold">{summary.total}</p>
+            </div>
+            <div className="border border-rule bg-surface p-3">
+              <p className="font-serif text-xl font-semibold">{summary.approved} approved</p>
+            </div>
+            <div className="border border-rule bg-surface p-3">
+              <p className="font-serif text-xl font-semibold">{summary.rejected} rejected</p>
+            </div>
+            <div className="border border-rule bg-surface p-3">
+              <p className="font-serif text-xl font-semibold">{summary.pending} pending</p>
+            </div>
+          </div>
+          <div className="mt-4 overflow-x-auto border border-rule bg-surface">
+            <table aria-label="Audit log" className="min-w-full text-left text-sm">
+              <thead className="border-b border-rule text-xs uppercase tracking-wider text-ink-soft">
+                <tr>
+                  <th className="px-3 py-2">{messages["audit.created_at"]}</th>
+                  <th className="px-3 py-2">{messages["audit.actor"]}</th>
+                  <th className="px-3 py-2">{messages["audit.document"]}</th>
+                  <th className="px-3 py-2">{messages["audit.jurisdiction"]}</th>
+                  <th className="px-3 py-2">{messages["audit.decision"]}</th>
+                  <th className="px-3 py-2">{messages["audit.reason"]}</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id} className="border-b border-rule last:border-b-0">
+                    <td className="whitespace-nowrap px-3 py-3 text-ink-soft">
+                      {formatDateTime(event.createdAt)}
+                    </td>
+                    <td className="px-3 py-3 font-mono text-xs">{event.actor}</td>
+                    <td className="px-3 py-3 font-medium">{event.documentTitle}</td>
+                    <td className="px-3 py-3">{event.jurisdiction}</td>
+                    <td className="px-3 py-3">{event.decision}</td>
+                    <td className="px-3 py-3">{event.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

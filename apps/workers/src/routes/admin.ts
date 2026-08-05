@@ -75,8 +75,13 @@ export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
 adminRouter.get("/audit", async (context) => {
   const query = context.req.query();
   const limit = clampLimit(query.limit);
-  const from = pickString(query.from) ?? daysAgoIso(7);
-  const to = pickString(query.to);
+  const rawFrom = pickString(query.from);
+  const rawTo = pickString(query.to);
+  if ((rawFrom && !isIsoDate(rawFrom)) || (rawTo && !isIsoDate(rawTo))) {
+    return context.json({ code: "INVALID_DATE" }, 400);
+  }
+  const from = rawFrom ?? daysAgoIso(7);
+  const to = rawTo;
   const actor = pickString(query.actor);
   const decision = toStoredDecision(pickString(query.decision));
   const cursor = query.cursor ? decodeCursor(query.cursor) : null;
@@ -130,6 +135,7 @@ adminRouter.get("/audit", async (context) => {
       decision: toPublicDecision(row.decision),
       reason: row.reason,
     })),
+    summary: summarizeAudit(pageRows),
     nextCursor: nextRow ? encodeCursor({ createdAt: nextRow.created_at, id: nextRow.id }) : null,
   });
 });
@@ -325,18 +331,37 @@ const toPublicDecision = (decision: string): "approved" | "rejected" | "pending"
   return "pending";
 };
 
+const summarizeAudit = (
+  rows: AuditListRow[],
+): { total: number; approved: number; rejected: number; pending: number } => {
+  const summary = { total: rows.length, approved: 0, rejected: 0, pending: 0 };
+  for (const row of rows) {
+    summary[toPublicDecision(row.decision)] += 1;
+  }
+  return summary;
+};
+
+const isIsoDate = (value: string): boolean => {
+  const time = Date.parse(value);
+  return Number.isFinite(time);
+};
+
 const encodeCursor = (cursor: AuditCursor): string =>
   btoa(JSON.stringify(cursor)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 
 const decodeCursor = (raw: string): AuditCursor | null => {
   try {
-    const padded = raw.replaceAll("-", "+").replaceAll("_", "/").padEnd(Math.ceil(raw.length / 4) * 4, "=");
+    const padded = raw
+      .replaceAll("-", "+")
+      .replaceAll("_", "/")
+      .padEnd(Math.ceil(raw.length / 4) * 4, "=");
     const parsed = JSON.parse(atob(padded)) as unknown;
     if (
       typeof parsed === "object" &&
       parsed !== null &&
       typeof (parsed as AuditCursor).createdAt === "string" &&
-      typeof (parsed as AuditCursor).id === "string"
+      typeof (parsed as AuditCursor).id === "string" &&
+      isIsoDate((parsed as AuditCursor).createdAt)
     ) {
       return parsed as AuditCursor;
     }

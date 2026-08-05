@@ -15,7 +15,17 @@ const { listAuditEventsMock } = vi.hoisted(() => ({
           decision: "approved" as const,
           reason: "Đủ căn cứ",
         },
+        {
+          id: "evt-2",
+          createdAt: "2026-08-05T03:00:00.000Z",
+          actor: "second@safelaunch.app",
+          documentTitle: "Thông tư kiểm thử",
+          jurisdiction: "VN",
+          decision: "rejected" as const,
+          reason: "Thiếu căn cứ",
+        },
       ],
+      summary: { total: 2, approved: 1, rejected: 1, pending: 0 },
       nextCursor: null,
     };
   }),
@@ -56,5 +66,9 @@ describe("AuditPage", () => {
     expect(within(row as HTMLTableRowElement).getByText("VN")).toBeVisible();
     expect(within(row as HTMLTableRowElement).getByText("approved")).toBeVisible();
     expect(within(row as HTMLTableRowElement).getByText("Đủ căn cứ")).toBeVisible();
+    expect(screen.getByText("2")).toBeVisible();
+    expect(screen.getByText("1 approved")).toBeVisible();
+    expect(screen.getByText("1 rejected")).toBeVisible();
+    expect(screen.getByText("0 pending")).toBeVisible();
   });
 });

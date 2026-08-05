@@ -189,6 +189,12 @@ export interface AuditEventDto {
 
 export interface AuditEventsResponseDto {
   events: AuditEventDto[];
+  summary: {
+    total: number;
+    approved: number;
+    rejected: number;
+    pending: number;
+  };
   nextCursor: string | null;
 }
 
