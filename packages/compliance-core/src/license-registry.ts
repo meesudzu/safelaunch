@@ -11,7 +11,7 @@ import type { LicenseRegistryResult } from "./licensing";
 export const VBPL_SLUGS = {
   online_game: "nghi-dinh-72-2013-nd-cp",
   electronic_press: "luat-bao-chi-2016",
-  social_network: "luat-an-toan-thong-tin-mang-2015",
+  social_network: "nghi-dinh-27-2018-nd-cp",
 } as const;
 
 export type SupportedLicenseType = keyof typeof VBPL_SLUGS;

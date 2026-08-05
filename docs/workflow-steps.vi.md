@@ -211,9 +211,13 @@ pages: { url, html, type }[] }`. Mảng `evidence` được rule engine của
   - `online_game` luôn bật khi category là `online_game`.
   - `electronic_press` bật khi category là `electronic_press` hoặc page
     phát ra signal `editorial_publishing`.
-  - `social_network` chỉ bật khi quan sát thấy `ugc` **và** ít nhất một
-    trong `public_profile`, `content_feed`, `follow_or_friend`,
-    `comment`, `share`. Login đơn lẻ không đủ.
+  - `social_network` bật khi quan sát thấy ít nhất **hai** tín hiệu cộng
+    đồng/chia sẻ khác nhau (không tính `login`): `public_profile` (tạo
+    trang cá nhân), `ugc` (tự đăng tải nội dung), `follow_or_friend` /
+    `comment` / `share` (tương tác đa chiều), hoặc `content_feed`
+    (diễn đàn/hội nhóm). Logic này bám sát 4 tiêu chí phân biệt mạng xã
+    hội tại Nghị định 27/2018/NĐ-CP sửa đổi Nghị định 72/2013/NĐ-CP. Đăng
+    nhập/đăng ký là tính năng kỹ thuật để định danh — không đủ một mình.
 - **Registry adapter.** InMemoryLicenseRegistry được query với
   `licenseType: "online_game"` và `jurisdiction` từ request. Production
   hiện dùng in-memory; thay bằng `vbplLicenseRegistry` sẽ route qua
@@ -221,8 +225,8 @@ pages: { url, html, type }[] }`. Mảng `evidence` được rule engine của
   có timeout 5s, không log PII.
 - **Output.** `ReportFinding[]` (một cho mỗi license check) với
   `domain: "license"` và mảng `citation` trỏ tới văn bản pháp luật Việt
-  Nam hiện hành (vd. Nghị định 72/2013/NĐ-CP, Luật Báo chí 2016, Luật An
-  toàn thông tin mạng 2015).
+  Nam hiện hành (vd. Nghị định 72/2013/NĐ-CP, Nghị định 27/2018/NĐ-CP
+  sửa đổi Nghị định 72/2013/NĐ-CP cho mạng xã hội, Luật Báo chí 2016).
 - **Severity policy.** `pass` chỉ khi registry báo `verified`; `high`
   khi registry báo `not_found | mismatch | expired | unavailable` hoặc khi
   yêu cầu được kích hoạt mà chủ thể chưa khai báo số giấy phép. Trạng
