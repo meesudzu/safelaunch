@@ -312,7 +312,42 @@ export const persistTerminalPhase = async (
   });
 };
 
-import type { ServiceSignal } from "@safelaunch/contracts";
+/**
+ * Persists an in-flight progress state for the scan row.
+ *
+ * Mirrors {@link persistTerminalPhase} but writes **only** the `state`
+ * column so the terminal phase's `coverage_json` snapshot is not
+ * disturbed. The route layer reads `state` to surface live progress to
+ * the polling client (`apps/web/src/components/scan-progress.tsx`).
+ *
+ * Why this exists: prior to this helper the only DB write happened at
+ * `phase-10:persist-terminal`, so the API returned `state: "queued"`
+ * for the entire duration of the scan and the stepper UI was stuck on
+ * step 1 even though the workflow was moving forward.
+ *
+ * Errors are logged and re-thrown so the caller (the workflow
+ * entrypoint) can decide whether to retry. The entrypoint wraps the
+ * call in `runStepWithFallback` so a transient D1 cold-start does not
+ * abort the entire scan.
+ */
+export const persistProgressPhase = async (
+  input: { scanId: string; state: ScanStatus },
+  deps: PersistDeps,
+): Promise<void> => {
+  await deps.db
+    .prepare("UPDATE scans SET state = ? WHERE id = ?")
+    .bind(input.state, input.scanId)
+    .run();
+  deps.log({
+    level: "info",
+    event: "scan.progress_persisted",
+    scanId: input.scanId,
+    state: input.state,
+    at: deps.now(),
+  });
+};
+
+import type { ServiceSignal, ScanStatus } from "@safelaunch/contracts";
 import type {
   AssetFetcher,
   AssetReference,

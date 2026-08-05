@@ -4,6 +4,7 @@ import type {
   EvidenceItem,
   LicenseCheck,
   ReportFinding,
+  ScanStatus,
   ServiceSignal,
 } from "@safelaunch/contracts";
 import { extractEvidence } from "../services/evidence";
@@ -19,6 +20,7 @@ import {
   evaluatePhase,
   fetchPhase,
   fetchSinglePagePhase,
+  persistProgressPhase,
   persistReportPhase,
   persistTerminalPhase,
   extractEvidencePhase,
@@ -131,6 +133,15 @@ export interface ScanRunDeps {
     status: ScanTerminalStatus;
     coverage: ScanCoverage;
   }) => Promise<void>;
+  /**
+   * Optional in-flight progress callback. Called with non-terminal
+   * `ScanState` values ("extracting", "evaluating", ...) so the route
+   * layer can surface live progress to polling clients. Mirrors the
+   * contract of {@link persistTerminalState}. Best-effort: a failure
+   * here must not abort the scan; the entrypoint wraps the actual DB
+   * write in `runStepWithFallback`.
+   */
+  persistProgressState?: (input: { scanId: string; state: ScanStatus }) => Promise<void>;
   now: () => string;
   log: (entry: Record<string, unknown>) => void;
   retryCount?: number;
@@ -220,6 +231,13 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
   }
 
   const coverage = buildCoverage(fetchResult.fetched, fetchResult.failed, []);
+  // Publish "extracting" so the polling client can advance the stepper
+  // past "fetching" while the (potentially slow) evidence-extraction
+  // loop runs. Best-effort -- a callback throw does not abort the scan.
+  await deps.persistProgressState?.({
+    scanId: params.scanId,
+    state: "extracting",
+  });
   const evaluation = await evaluatePhase(
     {
       scanId: params.scanId,
@@ -245,6 +263,14 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
   if (state !== "completed" && status === "no_significant_risk") {
     status = "needs_review";
   }
+  // Publish "evaluating" so the polling client can advance to the rule
+  // evaluation step. The terminal state still wins once
+  // persistTerminalState fires, so the UI flips from "evaluating" to
+  // "completed" / "partial" / "failed" on the next poll.
+  await deps.persistProgressState?.({
+    scanId: params.scanId,
+    state: "evaluating",
+  });
 
   const timeoutPages = new Set<SupportedPageType>(params.timeoutPages ?? []);
   const timeoutPagesFailed = Array.from(timeoutPages).filter((p) => fetchResult.failed.includes(p));
@@ -491,13 +517,45 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
     const rawHtml = new Map<string, Uint8Array>();
     for (const row of fetchedRows) rawHtml.set(row.url, row.html);
-    const evidencePhase = await step.do("phase-2:extract-evidence", async () => {
-      const result = extractEvidencePhase(
-        fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
-        rawHtml,
-      );
-      return await Promise.resolve(result);
+    // Publish "extracting" so the polling client can advance the
+    // stepper past "fetching" the moment all page fetches complete.
+    // Best-effort: a transient D1 cold-start does not abort the scan.
+    await runStepWithFallback({
+      step,
+      name: "publish:extracting",
+      fallback: undefined,
+      log,
+      fn: () =>
+        persistProgressPhase(
+          { scanId: parsed.scanId, state: "extracting" },
+          { db: this.env.DB, log, now },
+        ),
     });
+    // phase-2 is CPU-bound (regex loop on every chunk of every page).
+    // A large site (e.g. dantri.com.vn) can blow the Worker CPU
+    // budget on a single attempt; wrap with runStepWithFallback so a
+    // CPU-timeout surfaces as a degraded phase instead of stalling the
+    // dashboard in "Pending" for ~5 minutes of retries.
+    const evidencePhase = await runStepWithFallback({
+      step,
+      name: "phase-2:extract-evidence",
+      fallback: { evidence: [] as never[], pages: [] as never[] },
+      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "1 minute" },
+      log,
+      fn: () => {
+        const result = extractEvidencePhase(
+          fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+          rawHtml,
+        );
+        return Promise.resolve(result);
+      },
+    });
+    if (evidencePhase.pages.length === 0 && fetchedRows.length > 0) {
+      // Empty pages list could be correct (no useful HTML) OR a
+      // silent phase-2 failure. Flag degraded only when fetches
+      // returned content that should have produced evidence.
+      degradedPhases.push("phase-2:extract-evidence");
+    }
     const serviceSignals = await step.do("phase-3:extract-signals", async () => {
       const result = extractServiceSignalsPhase(evidencePhase.pages);
       return await Promise.resolve(result);
@@ -541,6 +599,20 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     if (assetInventory === EMPTY_DIGITAL_ASSET_COLLECTION) {
       degradedPhases.push("phase-5:classify-asset-rights");
     }
+    // Publish "evaluating" once the asset-rights classification phase
+    // is done so the polling client can advance from "extracting" to
+    // "evaluating" before the (potentially slow) RAG evaluation runs.
+    await runStepWithFallback({
+      step,
+      name: "publish:evaluating",
+      fallback: undefined,
+      log,
+      fn: () =>
+        persistProgressPhase(
+          { scanId: parsed.scanId, state: "evaluating" },
+          { db: this.env.DB, log, now },
+        ),
+    });
     const licenseClaims = evidencePhase.evidence
       .filter((item) => item.type === "license_claim")
       .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
@@ -595,6 +667,20 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     if (state !== "completed" && finalStatus === "no_significant_risk") {
       finalStatus = "needs_review";
     }
+
+    // Publish "reporting" once aggregation finishes so the polling
+    // client can show "reporting" while the report row is upserted.
+    await runStepWithFallback({
+      step,
+      name: "publish:reporting",
+      fallback: undefined,
+      log,
+      fn: () =>
+        persistProgressPhase(
+          { scanId: parsed.scanId, state: "reporting" },
+          { db: this.env.DB, log, now },
+        ),
+    });
 
     // 7. persist-report (deterministic token, idempotent upsert)
     const report = await step.do("phase-9:persist-report", async () =>
