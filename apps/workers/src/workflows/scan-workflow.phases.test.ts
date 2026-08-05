@@ -357,17 +357,21 @@ describe("extractEvidencePhase per-page isolation", () => {
     spy.mockRestore();
   });
 
-  it("survives a 810 KB HTML payload without throwing (chunked sanitization)", { timeout: 30_000 }, () => {
-    // Regression test for the dantri.com.vn failure mode: previously the
-    // phase would terminate on the first oversized page. The chunked
-    // sanitization in `sanitizePageText` + the per-page try/catch in
-    // `extractEvidencePhase` together guarantee the phase completes.
-    const hugeHtml = "<div>" + "x".repeat(810_000) + "</div>";
-    const result = extractEvidencePhase(
-      [{ type: "homepage", url: "https://example.com/", status: 200 }],
-      new Map([["https://example.com/", new TextEncoder().encode(hugeHtml)]]),
-    );
-    expect(result.pages.length).toBe(1);
-    expect(result.evidence.length).toBe(0);
-  });
+  it(
+    "survives a 810 KB HTML payload without throwing (chunked sanitization)",
+    { timeout: 30_000 },
+    () => {
+      // Regression test for the dantri.com.vn failure mode: previously the
+      // phase would terminate on the first oversized page. The chunked
+      // sanitization in `sanitizePageText` + the per-page try/catch in
+      // `extractEvidencePhase` together guarantee the phase completes.
+      const hugeHtml = "<div>" + "x".repeat(810_000) + "</div>";
+      const result = extractEvidencePhase(
+        [{ type: "homepage", url: "https://example.com/", status: 200 }],
+        new Map([["https://example.com/", new TextEncoder().encode(hugeHtml)]]),
+      );
+      expect(result.pages.length).toBe(1);
+      expect(result.evidence.length).toBe(0);
+    },
+  );
 });
