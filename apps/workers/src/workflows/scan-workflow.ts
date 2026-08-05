@@ -359,10 +359,11 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     });
 
     if (!homepagePage.ok) {
-      const failedCoverage = {
+      const failedCoverage: ScanCoverage = {
         fetched: [] as SupportedPageType[],
         failed: ["homepage"] as SupportedPageType[],
         skipped: [] as SupportedPageType[],
+        degradedPhases: [],
       };
       await step.do("phase-10:persist-terminal", async () =>
         persistTerminalPhase(
@@ -472,6 +473,11 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
     const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
+    // Phases 4 and 5 do network fetches that can blow past the per-Worker
+    // CPU budget; the runStepWithFallback wrapper around them records any
+    // skipped phase into this array so it propagates into the persisted
+    // coverage for operator visibility.
+    const degradedPhases: string[] = [];
     // Delegate to `buildCoverage` so the dedupe contract is enforced: a page
     // that is already in `fetched` is dropped from `failed` and `skipped`.
     // Previously this branch hard-coded `"homepage"` into the failed list,
@@ -505,7 +511,6 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // empty result so phases 6-10 still run. Operators can spot the
     // degraded scans via the `scan.step_fallback` log entries or the
     // new `coverage.degradedPhases` field on the persisted report.
-    const degradedPhases: string[] = [];
     const assetRefs = await runStepWithFallback({
       step,
       name: "phase-4:scan-assets-references",

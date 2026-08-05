@@ -116,6 +116,7 @@ const fakeCoverage: ScanCoverage = {
   fetched: ["homepage"],
   failed: [],
   skipped: [],
+  degradedPhases: [],
 };
 
 const fakePages: Array<{
@@ -180,7 +181,12 @@ const stubDb = () => {
   };
 };
 
-const coverage: ScanCoverage = { fetched: ["homepage"], failed: [], skipped: [] };
+const coverage: ScanCoverage = {
+  fetched: ["homepage"],
+  failed: [],
+  skipped: [],
+  degradedPhases: [],
+};
 
 describe("persistReportPhase", () => {
   it("uses the deterministic token derived from scanId (stable across retries)", async () => {

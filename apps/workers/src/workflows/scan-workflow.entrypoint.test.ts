@@ -91,7 +91,7 @@ const makeRecordingStep = (overrides: StepOverrides = {}): WorkflowStepLike => {
       calls.push({ name, config });
       const override = overrides[name];
       if (override) {
-        return await override();
+        return (await override()) as T;
       }
       return await fn();
     },

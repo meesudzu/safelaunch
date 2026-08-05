@@ -5,26 +5,36 @@ import {
   type WorkflowStepLike,
 } from "./scan-workflow.steps";
 
-const makeStep = (impl: WorkflowStepLike["do"]): WorkflowStepLike =>
-  ({
-    do: vi.fn(impl),
-  }) as unknown as WorkflowStepLike;
+/**
+ * Test stub. We force the mock's `.do` to a generic so each test can
+ * pass whatever shape it wants without the type system complaining
+ * about DigitalAssetCollection vs. the test's return type.
+ */
+const makeStep = <T = unknown>(impl: () => Promise<T>): WorkflowStepLike => {
+  // The double cast through `unknown` is required: the generic .do
+  // signatures on WorkflowStepLike are overloaded and vi.fn's return
+  // type is a single generic — TypeScript cannot reconcile the two
+  // without help.
+  return { do: vi.fn(impl) } as WorkflowStepLike;
+};
 
 describe("runStepWithFallback", () => {
   it("returns the step result when step.do resolves", async () => {
-    const step = makeStep(() => Promise.resolve({ ok: true, value: 42 }));
+    const step = makeStep<typeof EMPTY_DIGITAL_ASSET_COLLECTION>(() =>
+      Promise.resolve(EMPTY_DIGITAL_ASSET_COLLECTION),
+    );
     const result = await runStepWithFallback({
       step,
       name: "phase-5:classify-asset-rights",
       fallback: EMPTY_DIGITAL_ASSET_COLLECTION,
-      fn: () => Promise.resolve({ ok: true, value: 42 }),
+      fn: () => Promise.resolve(EMPTY_DIGITAL_ASSET_COLLECTION),
     });
-    expect(result).toEqual({ ok: true, value: 42 });
+    expect(result).toBe(EMPTY_DIGITAL_ASSET_COLLECTION);
   });
 
   it("returns the fallback and logs a warning when step.do throws (simulated CPU timeout)", async () => {
     const cpuError = new Error("Worker exceeded CPU time limit.");
-    const step = makeStep(() => {
+    const step = makeStep<typeof EMPTY_DIGITAL_ASSET_COLLECTION>(() => {
       throw cpuError;
     });
     const warnings: { level: string; event: string; step: string; reason: string }[] = [];
@@ -32,7 +42,7 @@ describe("runStepWithFallback", () => {
       step,
       name: "phase-5:classify-asset-rights",
       fallback: EMPTY_DIGITAL_ASSET_COLLECTION,
-      fn: () => Promise.resolve({ ok: true }),
+      fn: () => Promise.resolve(EMPTY_DIGITAL_ASSET_COLLECTION),
       log: (entry) => {
         warnings.push(entry as { level: string; event: string; step: string; reason: string });
       },
@@ -52,11 +62,11 @@ describe("runStepWithFallback", () => {
     // covered. The eslint rule `only-throw-error` is suppressed in
     // this block because that is exactly the behavior under test.
     /* eslint-disable @typescript-eslint/only-throw-error */
-    const step = makeStep(() => {
+    const step = makeStep<unknown>(() => {
       throw "string error";
     });
     /* eslint-enable @typescript-eslint/only-throw-error */
-    const result = await runStepWithFallback({
+    const result = await runStepWithFallback<unknown>({
       step,
       name: "phase-4:scan-assets-references",
       fallback: [] as never,
@@ -66,13 +76,15 @@ describe("runStepWithFallback", () => {
   });
 
   it("passes the step config (retries + timeout) through to step.do", async () => {
-    const step = makeStep(() => Promise.resolve({ ok: true }));
+    const step = makeStep<typeof EMPTY_DIGITAL_ASSET_COLLECTION>(() =>
+      Promise.resolve(EMPTY_DIGITAL_ASSET_COLLECTION),
+    );
     await runStepWithFallback({
       step,
       name: "phase-5:classify-asset-rights",
       fallback: EMPTY_DIGITAL_ASSET_COLLECTION,
       config: { retries: { limit: 2, delay: 5_000, backoff: "constant" }, timeout: "3 minutes" },
-      fn: () => Promise.resolve({ ok: true }),
+      fn: () => Promise.resolve(EMPTY_DIGITAL_ASSET_COLLECTION),
     });
     const calls = (step.do as unknown as ReturnType<typeof vi.fn>).mock.calls;
     expect(calls).toHaveLength(1);
@@ -87,7 +99,7 @@ describe("runStepWithFallback", () => {
 });
 
 describe("EMPTY_DIGITAL_ASSET_COLLECTION", () => {
-  it("is a frozen, well-formed empty collection", () => {
+  it("is a well-formed empty collection", () => {
     expect(EMPTY_DIGITAL_ASSET_COLLECTION).toEqual({
       assets: [],
       findings: [],

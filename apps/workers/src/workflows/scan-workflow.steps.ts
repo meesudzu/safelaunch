@@ -13,11 +13,11 @@ import type { DigitalAssetCollection } from "../services/digital-assets";
  * successful empty result. Operators should look for `scan.step_fallback`
  * log entries in observability to detect when this fires.
  */
-export const EMPTY_DIGITAL_ASSET_COLLECTION: DigitalAssetCollection = Object.freeze({
-  assets: Object.freeze([]) as DigitalAssetCollection["assets"],
-  findings: Object.freeze([]) as DigitalAssetCollection["findings"],
-  summary: Object.freeze({ total: 0, byKind: Object.freeze({}), flagged: 0 }),
-});
+export const EMPTY_DIGITAL_ASSET_COLLECTION: DigitalAssetCollection = {
+  assets: [] as DigitalAssetCollection["assets"],
+  findings: [] as DigitalAssetCollection["findings"],
+  summary: { total: 0, byKind: {}, flagged: 0 },
+};
 
 /**
  * Subset of the Cloudflare `WorkflowStep` interface we depend on. Defined
