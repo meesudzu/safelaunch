@@ -11,6 +11,9 @@ be here.
 - [`workflow.md`](./workflow.md) — 4-phase AI-assisted dev workflow
 - [`skills.md`](./skills.md) — skill catalog (must-invoke per change type)
 - [`compliance/rubrics/v1.md`](./compliance/rubrics/v1.md) — rule rubric
+- [`compliance/rubrics/vn-mvp-v2-licensing-digital-rights-strict.md`](./compliance/rubrics/vn-mvp-v2-licensing-digital-rights-strict.md) — licensing & digital-rights rubric (rubric v2)
+- [`workflow-steps.en.md`](./workflow-steps.en.md) — scan-workflow step reference (English)
+- [`workflow-steps.vi.md`](./workflow-steps.vi.md) — scan-workflow step reference (Tiếng Việt)
 - [`compliance/eval-baseline.md`](./compliance/eval-baseline.md) — eval gate
 - [`design/homepage.md`](./design/homepage.md) — homepage design direction
 - [`operations/setup-and-deploy.md`](./operations/setup-and-deploy.md) — deploy rituals
