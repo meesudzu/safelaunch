@@ -139,10 +139,7 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
           <p className="text-xs text-ink-soft">{messages["view.retrying"]}</p>
         ) : null}
 
-        <ul
-          data-testid="coverage-list"
-          className="flex flex-col gap-1 text-sm"
-        >
+        <ul data-testid="coverage-list" className="flex flex-col gap-1 text-sm">
           {coverage.fetched.map((page) => (
             <li key={`f-${page}`} className="text-success">
               ✓ {page}

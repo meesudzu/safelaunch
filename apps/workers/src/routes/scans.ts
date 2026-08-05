@@ -1,5 +1,10 @@
 import { Hono } from "hono";
-import { CreateScanInput, ScanState, ScanCoverage, ScanCachedResponse } from "@safelaunch/contracts";
+import {
+  CreateScanInput,
+  ScanState,
+  ScanCoverage,
+  ScanCachedResponse,
+} from "@safelaunch/contracts";
 import { ScanRepository, ReportRepository, RedeemRepository } from "@safelaunch/db";
 import { domainKey } from "@safelaunch/compliance-core";
 import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
