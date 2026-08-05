@@ -96,11 +96,40 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
   // Defensively coerce to arrays so a malformed payload never crashes
   // the render tree. The API is also expected to normalize, but never
   // trust the wire.
-  const coverage = {
-    fetched: Array.isArray(state.coverage?.fetched) ? state.coverage.fetched : [],
-    failed: Array.isArray(state.coverage?.failed) ? state.coverage.failed : [],
-    skipped: Array.isArray(state.coverage?.skipped) ? state.coverage.skipped : [],
+  // Defensive coverage normalization:
+  //   1. coerce each list to an array (server may send missing sub-fields);
+  //   2. deduplicate across fetched / failed / skipped — fetched wins, then
+  //      failed, then skipped. The server is the source of truth, but legacy
+  //      DB rows (and a transient bug in the workflow entrypoint) could ship
+  //      a page in more than one list, which renders as contradictory "Đã
+  //      quét" + "Không thể quét" rows on the dashboard.
+  const dedupeCoverageLists = (
+    fetchedList: readonly string[],
+    failedList: readonly string[],
+    skippedList: readonly string[],
+  ): { fetched: string[]; failed: string[]; skipped: string[] } => {
+    const seen = new Set<string>();
+    const take = (list: readonly string[]): string[] => {
+      const result: string[] = [];
+      for (const item of list) {
+        if (seen.has(item)) continue;
+        seen.add(item);
+        result.push(item);
+      }
+      return result;
+    };
+    return {
+      fetched: take(fetchedList),
+      failed: take(failedList),
+      skipped: take(skippedList),
+    };
   };
+
+  const coverage = dedupeCoverageLists(
+    Array.isArray(state.coverage?.fetched) ? state.coverage.fetched : [],
+    Array.isArray(state.coverage?.failed) ? state.coverage.failed : [],
+    Array.isArray(state.coverage?.skipped) ? state.coverage.skipped : [],
+  );
 
   const stateLabel = ((): string => {
     const key = `state.${state.state}` as keyof ScanProgressMessages;

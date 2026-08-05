@@ -107,4 +107,32 @@ describe("ScanProgress", () => {
       ),
     ).not.toThrow();
   });
+
+  it("does not render the same page in both fetched and failed lists", () => {
+    const inconsistentState = {
+      scanId: "scan_test",
+      state: "completed",
+      coverage: {
+        fetched: ["homepage", "about"],
+        failed: ["homepage", "privacy"],
+        skipped: [],
+      },
+    } satisfies ScanProgressState;
+    render(
+      <ScanProgress
+        locale="vi"
+        messages={messages}
+        initialState={inconsistentState}
+        poll={vi.fn().mockResolvedValue(inconsistentState)}
+      />,
+    );
+    const list = screen.getByTestId("coverage-list");
+    // 'homepage' should appear once (in fetched), not twice (in fetched + failed).
+    expect(list.textContent?.match(/homepage/g)).toHaveLength(1);
+    expect(list.textContent?.includes("! homepage")).toBe(false);
+    expect(list.textContent?.includes("✓ homepage")).toBe(true);
+    // 'privacy' stays in failed (not in fetched).
+    expect(list.textContent?.includes("! privacy")).toBe(true);
+  });
+
 });

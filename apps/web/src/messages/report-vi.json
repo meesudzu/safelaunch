@@ -31,5 +31,7 @@
   "license.checks.title": "Kiểm tra giấy phép",
   "asset.inventory.title": "Inventory tài sản số",
   "asset.inventory.summary": "Tài sản được site tham chiếu",
-  "asset.inventory.flagged": "Cần kiểm tra license"
+  "asset.inventory.flagged": "Cần kiểm tra license",
+  "asset.inventory.scope": "Phạm vi: font (ảnh/video/audio nằm ngoài phạm vi quét)",
+  "finding.source_link_unavailable": "Liên kết nguồn không khả dụng"
 }

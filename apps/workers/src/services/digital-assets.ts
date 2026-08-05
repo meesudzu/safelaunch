@@ -48,7 +48,7 @@ export const MAX_ASSET_BYTES = 2_000_000;
 const COPYRIGHT_CITATION: LegalCitation = {
   provisionId: "vn-ip-law-2022",
   source: "Luật Sở hữu trí tuệ 2022",
-  url: "https://vbpl.vn/van-ban/trung-uong/luat-so-huu-tri-tue-2022",
+  url: "https://vbpl.vn/tim-kiem?SearchIn=all&q=Lu%E1%BA%ADt%20S%E1%BB%9F%20h%E1%BB%AFu%20tr%C3%AD%20tu%E1%BB%87%202022",
   retrievedAt: "2026-08-05T00:00:00.000Z",
   excerpt:
     "Tổ chức, cá nhân sử dụng tác phẩm, bản ghi âm, hình ảnh, chương trình phát sóng phải có sự đồng ý của chủ sở hữu hoặc theo giấy phép tương ứng.",
@@ -111,11 +111,6 @@ const attributeValues = (html: string, tag: string, attribute: string): string[]
   return values;
 };
 
-const srcsetValues = (html: string): string[] =>
-  attributeValues(html, "(?:img|source)", "srcset").flatMap((value) =>
-    value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0] ?? ""),
-  );
-
 const stylesheetValues = (html: string): string[] => {
   const values: string[] = [];
   const pattern =
@@ -160,26 +155,6 @@ const addReferences = (
  */
 export const collectAssetReferences = (sourceUrl: string, html: string): AssetReference[] => {
   const refs: AssetReference[] = [];
-  addReferences(refs, sourceUrl, sourceUrl, "image", [
-    ...attributeValues(html, "img", "src"),
-    ...attributeValues(html, "picture", "src"),
-    ...attributeValues(html, "meta", "content").filter((value) =>
-      /\.(?:png|jpe?g|gif|webp|avif|svg)(?:[?#]|$)/iu.test(value),
-    ),
-    ...srcsetValues(html),
-  ]);
-  addReferences(refs, sourceUrl, sourceUrl, "audio", [
-    ...attributeValues(html, "audio", "src"),
-    ...attributeValues(html, "source", "src").filter((value) =>
-      /\.(?:mp3|wav|ogg|m4a|aac)(?:[?#]|$)/iu.test(value),
-    ),
-  ]);
-  addReferences(refs, sourceUrl, sourceUrl, "video", [
-    ...attributeValues(html, "video", "src"),
-    ...attributeValues(html, "source", "src").filter((value) =>
-      /\.(?:mp4|webm|mov|m3u8)(?:[?#]|$)/iu.test(value),
-    ),
-  ]);
   addReferences(refs, sourceUrl, sourceUrl, "font", [
     ...attributeValues(html, "link", "href").filter((value) =>
       /(?:font|\.woff2?|\.ttf|\.otf|\.eot)(?:[?#]|$)/iu.test(value),
@@ -191,14 +166,6 @@ export const collectAssetReferences = (sourceUrl: string, html: string): AssetRe
     ).filter((value) => /\.(?:woff2?|ttf|otf|eot)(?:[?#]|$)/iu.test(value)),
     ...cssUrls(html).filter((value) => /\.(?:woff2?|ttf|otf|eot)(?:[?#]|$)/iu.test(value)),
   ]);
-  addReferences(
-    refs,
-    sourceUrl,
-    sourceUrl,
-    "image",
-    cssUrls(html).filter((value) => !/\.(?:woff2?|ttf|otf|eot)(?:[?#]|$)/iu.test(value)),
-  );
-
   const seen = new Set<string>();
   return refs
     .filter((ref) => {

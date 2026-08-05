@@ -37,6 +37,8 @@ const viMessages: ReportMessages = {
   "asset.inventory.title": "Inventory tài sản số",
   "asset.inventory.summary": "Tài sản được site tham chiếu",
   "asset.inventory.flagged": "Cần kiểm tra license",
+  "asset.inventory.scope": "Phạm vi: font (ảnh/video/audio nằm ngoài phạm vi quét)",
+  "finding.source_link_unavailable": "Liên kết nguồn không khả dụng",
 };
 
 const enMessages: ReportMessages = {
@@ -74,6 +76,8 @@ const enMessages: ReportMessages = {
   "asset.inventory.title": "Digital asset inventory",
   "asset.inventory.summary": "Assets referenced by the site",
   "asset.inventory.flagged": "Assets requiring license review",
+  "asset.inventory.scope": "Scope: fonts (images / video / audio are out of scan scope)",
+  "finding.source_link_unavailable": "Source link unavailable",
 };
 
 const baseReport: ReportPayload = {
@@ -229,5 +233,105 @@ describe("digital rights report sections", () => {
     expect(screen.getByTestId("license-checks-section")).toBeInTheDocument();
     expect(screen.getByTestId("asset-inventory-section")).toBeInTheDocument();
     expect(screen.getByText("https://cdn.example.com/hero.jpg")).toBeVisible();
+  });
+});
+
+describe("citation link hardening", () => {
+  it("renders the provision link when the citation URL host is in the approved list", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        {
+          id: "f-vbpl",
+          severity: "high",
+          rationale: "Citation test.",
+          confidence: 0.9,
+          evidenceIds: ["ev-1"],
+          citations: [
+            {
+              provisionId: "p-vbpl",
+              source: "VBPL",
+              url: "https://vbpl.vn/tim-kiem?SearchIn=all&q=test",
+              retrievedAt: "2026-01-01T00:00:00.000Z",
+              excerpt: "Excerpt.",
+            },
+          ],
+          recommendedAction: "Xem.",
+          applicability: "current",
+          evidenceExcerpt: "Excerpt.",
+          upcomingEffectiveAt: null,
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("provision-link-f-vbpl")).toHaveAttribute(
+      "href",
+      "https://vbpl.vn/tim-kiem?SearchIn=all&q=test",
+    );
+    expect(screen.queryByTestId("provision-link-unavailable-f-vbpl")).toBeNull();
+  });
+
+  it("renders a text fallback when the citation URL host is not approved", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        {
+          id: "f-evil",
+          severity: "high",
+          rationale: "Citation test.",
+          confidence: 0.9,
+          evidenceIds: ["ev-1"],
+          citations: [
+            {
+              provisionId: "p-evil",
+              source: "Unknown source",
+              url: "https://vbpl.vn.evil.example/x",
+              retrievedAt: "2026-01-01T00:00:00.000Z",
+              excerpt: "Excerpt.",
+            },
+          ],
+          recommendedAction: "Xem.",
+          applicability: "current",
+          evidenceExcerpt: "Excerpt.",
+          upcomingEffectiveAt: null,
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("provision-link-f-evil")).toBeNull();
+    expect(screen.getByTestId("provision-link-unavailable-f-evil")).toHaveTextContent(
+      "Liên kết nguồn không khả dụng",
+    );
+  });
+
+  it("renders a text fallback when the citation URL is malformed", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        {
+          id: "f-bad",
+          severity: "high",
+          rationale: "Citation test.",
+          confidence: 0.9,
+          evidenceIds: ["ev-1"],
+          citations: [
+            {
+              provisionId: "p-bad",
+              source: "Bad URL",
+              url: "not a url",
+              retrievedAt: "2026-01-01T00:00:00.000Z",
+              excerpt: "Excerpt.",
+            },
+          ],
+          recommendedAction: "Xem.",
+          applicability: "current",
+          evidenceExcerpt: "Excerpt.",
+          upcomingEffectiveAt: null,
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("provision-link-f-bad")).toBeNull();
+    expect(screen.getByTestId("provision-link-unavailable-f-bad")).toBeVisible();
   });
 });
