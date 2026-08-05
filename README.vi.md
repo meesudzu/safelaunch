@@ -84,11 +84,11 @@ Agency hoặc reseller hỗ trợ nhiều khách hàng mỗi tuần cần cách 
 
 ### Giá trị theo nhóm
 
-| Nhóm khách hàng   | Pain point                                              | Cách SafeLaunch giải quyết                                                                                                                |
-| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt  | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                                     |
-| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót        | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                              |
-| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần            | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts`         |
+| Nhóm khách hàng   | Pain point                                             | Cách SafeLaunch giải quyết                                                                                                         |
+| ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                             |
+| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót       | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                      |
+| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần           | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts` |
 
 ### Mô hình thương mại hoá
 
@@ -106,12 +106,12 @@ Cam kết dài hạn:
 
 ### Ranh giới cạnh tranh
 
-| Cách tiếp cận hiện có                       | Cách SafeLaunch làm                                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Tự review thủ công trước khi ra mắt         | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật                                              |
-| Tư vấn luật ad-hoc từng dự án               | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                                                        |
-| Công cụ nước ngoài đơn jurisdiction          | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC                                  |
-| Thu thập IP và cookie để chống abuse         | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`                                      |
+| Cách tiếp cận hiện có                | Cách SafeLaunch làm                                                                      |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Tự review thủ công trước khi ra mắt  | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật              |
+| Tư vấn luật ad-hoc từng dự án        | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                      |
+| Công cụ nước ngoài đơn jurisdiction  | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC |
+| Thu thập IP và cookie để chống abuse | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`     |
 
 ### Cam kết với khách hàng
 

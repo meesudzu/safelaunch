@@ -34,7 +34,7 @@ This matters for two reader types we have already named:
    having to re-derive it from the technical sections.
 2. **Investors and agency partners** who skim the README in 60–90 seconds
    need to land on the answers to three questions before they read anything
-   else: *who is this for, what makes it different, how does it make money.*
+   else: _who is this for, what makes it different, how does it make money._
 
 The project does **not** have a separate business-strategy document elsewhere
 in the repo (`docs/remaining.md`, MVP design, the three superpower specs and
@@ -54,7 +54,7 @@ updates the table of contents. No code, no schema, no migration.
 - **G3** Every factual claim about the product is grounded in either an
   existing file path in this repo or an existing spec / doc — no invented
   market numbers, no invented competitor names.
-- **G4** The section is honest about what is *not yet* public (paid-package
+- **G4** The section is honest about what is _not yet_ public (paid-package
   pricing, specific timeline) without hand-waving or filler.
 - **G5** The section strictly follows `safelaunch-ai-workflow` anti-slop rules
   for non-UI copy: no filler intros, no emoji bullets, no AI hedge phrases,
@@ -78,7 +78,7 @@ updates the table of contents. No code, no schema, no migration.
 From `.codex/skills/safelaunch-overview/SKILL.md`:
 
 - Confident but careful — clear guidance, not vague warnings.
-- Plain-language legal — surface the *meaning* of regulations, not the
+- Plain-language legal — surface the _meaning_ of regulations, not the
   legalese.
 - Vietnamese-first friendly — clear Vietnamese without mixed-language slop.
 
@@ -144,11 +144,11 @@ Three columns: `Nhóm khách hàng | Pain point | Cách SafeLaunch giải quyế
 Three rows (one per ICP). Every cell in the third column anchors to a
 specific MVP capability that exists today:
 
-| Nhóm khách hàng | Pain point | Cách SafeLaunch giải quyết |
-| --- | --- | --- |
-| Founder / PM | Không biết điểm nào trên site vi phạm trước khi ra mắt | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật |
-| Legal / ops lead | Phải review thủ công nhiều site cùng lúc, dễ sót | Rules engine + AI có xác minh bắt buộc, chạy lại được trên cùng một URL |
-| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần | Quota 1 lượt/domain/UTC ngày với admin redeem code để mở rộng — đã chạy trong `apps/workers/src/services/quota-service.ts` |
+| Nhóm khách hàng   | Pain point                                             | Cách SafeLaunch giải quyết                                                                                                 |
+| ----------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                     |
+| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót       | Rules engine + AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                    |
+| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần           | Quota 1 lượt/domain/UTC ngày với admin redeem code để mở rộng — đã chạy trong `apps/workers/src/services/quota-service.ts` |
 
 The third-column MVP claims must cite the existing file paths shown.
 
@@ -177,11 +177,11 @@ Four rows covering the same axes as §2.1 — evidence-led,
 source-attributed, multi-jurisdiction, privacy-by-design — without
 naming the existing approach explicitly as a "competitor":
 
-| Cách tiếp cận hiện có | Cách SafeLaunch làm |
-| --- | --- |
-| Tự review thủ công trước khi ra mắt | Rules engine + AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật |
-| Tư vấn luật ad-hoc từng dự án | Corpus đa jurisdiction có quy trình review (xem `docs/compliance/`) |
-| Công cụ nước ngoài đơn jurisdiction | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, US state laws, +1 APAC |
+| Cách tiếp cận hiện có                | Cách SafeLaunch làm                                                               |
+| ------------------------------------ | --------------------------------------------------------------------------------- |
+| Tự review thủ công trước khi ra mắt  | Rules engine + AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật             |
+| Tư vấn luật ad-hoc từng dự án        | Corpus đa jurisdiction có quy trình review (xem `docs/compliance/`)               |
+| Công cụ nước ngoài đơn jurisdiction  | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, US state laws, +1 APAC    |
 | Thu thập IP và cookie để chống abuse | Chỉ host đã chuẩn hoá + UTC day, xem `packages/compliance-core/src/domain-key.ts` |
 
 #### 2.6 Cam kết với khách hàng — ~80–100 từ, two short lists
@@ -208,10 +208,10 @@ Aligned with brand principle "Trust the human" from
 
 ## 6. Files touched
 
-| File | Change |
-| --- | --- |
-| `README.vi.md` | Insert §2 (six subsections); renumber §2–§17 → §3–§18; update Mục lục |
-| `docs/superpowers/specs/2026-08-05-business-strategy-readme-design.md` | This spec (new file) |
+| File                                                                   | Change                                                                |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `README.vi.md`                                                         | Insert §2 (six subsections); renumber §2–§17 → §3–§18; update Mục lục |
+| `docs/superpowers/specs/2026-08-05-business-strategy-readme-design.md` | This spec (new file)                                                  |
 
 No other file is modified.
 

@@ -12,8 +12,8 @@
 
 ## File Structure
 
-| File | Role |
-| --- | --- |
+| File           | Role                                                                                              |
+| -------------- | ------------------------------------------------------------------------------------------------- |
 | `README.vi.md` | The only source file modified. Insert §2 (six subsections), update TOC, renumber §2–§17 → §3–§18. |
 
 No other file is created or modified by this plan.
@@ -22,12 +22,12 @@ No other file is created or modified by this plan.
 
 ## Commit Strategy
 
-| Commit | Scope |
-| --- | --- |
-| (already on `codex/readme-business-strategy`) | spec doc |
-| C1 | Insert §2.1–§2.6 in one atomic edit |
-| C2 | Renumber §2–§17 → §3–§18 + TOC update |
-| (no commit if clean) | V5 build-gate; commit only if a fix is needed |
+| Commit                                        | Scope                                         |
+| --------------------------------------------- | --------------------------------------------- |
+| (already on `codex/readme-business-strategy`) | spec doc                                      |
+| C1                                            | Insert §2.1–§2.6 in one atomic edit           |
+| C2                                            | Renumber §2–§17 → §3–§18 + TOC update         |
+| (no commit if clean)                          | V5 build-gate; commit only if a fix is needed |
 
 Two commits total. This keeps the renumbering separate so a reviewer can read either chunk independently.
 
@@ -51,6 +51,7 @@ Expected: branch is `codex/readme-business-strategy`, working tree clean, README
 ### Task 1: Write §2.1 — Vị thế sản phẩm
 
 **Files:**
+
 - Modify: `README.vi.md` — insert one new section immediately after the closing `---` of §1 "Tổng quan sản phẩm" (currently at line 68) and before `## 2. Phạm vi MVP` (currently at line 70).
 
 - [ ] **Step 1: Open README.vi.md and locate the insertion point**
@@ -82,7 +83,6 @@ Insert this block **immediately above** the existing `## 2. Phạm vi MVP` line.
 ### Vị thế sản phẩm
 
 SafeLaunch dịch chuyển hoạt động tuân thủ về trước thời điểm phát hành. Khác với tư vấn luật ad-hoc hoặc công cụ đơn jurisdiction, sản phẩm phủ nhiều hệ pháp lý trong cùng một lượt quét — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC. Mỗi phát hiện kèm trích dẫn nguồn luật với article, URL và ngày truy xuất, neo vào bằng chứng thực từ website chứ không suy đoán. Hệ thống thu thập tối thiểu — chỉ host đã chuẩn hoá và ngày UTC, không IP, không email, không cookie — để quota công bằng và bảo vệ quyền riêng tư.
-
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -108,6 +108,7 @@ Commits are batched per the strategy above. Continue to Task 2.
 ### Task 2: Write §2.2 — Khách hàng mục tiêu
 
 **Files:**
+
 - Modify: `README.vi.md` — insert §2.2 immediately below §2.1's blank line, still above the existing `## 2. Phạm vi MVP` line.
 
 - [ ] **Step 1: Insert §2.2 prose**
@@ -122,7 +123,6 @@ Founder hoặc product manager tại Việt Nam chuẩn bị ra mắt sản ph�
 Legal hoặc ops lead tại doanh nghiệp nhỏ và vừa thường phải review nhiều site cùng lúc và dễ sót chi tiết khi làm thủ công. SafeLaunch chạy lại được trên cùng một URL, dùng rules engine có xác minh bắt buộc nên kết quả ổn định giữa các lượt.
 
 Agency hoặc reseller hỗ trợ nhiều khách hàng mỗi tuần cần cách phân bổ quota công bằng giữa các domain. SafeLaunch áp dụng quota 1 lượt mỗi domain trong ngày UTC và admin có thể cấp redeem code để mở rộng cho từng trường hợp cần quét lại.
-
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -148,6 +148,7 @@ Continue to Task 3.
 ### Task 3: Write §2.3 — Giá trị theo nhóm (table)
 
 **Files:**
+
 - Modify: `README.vi.md` — insert §2.3 (Markdown table) below §2.2, above `## 2. Phạm vi MVP`.
 
 - [ ] **Step 1: Insert §2.3 table**
@@ -157,12 +158,11 @@ Insert this block **immediately below** the §2.2 paragraphs (and trailing blank
 ```markdown
 ### Giá trị theo nhóm
 
-| Nhóm khách hàng   | Pain point                                              | Cách SafeLaunch giải quyết                                                                                                                |
-| ----------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt  | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                                     |
-| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót        | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                              |
-| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần            | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts`         |
-
+| Nhóm khách hàng   | Pain point                                             | Cách SafeLaunch giải quyết                                                                                                         |
+| ----------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Founder / PM      | Không biết điểm nào trên site vi phạm trước khi ra mắt | Báo cáo song ngữ Việt–Anh trong khoảng 60 giây, mỗi phát hiện kèm trích dẫn nguồn luật                                             |
+| Legal / ops lead  | Phải review thủ công nhiều site cùng lúc, dễ sót       | Rules engine kết hợp AI có xác minh bắt buộc, chạy lại được trên cùng một URL                                                      |
+| Agency / reseller | Khách yêu cầu kiểm tra nhiều domain mỗi tuần           | Quota 1 lượt mỗi domain trong ngày UTC, admin có thể cấp redeem code để mở rộng — xem `apps/workers/src/services/quota-service.ts` |
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -192,6 +192,7 @@ Continue to Task 4.
 ### Task 4: Write §2.4 — Mô hình thương mại hoá
 
 **Files:**
+
 - Modify: `README.vi.md` — insert §2.4 below §2.3, above `## 2. Phạm vi MVP`.
 
 - [ ] **Step 1: Insert §2.4 prose + commitment list**
@@ -212,7 +213,6 @@ Cam kết dài hạn:
 - Không bán dữ liệu scan.
 - Không nhúng quảng cáo vào báo cáo.
 - Không thu thập IP hoặc email tuỳ vị để theo dõi cá nhân.
-
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -242,6 +242,7 @@ Continue to Task 5.
 ### Task 5: Write §2.5 — Ranh giới cạnh tranh (table)
 
 **Files:**
+
 - Modify: `README.vi.md` — insert §2.5 below §2.4, above `## 2. Phạm vi MVP`.
 
 - [ ] **Step 1: Insert §2.5 table**
@@ -251,13 +252,12 @@ Insert this block **immediately below** the §2.4 prose (and trailing blank line
 ```markdown
 ### Ranh giới cạnh tranh
 
-| Cách tiếp cận hiện có                       | Cách SafeLaunch làm                                                                                                       |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Tự review thủ công trước khi ra mắt         | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật                                              |
-| Tư vấn luật ad-hoc từng dự án               | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                                                        |
-| Công cụ nước ngoài đơn jurisdiction          | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC                                  |
-| Thu thập IP và cookie để chống abuse         | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`                                      |
-
+| Cách tiếp cận hiện có                | Cách SafeLaunch làm                                                                      |
+| ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| Tự review thủ công trước khi ra mắt  | Rules engine kết hợp AI, mỗi phát hiện kèm trích đoạn văn bản và nguồn luật              |
+| Tư vấn luật ad-hoc từng dự án        | Corpus đa jurisdiction có quy trình review — xem `docs/compliance/`                      |
+| Công cụ nước ngoài đơn jurisdiction  | Multi-jurisdiction mặc định — GDPR, CCPA, Vietnam PDPD, luật bang Mỹ và ít nhất một APAC |
+| Thu thập IP và cookie để chống abuse | Chỉ host đã chuẩn hoá và ngày UTC — xem `packages/compliance-core/src/domain-key.ts`     |
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -286,6 +286,7 @@ Continue to Task 6.
 ### Task 6: Write §2.6 — Cam kết với khách hàng (commit C1)
 
 **Files:**
+
 - Modify: `README.vi.md` — insert §2.6 below §2.5, above the existing `## 2. Phạm vi MVP`. This is the LAST subsection of §2, and the commit point for the §2 content block.
 
 - [ ] **Step 1: Insert §2.6 two lists**
@@ -309,7 +310,6 @@ SafeLaunch sẽ không:
 - Bán dữ liệu scan hoặc báo cáo.
 - Nhúng quảng cáo vào báo cáo.
 - Theo dõi cá nhân qua IP, email hoặc cookie tuỳ vị.
-
 ```
 
 The block must end with a blank line before `## 2. Phạm vi MVP`.
@@ -337,7 +337,7 @@ Confirm the full §2 block (lines from `## 2. Chiến lược kinh doanh` down t
 grep -n "^## 2\|^### " README.vi.md
 ```
 
-Expected: this prints line numbers of all `## 2.` and `### ` headers. There must be **two** lines starting with `## 2.` — one is the new `## 2. Chiến lược kinh doanh` and the other is the old `## 2. Phạm vi MVP`. There must be **six** lines starting with `### ` *inside* the new §2 (Vị thế sản phẩm, Khách hàng mục tiêu, Giá trị theo nhóm, Mô hình thương mại hoá, Ranh giới cạnh tranh, Cam kết với khách hàng).
+Expected: this prints line numbers of all `## 2.` and `### ` headers. There must be **two** lines starting with `## 2.` — one is the new `## 2. Chiến lược kinh doanh` and the other is the old `## 2. Phạm vi MVP`. There must be **six** lines starting with `### ` _inside_ the new §2 (Vị thế sản phẩm, Khách hàng mục tiêu, Giá trị theo nhóm, Mô hình thương mại hoá, Ranh giới cạnh tranh, Cam kết với khách hàng).
 
 If the count is wrong, the insertion order is broken — fix before committing.
 
@@ -367,6 +367,7 @@ Expected: one commit created. Record its SHA for the PR description.
 ### Task 7: Renumber §2–§17 → §3–§18 + TOC update (commit C2)
 
 **Files:**
+
 - Modify: `README.vi.md` — renumber every `## N. Title` for N in 2..17 by +1, and update the table-of-contents anchor list to match.
 
 - [ ] **Step 1: Update the table of contents**
@@ -381,24 +382,24 @@ The new row to insert (after line 16 which is the `1.` row) is:
 
 Then for each of the existing rows currently numbered `2.` through `17.`, increment the leading number by 1 AND update the anchor target slug number by 1. The mapping is:
 
-| Old (line) | Old text                                                                                | New text                                                                                |
-| ---------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| 17         | `2. [Phạm vi MVP](#2-phạm-vi-mvp)`                                                     | `3. [Phạm vi MVP](#3-phạm-vi-mvp)`                                                     |
-| 18         | `3. [Kiến trúc hệ thống](#3-kiến-trúc-hệ-thống)`                                        | `4. [Kiến trúc hệ thống](#4-kiến-trúc-hệ-thống)`                                        |
-| 19         | `4. [Luồng quét và tạo báo cáo](#4-luồng-quét-và-tạo-báo-cáo)`                          | `5. [Luồng quét và tạo báo cáo](#5-luồng-quét-và-tạo-báo-cáo)`                          |
-| 20         | `5. [Rules engine và rubric tuân thủ](#5-rules-engine-và-rubric-tuân-thủ)`               | `6. [Rules engine và rubric tuân thủ](#6-rules-engine-và-rubric-tuân-thủ)`               |
-| 21         | `6. [LLM, RAG và xác minh kết quả](#6-llm-rag-và-xác-minh-kết-quả)`                     | `7. [LLM, RAG và xác minh kết quả](#7-llm-rag-và-xác-minh-kết-quả)`                     |
+| Old (line) | Old text                                                                                   | New text                                                                                   |
+| ---------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| 17         | `2. [Phạm vi MVP](#2-phạm-vi-mvp)`                                                         | `3. [Phạm vi MVP](#3-phạm-vi-mvp)`                                                         |
+| 18         | `3. [Kiến trúc hệ thống](#3-kiến-trúc-hệ-thống)`                                           | `4. [Kiến trúc hệ thống](#4-kiến-trúc-hệ-thống)`                                           |
+| 19         | `4. [Luồng quét và tạo báo cáo](#4-luồng-quét-và-tạo-báo-cáo)`                             | `5. [Luồng quét và tạo báo cáo](#5-luồng-quét-và-tạo-báo-cáo)`                             |
+| 20         | `5. [Rules engine và rubric tuân thủ](#5-rules-engine-và-rubric-tuân-thủ)`                 | `6. [Rules engine và rubric tuân thủ](#6-rules-engine-và-rubric-tuân-thủ)`                 |
+| 21         | `6. [LLM, RAG và xác minh kết quả](#6-llm-rag-và-xác-minh-kết-quả)`                        | `7. [LLM, RAG và xác minh kết quả](#7-llm-rag-và-xác-minh-kết-quả)`                        |
 | 22         | `7. [Nguồn luật và quy trình quản trị corpus](#7-nguồn-luật-và-quy-trình-quản-trị-corpus)` | `8. [Nguồn luật và quy trình quản trị corpus](#8-nguồn-luật-và-quy-trình-quản-trị-corpus)` |
-| 23         | `8. [Mô hình dữ liệu và quyền riêng tư](#8-mô-hình-dữ-liệu-và-quyền-riêng-tư)`          | `9. [Mô hình dữ liệu và quyền riêng tư](#9-mô-hình-dữ-liệu-và-quyền-riêng-tư)`          |
-| 24         | `9. [API và giao diện người dùng](#9-api-và-giao-diện-người-dùng)`                       | `10. [API và giao diện người dùng](#10-api-và-giao-diện-người-dùng)`                    |
-| 25         | `10. [Thiết kế giao diện](#10-thiết-kế-giao-diện)`                                       | `11. [Thiết kế giao diện](#11-thiết-kế-giao-diện)`                                       |
-| 26         | `11. [Cấu trúc repository](#11-cấu-trúc-repository)`                                     | `12. [Cấu trúc repository](#12-cấu-trúc-repository)`                                     |
-| 27         | `12. [Phát triển cục bộ](#12-phát-triển-cục-bộ)`                                          | `13. [Phát triển cục bộ](#13-phát-triển-cục-bộ)`                                          |
-| 28         | `13. [Kiểm thử và quality gates](#13-kiểm-thử-và-quality-gates)`                          | `14. [Kiểm thử và quality gates](#14-kiểm-thử-và-quality-gates)`                          |
-| 29         | `14. [Triển khai Cloudflare](#14-triển-khai-cloudflare)`                                 | `15. [Triển khai Cloudflare](#15-triển-khai-cloudflare)`                                 |
-| 30         | `15. [Phát hành và rollback](#15-phát-hành-và-rollback)`                                 | `16. [Phát hành và rollback](#16-phát-hành-và-rollback)`                                 |
-| 31         | `16. [Quy trình đóng góp](#16-quy-trình-đóng-góp)`                                      | `17. [Quy trình đóng góp](#17-quy-trình-đóng-góp)`                                      |
-| 32         | `17. [Danh mục tài liệu nguồn](#17-danh-mục-tài-liệu-nguồn)`                            | `18. [Danh mục tài liệu nguồn](#18-danh-mục-tài-liệu-nguồn)`                            |
+| 23         | `8. [Mô hình dữ liệu và quyền riêng tư](#8-mô-hình-dữ-liệu-và-quyền-riêng-tư)`             | `9. [Mô hình dữ liệu và quyền riêng tư](#9-mô-hình-dữ-liệu-và-quyền-riêng-tư)`             |
+| 24         | `9. [API và giao diện người dùng](#9-api-và-giao-diện-người-dùng)`                         | `10. [API và giao diện người dùng](#10-api-và-giao-diện-người-dùng)`                       |
+| 25         | `10. [Thiết kế giao diện](#10-thiết-kế-giao-diện)`                                         | `11. [Thiết kế giao diện](#11-thiết-kế-giao-diện)`                                         |
+| 26         | `11. [Cấu trúc repository](#11-cấu-trúc-repository)`                                       | `12. [Cấu trúc repository](#12-cấu-trúc-repository)`                                       |
+| 27         | `12. [Phát triển cục bộ](#12-phát-triển-cục-bộ)`                                           | `13. [Phát triển cục bộ](#13-phát-triển-cục-bộ)`                                           |
+| 28         | `13. [Kiểm thử và quality gates](#13-kiểm-thử-và-quality-gates)`                           | `14. [Kiểm thử và quality gates](#14-kiểm-thử-và-quality-gates)`                           |
+| 29         | `14. [Triển khai Cloudflare](#14-triển-khai-cloudflare)`                                   | `15. [Triển khai Cloudflare](#15-triển-khai-cloudflare)`                                   |
+| 30         | `15. [Phát hành và rollback](#15-phát-hành-và-rollback)`                                   | `16. [Phát hành và rollback](#16-phát-hành-và-rollback)`                                   |
+| 31         | `16. [Quy trình đóng góp](#16-quy-trình-đóng-góp)`                                         | `17. [Quy trình đóng góp](#17-quy-trình-đóng-góp)`                                         |
+| 32         | `17. [Danh mục tài liệu nguồn](#17-danh-mục-tài-liệu-nguồn)`                               | `18. [Danh mục tài liệu nguồn](#18-danh-mục-tài-liệu-nguồn)`                               |
 
 After the edit, run:
 
@@ -412,24 +413,24 @@ Expected: TOC has 18 rows, row 2 is the new `Chiến lược kinh doanh` row, al
 
 For each old section header listed below, replace the leading `## N.` with `## N+1.`:
 
-| Find                                   | Replace with                              |
-| -------------------------------------- | ----------------------------------------- |
-| `## 2. Phạm vi MVP`                    | `## 3. Phạm vi MVP`                       |
-| `## 3. Kiến trúc hệ thống`             | `## 4. Kiến trúc hệ thống`                |
-| `## 4. Luồng quét và tạo báo cáo`      | `## 5. Luồng quét và tạo báo cáo`         |
-| `## 5. Rules engine và rubric tuân thủ` | `## 6. Rules engine và rubric tuân thủ`    |
-| `## 6. LLM, RAG và xác minh kết quả`    | `## 7. LLM, RAG và xác minh kết quả`       |
+| Find                                            | Replace with                                    |
+| ----------------------------------------------- | ----------------------------------------------- |
+| `## 2. Phạm vi MVP`                             | `## 3. Phạm vi MVP`                             |
+| `## 3. Kiến trúc hệ thống`                      | `## 4. Kiến trúc hệ thống`                      |
+| `## 4. Luồng quét và tạo báo cáo`               | `## 5. Luồng quét và tạo báo cáo`               |
+| `## 5. Rules engine và rubric tuân thủ`         | `## 6. Rules engine và rubric tuân thủ`         |
+| `## 6. LLM, RAG và xác minh kết quả`            | `## 7. LLM, RAG và xác minh kết quả`            |
 | `## 7. Nguồn luật và quy trình quản trị corpus` | `## 8. Nguồn luật và quy trình quản trị corpus` |
-| `## 8. Mô hình dữ liệu và quyền riêng tư` | `## 9. Mô hình dữ liệu và quyền riêng tư` |
-| `## 9. API và giao diện người dùng`     | `## 10. API và giao diện người dùng`       |
-| `## 10. Thiết kế giao diện`            | `## 11. Thiết kế giao diện`               |
-| `## 11. Cấu trúc repository`           | `## 12. Cấu trúc repository`              |
-| `## 12. Phát triển cục bộ`             | `## 13. Phát triển cục bộ`                |
-| `## 13. Kiểm thử và quality gates`     | `## 14. Kiểm thử và quality gates`        |
-| `## 14. Triển khai Cloudflare`         | `## 15. Triển khai Cloudflare`            |
-| `## 15. Phát hành và rollback`         | `## 16. Phát hành và rollback`            |
-| `## 16. Quy trình đóng góp`            | `## 17. Quy trình đóng góp`               |
-| `## 17. Danh mục tài liệu nguồn`       | `## 18. Danh mục tài liệu nguồn`          |
+| `## 8. Mô hình dữ liệu và quyền riêng tư`       | `## 9. Mô hình dữ liệu và quyền riêng tư`       |
+| `## 9. API và giao diện người dùng`             | `## 10. API và giao diện người dùng`            |
+| `## 10. Thiết kế giao diện`                     | `## 11. Thiết kế giao diện`                     |
+| `## 11. Cấu trúc repository`                    | `## 12. Cấu trúc repository`                    |
+| `## 12. Phát triển cục bộ`                      | `## 13. Phát triển cục bộ`                      |
+| `## 13. Kiểm thử và quality gates`              | `## 14. Kiểm thử và quality gates`              |
+| `## 14. Triển khai Cloudflare`                  | `## 15. Triển khai Cloudflare`                  |
+| `## 15. Phát hành và rollback`                  | `## 16. Phát hành và rollback`                  |
+| `## 16. Quy trình đóng góp`                     | `## 17. Quy trình đóng góp`                     |
+| `## 17. Danh mục tài liệu nguồn`                | `## 18. Danh mục tài liệu nguồn`                |
 
 After the edit, run:
 
@@ -487,6 +488,7 @@ Expected: one commit. Record its SHA.
 ### Task 8: Final verification V1–V5
 
 **Files:**
+
 - Read-only: `README.vi.md`.
 
 - [ ] **Step 1: V1 — section integrity**
