@@ -36,7 +36,6 @@ import { LegalRepository } from "@safelaunch/db";
 import {
   DEFAULT_SCAN_STEP_CONFIG,
   EMPTY_DIGITAL_ASSET_COLLECTION,
-  runStepWithFallback,
 } from "./scan-workflow.steps";
 import { discoverPageUrls, type PageUrlMap } from "../services/page-url-discovery";
 import {
@@ -656,10 +655,6 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       // to type-check. The fallback is an empty result; the only impact of
       // the fallback path is that the scan proceeds with no extracted
       // evidence.
-      const emptyEvidence = extractEvidencePhase(
-        fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
-        rawHtml,
-      );
       // Override html to be empty string so the fallback is well-typed
       // (downstream consumers expect `{ url, html, type }` where html is
       // the decoded string, matching `EvidenceExtractionResult.pages`).
