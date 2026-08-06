@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type {
+  FontInventory,
   DigitalAsset,
   EvidenceItem,
   LicenseCheck,
@@ -17,6 +18,7 @@ import {
   type AssetReference,
   type DigitalAssetCollection,
 } from "../services/digital-assets";
+import { groupAssetsIntoFamilies } from "../services/font-grouping";
 import { detectServiceSignals } from "../services/service-signals";
 import {
   evaluatePhase,
@@ -107,6 +109,7 @@ export interface EvaluateOutcome {
     assets: DigitalAsset[];
     findings: AssetFinding[];
     summary: { total: number; byKind: Record<string, number>; flagged: number };
+    fontInventory: FontInventory;
   };
 }
 
@@ -277,7 +280,9 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
         findings: evaluation.findings,
         serviceSignals: evaluation.serviceSignals,
         licenseChecks: evaluation.licenseChecks,
-        assetInventory: evaluation.assetInventory,
+        assetInventory: evaluation.assetInventory
+          ? { ...evaluation.assetInventory, fontInventory: evaluation.assetInventory.fontInventory }
+          : undefined,
         generatedAt: deps.now(),
       },
     });
@@ -1066,23 +1071,22 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       assetSeen.add(asset.id);
       return true;
     });
+    const dedupedFindings = assetFindings.filter(
+      (finding, index, all) => all.findIndex((candidate) => candidate.id === finding.id) === index,
+    );
+    const fontInventory = groupAssetsIntoFamilies(dedupedAssets, pageHtml[0]?.html ?? "");
     const assetInventory = {
       assets: dedupedAssets,
-      findings: assetFindings.filter(
-        (finding, index, all) =>
-          all.findIndex((candidate) => candidate.id === finding.id) === index,
-      ),
+      findings: dedupedFindings,
       summary: {
         total: dedupedAssets.length,
         byKind: dedupedAssets.reduce<Record<string, number>>((counts, asset) => {
           counts[asset.kind] = (counts[asset.kind] ?? 0) + 1;
           return counts;
         }, {}),
-        flagged: assetFindings.filter(
-          (finding, index, all) =>
-            all.findIndex((candidate) => candidate.id === finding.id) === index,
-        ).length,
+        flagged: dedupedFindings.length,
       },
+      fontInventory,
     };
     const licenseClaims = evidence
       .filter((item) => item.type === "license_claim")

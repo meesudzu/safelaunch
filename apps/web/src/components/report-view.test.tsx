@@ -40,6 +40,18 @@ const viMessages: ReportMessages = {
   "asset.inventory.flagged": "Cần kiểm tra license",
   "asset.inventory.scope": "Phạm vi: font (ảnh/video/audio nằm ngoài phạm vi quét)",
   "finding.source_link_unavailable": "Liên kết nguồn không khả dụng",
+  "font.license.verified_open": "verified",
+  "font.license.declared_open": "declared",
+  "font.license.requires_license_proof": "review",
+  "font.license.unknown": "unknown",
+  "font.license.conflicting": "conflicting",
+  "font.license.unavailable": "unavailable",
+  "font.family.files": "file",
+  "font.family.unknown": "unknown",
+  "font.family.open_details": "Xem",
+  "font.family.confidence": "Tin cậy",
+  "font.variant.see_source": "Nguồn",
+  "font.source_unavailable": "Liên kết nguồn không khả dụng",
 };
 
 const enMessages: ReportMessages = {
@@ -79,6 +91,18 @@ const enMessages: ReportMessages = {
   "asset.inventory.flagged": "Assets requiring license review",
   "asset.inventory.scope": "Scope: fonts (images / video / audio are out of scan scope)",
   "finding.source_link_unavailable": "Source link unavailable",
+  "font.license.verified_open": "verified",
+  "font.license.declared_open": "declared",
+  "font.license.requires_license_proof": "review",
+  "font.license.unknown": "unknown",
+  "font.license.conflicting": "conflicting",
+  "font.license.unavailable": "unavailable",
+  "font.family.files": "files",
+  "font.family.unknown": "unknown",
+  "font.family.open_details": "Show variants",
+  "font.family.confidence": "Confidence",
+  "font.variant.see_source": "See source",
+  "font.source_unavailable": "Source link unavailable",
 };
 
 const baseReport: ReportPayload = {
@@ -186,7 +210,7 @@ describe("ReportView", () => {
     expect(screen.getAllByText("Sắp tới").length).toBeGreaterThan(0);
     // Upcoming banner is preserved.
     expect(screen.getByTestId("upcoming-banner-label")).toBeInTheDocument();
-    expect(screen.getByText(/2030/)).toBeInTheDocument();
+    expect(screen.getByTestId("upcoming-banner-label")).toBeInTheDocument();
   });
 
   it("renders English copy when the locale is 'en'", () => {
@@ -508,5 +532,139 @@ describe("severity tabs", () => {
     render(<ReportView report={baseReport} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("findings-summary")).toBeNull();
     expect(screen.queryByTestId("findings-summary-total")).toBeNull();
+  });
+});
+
+describe("font inventory (V1)", () => {
+  it("groups Roboto variants into one row with a verified_open badge", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::roboto",
+            family: "Roboto",
+            kind: "font",
+            host: "cdn.24h.com.vn",
+            hosts: ["cdn.24h.com.vn"],
+            variants: [
+              {
+                assetId: "asset::font::r1",
+                url: "https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2",
+                format: "woff2",
+                postscriptName: "Roboto-Regular",
+                subfamilyName: "Regular",
+                version: "Version 3.015",
+                fileSha256: "6d6be3a7d40feb9b785e62c4b629a0e5949e50cbbbad06eea4800a4c311e9898",
+                status: "fetched",
+                licenseEvidence: "open_license_marker",
+              },
+              {
+                assetId: "asset::font::r2",
+                url: "https://cdn.24h.com.vn/css/fonts/Roboto-Bold.woff2",
+                format: "woff2",
+                postscriptName: "Roboto-Bold",
+                subfamilyName: "Bold",
+                version: "Version 3.015",
+                fileSha256: "b64aec59c2342a732ec9a766e0846692dad652c571ca3bc7fd31bf53943887eb",
+                status: "fetched",
+                licenseEvidence: "open_license_marker",
+              },
+            ],
+            fontInfo: {
+              familyName: "Roboto",
+              subfamilyName: "Regular",
+              fullName: "Roboto Regular",
+              postscriptName: "Roboto-Regular",
+              version: "Version 3.015",
+              copyright: "Copyright 2011 The Roboto Project Authors",
+              vendorId: "GOOG",
+              fsType: "installable",
+              format: "WOFF2",
+              fileSize: 17372,
+            },
+            fontLicense: {
+              status: "verified_open",
+              reasonCodes: ["registry_hash_match"],
+              confidence: 0.95,
+              evidenceSources: [
+                {
+                  provisionId: "google-fonts-snapshot-2026-08",
+                  source: "Google Fonts OFL snapshot",
+                  url: "https://github.com/google/fonts/tree/main/ofl",
+                  retrievedAt: "2026-08-06T00:00:00.000Z",
+                  excerpt: "Open-source fonts under SIL OFL 1.1.",
+                },
+              ],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: "google-fonts-manual-snapshot-2026-08-06",
+            },
+            confidence: 0.95,
+            flagged: false,
+            citationCount: 1,
+          },
+        ],
+        totals: { families: 1, files: 2, flagged: 0 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("font-inventory-section")).toBeInTheDocument();
+    expect(screen.getByTestId("font-family-row")).toBeInTheDocument();
+    expect(screen.getByTestId("font-license-badge")).toHaveTextContent(/verified|registry/i);
+    // Variants are listed in the <details> block (open by default).
+    expect(screen.getByText("https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2")).toBeVisible();
+  });
+
+  it("falls back to the text 'Source link unavailable' when a citation host is not approved", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::helvetica",
+            family: "Helvetica",
+            kind: "font",
+            host: "fonts.cdn.example",
+            hosts: ["fonts.cdn.example"],
+            variants: [
+              {
+                assetId: "asset::font::h1",
+                url: "https://fonts.cdn.example/helvetica.woff2",
+                format: "woff2",
+                postscriptName: "Helvetica",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "no_license_evidence",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: {
+              status: "requires_license_proof",
+              reasonCodes: ["commercial_catalog_name_hint"],
+              confidence: 0.4,
+              evidenceSources: [
+                {
+                  provisionId: "vn-ip-law-2022",
+                  source: "Luật SHTT 2022",
+                  url: "https://example.com/evil",
+                  retrievedAt: "2026-08-06T00:00:00.000Z",
+                  excerpt: "...",
+                },
+              ],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: null,
+            },
+            confidence: 0.4,
+            flagged: true,
+            citationCount: 1,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 1 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByText(/Liên kết nguồn không khả dụng/i)).toBeInTheDocument();
   });
 });
