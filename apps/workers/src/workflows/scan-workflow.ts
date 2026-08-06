@@ -14,6 +14,8 @@ import {
   pageHasAssetCandidates,
   type AssetFetcher,
   type AssetFinding,
+  type AssetReference,
+  type DigitalAssetCollection,
 } from "../services/digital-assets";
 import { detectServiceSignals } from "../services/service-signals";
 import {
@@ -28,6 +30,7 @@ import {
   collectAssetReferencesPhase,
   classifyAssetRightsPhase,
   evaluateLicenseRequirementsPhase,
+  type EvidenceExtractionResult,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
 import {
@@ -449,16 +452,12 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
         status: "needs_review" as ScanTerminalStatus,
         coverage: failedCoverage,
       };
-    }
-
-    // Cloudflare's workflow visualizer emits a discrete IfBranch for an
-    // explicit if (cond) { ... } block; without this wrapper, the
-    // visualizer treats the success path as the implicit "rest of function"
-    // tail and attaches the failure-path phase-10:persist-terminal to the
-    // left of homepagePage.ok. Wrapping the success path makes the dashboard
-    // graph render with the failure branch on the left and the success chain
-    // on the right.
-    if (homepagePage.ok) {
+    } else {
+    // Cloudflare's workflow visualizer emits a discrete IfBranch + ElseBranch
+    // for an explicit if (cond) { ... } else { ... } block; without this
+    // wrapper, the visualizer treats the success path as the implicit "rest
+    // of function" tail and attaches the failure-path phase-10:persist-terminal
+    // to the left of homepagePage.ok.
     // 3. fetch:<page> — four inlined literal-named `step.do` calls, one
     //    per non-homepage page type.
     //
@@ -661,14 +660,19 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
       rawHtml,
     );
-    // Override html to be empty Uint8Array so the fallback is well-typed.
-    const emptyEvidenceSafe: { evidence: never[]; pages: { html: Uint8Array; type: string }[] } = {
+    // Override html to be empty string so the fallback is well-typed
+    // (downstream consumers expect `{ url, html, type }` where html is
+    // the decoded string, matching `EvidenceExtractionResult.pages`).
+    const emptyEvidenceSafe: {
+      evidence: readonly EvidenceItem[];
+      pages: { url: string; html: string; type: SupportedPageType }[];
+    } = {
       evidence: [],
-      pages: fetchedRows.map((r) => ({ type: r.type, html: new Uint8Array() })),
+      pages: fetchedRows.map((r) => ({ url: r.url, type: r.type, html: "" })),
     };
-    let evidencePhase: typeof emptyEvidenceSafe = emptyEvidenceSafe;
+    let evidencePhase: EvidenceExtractionResult = emptyEvidenceSafe;
     try {
-      evidencePhase = await step.do<typeof emptyEvidenceSafe, WorkflowStepConfig>(
+      evidencePhase = await step.do<EvidenceExtractionResult, WorkflowStepConfig>(
         "phase-2:extract-evidence",
         {
           ...DEFAULT_SCAN_STEP_CONFIG,
@@ -723,7 +727,10 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // `coverage.degradedPhases` (reserved for the case where the step
     // actually ran and the heuristic positively identified asset
     // candidates).
-    const emptyPhase4 = { refs: [] as never[], degraded: false };
+    const emptyPhase4: { refs: readonly AssetReference[]; degraded: boolean } = {
+      refs: [],
+      degraded: false,
+    };
     let phase4: typeof emptyPhase4 = emptyPhase4;
     try {
       phase4 = await step.do<typeof emptyPhase4, WorkflowStepConfig>(
