@@ -835,6 +835,28 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
         return await Promise.resolve(result);
       },
     );
+    // publish:retrieving: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name. Fires between phase-6
+    // (deterministic license eval) and phase-7 (RAG + AI eval) so
+    // the polling client sees the "retrieving" state for the duration
+    // of the slowest phase. Best-effort.
+    try {
+      await step.do("publish:retrieving", DEFAULT_SCAN_STEP_CONFIG, () =>
+        persistProgressPhase(
+          { scanId: parsed.scanId, state: "retrieving" },
+          { db: this.env.DB, log, now },
+        ),
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "publish:retrieving",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
+
     const evaluation = await step.do("phase-7:evaluate-rules", DEFAULT_SCAN_STEP_CONFIG, () =>
       evaluatePhase(
         {
