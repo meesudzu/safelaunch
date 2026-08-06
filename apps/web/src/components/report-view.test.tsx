@@ -492,4 +492,33 @@ describe("severity tabs", () => {
     );
     expect(ids).toEqual(["h-cur", "h-up"]);
   });
+
+  it("renders a findings summary with a total count and severity legend", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
+        buildFinding({ id: "h2", severity: "high", applicability: "current" }),
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r2", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r3", severity: "review", applicability: "current" }),
+        buildFinding({ id: "p1", severity: "pass", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-summary")).toBeInTheDocument();
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("6");
+    expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("2");
+    expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("33%");
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("3");
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("50%");
+    expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("17%");
+  });
+
+  it("hides the findings summary when there are no findings", () => {
+    render(<ReportView report={baseReport} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("findings-summary")).toBeNull();
+    expect(screen.queryByTestId("findings-summary-total")).toBeNull();
+  });
 });

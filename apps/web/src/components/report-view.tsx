@@ -454,6 +454,44 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 : "No significant findings"}
           </h2>
 
+          {totalFindings > 0 && visibleTabs.length > 0 ? (
+            <div
+              data-testid="findings-summary"
+              className="flex flex-col gap-4 rounded-md border border-rule bg-surface p-5 sm:flex-row sm:items-center sm:gap-6"
+            >
+              <FindingsDonut total={totalFindings} segments={visibleTabs.map((tab) => ({
+                severity: tab.severity,
+                count: tab.findings.length,
+                accentClass: severityAccentClass(tab.severity),
+              }))} />
+              <ul className="flex flex-col gap-2 text-sm">
+                {visibleTabs.map((tab) => {
+                  const pct = Math.round((tab.findings.length / totalFindings) * 100);
+                  const dotBg = severityAccentClass(tab.severity)
+                    .split(" ")
+                    .find((c) => c.startsWith("bg-")) ?? "bg-ink-soft";
+                  return (
+                    <li
+                      key={tab.severity}
+                      data-testid={`findings-summary-legend-${tab.severity}`}
+                      className="flex items-center gap-2"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`inline-block h-2 w-2 rounded-full ${dotBg}`}
+                      />
+                      <span className="text-ink">
+                        {severityLabel(messages, tab.severity)}
+                      </span>
+                      <span className="font-mono text-ink-soft">{tab.findings.length}</span>
+                      <span className="font-mono text-ink-soft">({pct}%)</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
           {visibleTabs.length > 0 && activeTab ? (
             <>
               <div
@@ -551,6 +589,69 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
         <span>{messages["footer.version"]}</span>
       </footer>
     </section>
+  );
+};
+
+interface FindingsDonutProps {
+  readonly total: number;
+  readonly segments: readonly {
+    readonly severity: Severity;
+    readonly count: number;
+    readonly accentClass: string;
+  }[];
+}
+
+/**
+ * Inline SVG donut. Decorative (the legend below conveys the same data in
+ * text), so marked aria-hidden. Each visible severity is one stroke-dasharray
+ * segment on a single circle; segments are rotated to abut each other.
+ */
+const FindingsDonut = ({ total, segments }: FindingsDonutProps) => {
+  const RADIUS = 40;
+  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+  let consumed = 0;
+  const arcs = segments.map((segment) => {
+    const length = total > 0 ? (segment.count / total) * CIRCUMFERENCE : 0;
+    const strokeClass =
+      segment.accentClass.split(" ").find((c) => c.startsWith("bg-"))?.replace(/^bg-/, "stroke-") ??
+      "stroke-rule";
+    const arc = {
+      key: segment.severity,
+      strokeClass,
+      length,
+      gap: CIRCUMFERENCE - length,
+      dashOffset: -consumed,
+    };
+    consumed += length;
+    return arc;
+  });
+  return (
+    <div className="relative h-24 w-24 shrink-0">
+      <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
+        <circle cx="50" cy="50" r={RADIUS} fill="none" strokeWidth="12" className="stroke-rule" />
+        {arcs.map((arc) => (
+          <circle
+            key={arc.key}
+            cx="50"
+            cy="50"
+            r={RADIUS}
+            fill="none"
+            strokeWidth="12"
+            strokeDasharray={`${arc.length} ${arc.gap}`}
+            strokeDashoffset={arc.dashOffset}
+            transform="rotate(-90 50 50)"
+            className={arc.strokeClass}
+          />
+        ))}
+      </svg>
+      <span
+        data-testid="findings-summary-total"
+        aria-hidden="true"
+        className="absolute inset-0 flex items-center justify-center font-serif text-2xl font-semibold tabular-nums"
+      >
+        {total}
+      </span>
+    </div>
   );
 };
 
