@@ -27,12 +27,12 @@ User-supplied evidence (screenshot, 2026-08-06) of the Step Graph shows the seve
 
 Root cause (already proven by PR #30 which folded the phase-4 degraded-detection heuristic into the `step.do` callback): Cloudflare Workflows visualizer parses `ScanWorkflowEntrypoint.run()` as an AST and emits these node types:
 
-| Node          | Source                                                   |
-| ------------- | -------------------------------------------------------- |
-| `StepDo`      | A literal `step.do("name", ...)` call site.              |
-| `FunctionCall`| A call to a module-level/named helper (e.g. `runStepWithFallback(...)`). |
-| `TryNode`     | A `try { ... } catch { ... }` block.                     |
-| `IfNode`      | An `if/else` branch.                                     |
+| Node           | Source                                                                   |
+| -------------- | ------------------------------------------------------------------------ |
+| `StepDo`       | A literal `step.do("name", ...)` call site.                              |
+| `FunctionCall` | A call to a module-level/named helper (e.g. `runStepWithFallback(...)`). |
+| `TryNode`      | A `try { ... } catch { ... }` block.                                     |
+| `IfNode`       | An `if/else` branch.                                                     |
 
 `runStepWithFallback` is exported from `apps/workers/src/workflows/scan-workflow.steps.ts` and called from `ScanWorkflowEntrypoint.run()`. The visualizer walks the AST, sees the helper call, and emits a `FunctionCall` node — the literal `step.do` inside the helper is invisible at the top level.
 
@@ -56,12 +56,12 @@ The visualizer treats the success path as "the rest of the function" (not as a d
 
 The workflow currently emits only 4 of those states to D1:
 
-| State       | Emitted by                            |
-| ----------- | ------------------------------------- |
-| `queued`    | Initial row created in `scans` table. |
-| `extracting`| `publish:extracting` step.            |
-| `evaluating`| `publish:evaluating` step.            |
-| `reporting` | `publish:reporting` step.             |
+| State        | Emitted by                            |
+| ------------ | ------------------------------------- |
+| `queued`     | Initial row created in `scans` table. |
+| `extracting` | `publish:extracting` step.            |
+| `evaluating` | `publish:evaluating` step.            |
+| `reporting`  | `publish:reporting` step.             |
 
 `fetching` and `retrieving` are never written to D1. The corresponding rows in `<ScanStepper>` never light up — users see the stepper jump from "queued" straight to "extracting" and skip two rows.
 
@@ -92,17 +92,17 @@ Replace every `runStepWithFallback({ step, name, fallback, config, log, fn })` c
 
 Affected step names (current count: 7 → after spec: 9 with the two new `publish:*` steps):
 
-| Step name                          | Fallback value                                  | Timeout          |
-| ---------------------------------- | ----------------------------------------------- | ---------------- |
-| `discover:page-urls`               | `{}`                                            | 20 seconds       |
-| `publish:fetching` (NEW)           | `undefined`                                     | (default 5 min)  |
-| `publish:extracting`               | `undefined`                                     | (default 5 min)  |
-| `phase-2:extract-evidence`         | `{ evidence: [], pages: [] }`                   | 1 minute         |
-| `phase-4:scan-assets-references`   | `{ refs: [], degraded: false }`                 | 2 minutes        |
-| `phase-5:classify-asset-rights`    | `EMPTY_DIGITAL_ASSET_COLLECTION`                | 3 minutes        |
-| `publish:evaluating`               | `undefined`                                     | (default 5 min)  |
-| `publish:retrieving` (NEW)         | `undefined`                                     | (default 5 min)  |
-| `publish:reporting`                | `undefined`                                     | (default 5 min)  |
+| Step name                        | Fallback value                   | Timeout         |
+| -------------------------------- | -------------------------------- | --------------- |
+| `discover:page-urls`             | `{}`                             | 20 seconds      |
+| `publish:fetching` (NEW)         | `undefined`                      | (default 5 min) |
+| `publish:extracting`             | `undefined`                      | (default 5 min) |
+| `phase-2:extract-evidence`       | `{ evidence: [], pages: [] }`    | 1 minute        |
+| `phase-4:scan-assets-references` | `{ refs: [], degraded: false }`  | 2 minutes       |
+| `phase-5:classify-asset-rights`  | `EMPTY_DIGITAL_ASSET_COLLECTION` | 3 minutes       |
+| `publish:evaluating`             | `undefined`                      | (default 5 min) |
+| `publish:retrieving` (NEW)       | `undefined`                      | (default 5 min) |
+| `publish:reporting`              | `undefined`                      | (default 5 min) |
 
 The module-level `runStepWithFallback` helper stays in `scan-workflow.steps.ts` because the existing unit tests in `scan-workflow.steps.test.ts` lock its contract (returns fallback on throw, logs warning, propagates config). Removing it would force tests to re-implement the fallback logic and erode coverage.
 
@@ -133,18 +133,28 @@ The runtime behaviour is unchanged: when `homepagePage.ok` is false, the early-r
 // Right after parse-params, before fetch:homepage
 try {
   await step.do("publish:fetching", DEFAULT_SCAN_STEP_CONFIG, () =>
-    persistProgressPhase({ scanId: parsed.scanId, state: "fetching" }, { db: this.env.DB, log, now }),
+    persistProgressPhase(
+      { scanId: parsed.scanId, state: "fetching" },
+      { db: this.env.DB, log, now },
+    ),
   );
-} catch (cause) { log({ level: "warn", event: "scan.step_fallback", step: "publish:fetching", reason, at }); }
+} catch (cause) {
+  log({ level: "warn", event: "scan.step_fallback", step: "publish:fetching", reason, at });
+}
 ```
 
 ```ts
 // Between phase-6:evaluate-license and phase-7:evaluate-rules
 try {
   await step.do("publish:retrieving", DEFAULT_SCAN_STEP_CONFIG, () =>
-    persistProgressPhase({ scanId: parsed.scanId, state: "retrieving" }, { db: this.env.DB, log, now }),
+    persistProgressPhase(
+      { scanId: parsed.scanId, state: "retrieving" },
+      { db: this.env.DB, log, now },
+    ),
   );
-} catch (cause) { log({ level: "warn", event: "scan.step_fallback", step: "publish:retrieving", reason, at }); }
+} catch (cause) {
+  log({ level: "warn", event: "scan.step_fallback", step: "publish:retrieving", reason, at });
+}
 ```
 
 Final workflow step order:
@@ -242,25 +252,25 @@ docs/
 
 ### 5.1 Backend tests
 
-| File                                              | New / Update | Case                                                                                                                          |
-| ------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| File                                                          | New / Update | Case                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts` | NEW          | Recording step asserts visible step names in order: `[parse-params, publish:fetching, fetch:homepage, discover:page-urls, fetch:about, fetch:privacy, fetch:contact, fetch:terms, publish:extracting, phase-2:extract-evidence, phase-3:extract-signals, phase-4:scan-assets-references, phase-5:classify-asset-rights, publish:evaluating, phase-6:evaluate-license, publish:retrieving, phase-7:evaluate-rules, phase-8:aggregate, publish:reporting, phase-9:persist-report, phase-10:persist-terminal]` |
-| same                                              | NEW          | Failure path: when `homepagePage.ok` is false, only `phase-10:persist-terminal` runs after `publish:fetching` + `fetch:homepage` |
-| same                                              | NEW          | `publish:fetching` step fires (recording step sees it) before `fetch:homepage` and is not retried on subsequent failure                                                |
-| same                                              | NEW          | `publish:retrieving` step fires between phase-6 and phase-7; failure path skips it (still falls through to phase-7 / phase-8 / persist) |
-| `apps/workers/src/workflows/scan-workflow.steps.test.ts` | existing | unchanged — `runStepWithFallback` contract still holds (returned value, fallback, log entry)                                  |
-| `apps/workers/src/workflows/scan-workflow.test.ts` (runScan) | existing | unchanged — happy-path / partial / failed scenarios all still pass                                                            |
-| `apps/workers/src/workflows/scan-workflow.phases.test.ts` | existing | unchanged                                                                                                                     |
-| `apps/workers/scripts/check-step-graph.mjs` (if present) | existing | update `EXPECTED_STEP_NAMES` array to include `publish:fetching` + `publish:retrieving` and the swapped order for evaluating / retrieving if the script asserts on workflow order |
+| same                                                          | NEW          | Failure path: when `homepagePage.ok` is false, only `phase-10:persist-terminal` runs after `publish:fetching` + `fetch:homepage`                                                                                                                                                                                                                                                                                                                                                                            |
+| same                                                          | NEW          | `publish:fetching` step fires (recording step sees it) before `fetch:homepage` and is not retried on subsequent failure                                                                                                                                                                                                                                                                                                                                                                                     |
+| same                                                          | NEW          | `publish:retrieving` step fires between phase-6 and phase-7; failure path skips it (still falls through to phase-7 / phase-8 / persist)                                                                                                                                                                                                                                                                                                                                                                     |
+| `apps/workers/src/workflows/scan-workflow.steps.test.ts`      | existing     | unchanged — `runStepWithFallback` contract still holds (returned value, fallback, log entry)                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `apps/workers/src/workflows/scan-workflow.test.ts` (runScan)  | existing     | unchanged — happy-path / partial / failed scenarios all still pass                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `apps/workers/src/workflows/scan-workflow.phases.test.ts`     | existing     | unchanged                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `apps/workers/scripts/check-step-graph.mjs` (if present)      | existing     | update `EXPECTED_STEP_NAMES` array to include `publish:fetching` + `publish:retrieving` and the swapped order for evaluating / retrieving if the script asserts on workflow order                                                                                                                                                                                                                                                                                                                           |
 
 ### 5.2 Frontend tests
 
-| File                                              | New / Update | Case                                                                                                                          |
-| ------------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/components/scan-stepper.test.tsx`   | UPDATE       | "renders exactly the six pipeline steps in the canonical order" assertion now expects `[queued, fetching, extracting, evaluating, retrieving, reporting]` |
-| `apps/web/src/components/scan-stepper.test.tsx`   | no change    | the `it.each` parameter list iterates all 6 states; the per-state assertion is independent of pipeline order, so no change needed |
-| `apps/web/src/components/scan-stepper.snapshot.test.tsx` | UPDATE | re-baseline snapshot (or accept new snapshot once tests run)                                                                |
-| `apps/web/src/components/scan-progress.test.tsx`  | existing     | unchanged — uses `SCAN_PIPELINE` by reference                                                                                 |
+| File                                                     | New / Update | Case                                                                                                                                                      |
+| -------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/web/src/components/scan-stepper.test.tsx`          | UPDATE       | "renders exactly the six pipeline steps in the canonical order" assertion now expects `[queued, fetching, extracting, evaluating, retrieving, reporting]` |
+| `apps/web/src/components/scan-stepper.test.tsx`          | no change    | the `it.each` parameter list iterates all 6 states; the per-state assertion is independent of pipeline order, so no change needed                         |
+| `apps/web/src/components/scan-stepper.snapshot.test.tsx` | UPDATE       | re-baseline snapshot (or accept new snapshot once tests run)                                                                                              |
+| `apps/web/src/components/scan-progress.test.tsx`         | existing     | unchanged — uses `SCAN_PIPELINE` by reference                                                                                                             |
 
 ### 5.3 Manual verification
 

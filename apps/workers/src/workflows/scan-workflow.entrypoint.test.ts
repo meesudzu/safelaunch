@@ -505,9 +505,9 @@ describe("ScanWorkflowEntrypoint step graph structure", () => {
     // Match every `step.do("literal-name", ...)` call site in the source.
     // The pattern tolerates whitespace between `step.do(` and the string
     // literal so reformatting does not break the test.
-    const matches = [
-      ...workflowSrc.matchAll(/step\.do(?:<[^>]*>)?\(\s*["']([^"']+)["']/g),
-    ].map((m) => m[1] as string);
+    const matches = [...workflowSrc.matchAll(/step\.do(?:<[^>]*>)?\(\s*["']([^"']+)["']/g)].map(
+      (m) => m[1] as string,
+    );
 
     // Collect every distinct literal step name. We don't enforce strict
     // file-order matching because `phase-10:persist-terminal` appears in
@@ -522,9 +522,7 @@ describe("ScanWorkflowEntrypoint step graph structure", () => {
     }
 
     const seenArray = [...seen];
-    expect(seenArray.sort()).toEqual(
-      [...EXPECTED_STEP_NAMES].sort(),
-    );
+    expect(seenArray.sort()).toEqual([...EXPECTED_STEP_NAMES].sort());
   });
 
   it("does not call runStepWithFallback from ScanWorkflowEntrypoint.run()", async () => {

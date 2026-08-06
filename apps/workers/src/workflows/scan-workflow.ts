@@ -453,512 +453,514 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
         coverage: failedCoverage,
       };
     } else {
-    // Cloudflare's workflow visualizer emits a discrete IfBranch + ElseBranch
-    // for an explicit if (cond) { ... } else { ... } block; without this
-    // wrapper, the visualizer treats the success path as the implicit "rest
-    // of function" tail and attaches the failure-path phase-10:persist-terminal
-    // to the left of homepagePage.ok.
-    // 3. fetch:<page> — four inlined literal-named `step.do` calls, one
-    //    per non-homepage page type.
-    //
-    // The previous version wrapped the page fetches in a `fetchOne(pageType)`
-    // helper with a 5-case switch. Cloudflare's dashboard graph analyzer
-    // renders every call site as a separate `function call` node and
-    // expands the full switch body inside each — repeating the same
-    // sub-tree 4 times and dropping some steps in the dedupe. Inlining the
-    // 4 `step.do` calls removes the helper and gives the analyzer a flat
-    // top-level sequence of literal-named steps.
-    //
-    // Each step name is a *literal* string so the dashboard emits a
-    // discrete node per page. Pages absent from `requirePages` short-
-    // circuit the closure to a benign placeholder so the graph shows the
-    // full picture without spending HTTP budget on pages the consumer did
-    // not ask for.
-    const requiredPages = new Set<SupportedPageType>(parsed.requirePages ?? ["about", "privacy"]);
-    const timeoutPages = new Set<SupportedPageType>(parsed.timeoutPages ?? []);
-    const forcedFailed = new Set<SupportedPageType>(parsed.failedPages ?? []);
+      // Cloudflare's workflow visualizer emits a discrete IfBranch + ElseBranch
+      // for an explicit if (cond) { ... } else { ... } block; without this
+      // wrapper, the visualizer treats the success path as the implicit "rest
+      // of function" tail and attaches the failure-path phase-10:persist-terminal
+      // to the left of homepagePage.ok.
+      // 3. fetch:<page> — four inlined literal-named `step.do` calls, one
+      //    per non-homepage page type.
+      //
+      // The previous version wrapped the page fetches in a `fetchOne(pageType)`
+      // helper with a 5-case switch. Cloudflare's dashboard graph analyzer
+      // renders every call site as a separate `function call` node and
+      // expands the full switch body inside each — repeating the same
+      // sub-tree 4 times and dropping some steps in the dedupe. Inlining the
+      // 4 `step.do` calls removes the helper and gives the analyzer a flat
+      // top-level sequence of literal-named steps.
+      //
+      // Each step name is a *literal* string so the dashboard emits a
+      // discrete node per page. Pages absent from `requirePages` short-
+      // circuit the closure to a benign placeholder so the graph shows the
+      // full picture without spending HTTP budget on pages the consumer did
+      // not ask for.
+      const requiredPages = new Set<SupportedPageType>(parsed.requirePages ?? ["about", "privacy"]);
+      const timeoutPages = new Set<SupportedPageType>(parsed.timeoutPages ?? []);
+      const forcedFailed = new Set<SupportedPageType>(parsed.failedPages ?? []);
 
-    type PageResult =
-      | { ok: true; pageType: SupportedPageType; status: number; html: Uint8Array }
-      | { ok: false; pageType: SupportedPageType; reason: string };
-    const perPageResults: PageResult[] = [];
+      type PageResult =
+        | { ok: true; pageType: SupportedPageType; status: number; html: Uint8Array }
+        | { ok: false; pageType: SupportedPageType; reason: string };
+      const perPageResults: PageResult[] = [];
 
-    // F2: parse the homepage footer to discover the actual URLs of the
-    // about / privacy / terms / contact pages. Most sites use non-English
-    // slugs (e.g. /gioi-thieu, /chinh-sach-bao-mat) so the legacy
-    // `${baseUrl}/${pageType}` URL pattern 404s. We expose a new
-    // `discover:page-urls` step so the dashboard shows the discovery
-    // and so a malformed homepage HTML falls back to the legacy URLs
-    // (via the inline `try/catch` below; the helper is no longer
-    // called here so the visualizer renders a `StepDo` node with the
-    // literal name).
-    // discover:page-urls: inline try/catch so the visualizer renders
-    // a `StepDo` node with the literal name instead of a generic
-    // `FunctionCall` for the helper. The fallback is identical to the
-    // historical fallback behavior: runStepWithFallback with fallback {}.
-    let pageUrlMap: PageUrlMap = {};
-    try {
-      pageUrlMap = await step.do<PageUrlMap, WorkflowStepConfig>(
-        "discover:page-urls",
-        {
-          ...DEFAULT_SCAN_STEP_CONFIG,
-          retries: { limit: 1, delay: 1_000, backoff: "constant" },
-          timeout: "20 seconds",
-        },
-        () => {
-          const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
-            homepagePage.html,
-          );
-          return Promise.resolve(discoverPageUrls(parsed.url, html));
-        },
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "discover:page-urls",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    {
-      const discovered = Object.keys(pageUrlMap) as SupportedPageType[];
-      const fallback = (["about", "privacy", "terms", "contact"] as const).filter(
-        (t) => requiredPages.has(t) && !pageUrlMap[t],
-      );
-      log({
-        level: "info",
-        event: "scan.page_urls_discovered",
-        discovered,
-        fallback,
-      });
-    }
-
-    const makeBaseDeps = (pageType: SupportedPageType) => ({
-      fetcher: makeWorkflowFetch(),
-      pageType,
-      baseUrl: parsed.url,
-      retries: 1,
-      backoffMs: 5,
-      timeoutPages,
-      forcedFailed,
-      urlOverrides: pageUrlMap,
-    });
-
-    perPageResults.push(
-      requiredPages.has("about")
-        ? await step.do("fetch:about", DEFAULT_SCAN_STEP_CONFIG, async () =>
-            fetchSinglePagePhase(makeBaseDeps("about"), log),
-          )
-        : { ok: true, pageType: "about", status: 200, html: new Uint8Array() },
-    );
-    perPageResults.push(
-      requiredPages.has("privacy")
-        ? await step.do("fetch:privacy", DEFAULT_SCAN_STEP_CONFIG, async () =>
-            fetchSinglePagePhase(makeBaseDeps("privacy"), log),
-          )
-        : { ok: true, pageType: "privacy", status: 200, html: new Uint8Array() },
-    );
-    perPageResults.push(
-      requiredPages.has("contact")
-        ? await step.do("fetch:contact", DEFAULT_SCAN_STEP_CONFIG, async () =>
-            fetchSinglePagePhase(makeBaseDeps("contact"), log),
-          )
-        : { ok: true, pageType: "contact", status: 200, html: new Uint8Array() },
-    );
-    perPageResults.push(
-      requiredPages.has("terms")
-        ? await step.do("fetch:terms", DEFAULT_SCAN_STEP_CONFIG, async () =>
-            fetchSinglePagePhase(makeBaseDeps("terms"), log),
-          )
-        : { ok: true, pageType: "terms", status: 200, html: new Uint8Array() },
-    );
-
-    // 4. evaluate-rules (single fan-out step — see spec §4 assumption G7).
-    // extract-evidence is currently performed inside makeWorkflowEvaluator; the
-    // step boundary still exists at evaluate-rules. Splitting extraction into a
-    // separate step would require reshaping ScanRunDeps.evaluate so runScan
-    // tests could supply evidence — that refactor is deferred.
-    const homeRow = {
-      type: "homepage" as const,
-      url: parsed.url,
-      status: homepagePage.status,
-      html: homepagePage.html,
-    };
-    const fetchedRows = [
-      homeRow,
-      ...perPageResults.flatMap((r) =>
-        r.ok
-          ? [
-              {
-                type: r.pageType,
-                url: `${parsed.url}/${r.pageType}`,
-                status: r.status,
-                html: r.html,
-              },
-            ]
-          : [],
-      ),
-    ];
-
-    const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
-    const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
-    // Phases 4 and 5 do network fetches that can blow past the per-Worker
-    // CPU budget; the inline try/catch around each .do() call records any
-    // skipped phase into this array so it propagates into the persisted
-    // coverage for operator visibility.
-    const degradedPhases: string[] = [];
-    // Delegate to `buildCoverage` so the dedupe contract is enforced: a page
-    // that is already in `fetched` is dropped from `failed` and `skipped`.
-    // Previously this branch hard-coded `"homepage"` into the failed list,
-    // causing the scan dashboard to render "Đã quét: homepage" AND
-    // "Không thể quét: homepage" simultaneously.
-    const coverage: ScanCoverage = buildCoverage(
-      ["homepage", ...fetcheds],
-      faileds,
-      [],
-      degradedPhases,
-    );
-    const rawHtml = new Map<string, Uint8Array>();
-    for (const row of fetchedRows) rawHtml.set(row.url, row.html);
-    // publish:extracting: inline try/catch so the visualizer renders
-    // a `StepDo` node with the literal name. The inner step is still
-    // wrapped in try/catch so a transient D1 cold-start does not
-    // abort the scan (matches the previous `runStepWithFallback`
-    // fallback=undefined behavior).
-    try {
-      await step.do("publish:extracting", DEFAULT_SCAN_STEP_CONFIG, () =>
-        persistProgressPhase(
-          { scanId: parsed.scanId, state: "extracting" },
-          { db: this.env.DB, log, now },
-        ),
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "publish:extracting",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    // phase-2 is CPU-bound (regex loop on every chunk of every page).
-    // A large site (e.g. dantri.com.vn) can blow the Worker CPU
-    // budget on a single attempt; the inline try/catch below turns a
-    // CPU-timeout into a degraded phase instead of stalling the
-    // dashboard in "Pending" for ~5 minutes of retries.
-    // phase-2:extract-evidence: inline try/catch so the visualizer
-    // renders a `StepDo` node with the literal name. The fallback is
-    // the previously-documented empty result so phases 3-10 still run
-    // when the evidence-extraction loop blows the CPU budget.
-    // Use the same shape the published `extractEvidencePhase` returns so
-    // downstream code that reads `.html`, `.type`, `.value`, etc. continues
-    // to type-check. The fallback is an empty result; the only impact of
-    // the fallback path is that the scan proceeds with no extracted
-    // evidence.
-    const emptyEvidence = extractEvidencePhase(
-      fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
-      rawHtml,
-    );
-    // Override html to be empty string so the fallback is well-typed
-    // (downstream consumers expect `{ url, html, type }` where html is
-    // the decoded string, matching `EvidenceExtractionResult.pages`).
-    const emptyEvidenceSafe: {
-      evidence: readonly EvidenceItem[];
-      pages: { url: string; html: string; type: SupportedPageType }[];
-    } = {
-      evidence: [],
-      pages: fetchedRows.map((r) => ({ url: r.url, type: r.type, html: "" })),
-    };
-    let evidencePhase: EvidenceExtractionResult = emptyEvidenceSafe;
-    try {
-      evidencePhase = await step.do<EvidenceExtractionResult, WorkflowStepConfig>(
-        "phase-2:extract-evidence",
-        {
-          ...DEFAULT_SCAN_STEP_CONFIG,
-          retries: { limit: 1, delay: 5_000, backoff: "constant" },
-          timeout: "1 minute",
-        },
-        () => {
-          const result = extractEvidencePhase(
-            fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
-            rawHtml,
-          );
-          return Promise.resolve(result);
-        },
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "phase-2:extract-evidence",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    if (evidencePhase.pages.length === 0 && fetchedRows.length > 0) {
-      // Empty pages list could be correct (no useful HTML) OR a
-      // silent phase-2 failure. Flag degraded only when fetches
-      // returned content that should have produced evidence.
-      degradedPhases.push("phase-2:extract-evidence");
-    }
-    const serviceSignals = await step.do(
-      "phase-3:extract-signals",
-      DEFAULT_SCAN_STEP_CONFIG,
-      async () => {
-        const result = extractServiceSignalsPhase(evidencePhase.pages);
-        return await Promise.resolve(result);
-      },
-    );
-    const assetFetcher = makeWorkflowAssetFetcher();
-    // Phases 4 and 5 do network fetches (stylesheet download + per-asset
-    // probe). On a busy page the loop can blow past the per-Worker CPU
-    // budget even with individual 8s timeouts, so the runtime retries
-    // 5 times and still throws — taking 5+ minutes before the user sees
-    // a failure. The fallback wrapper turns that into a warning +
-    // empty result so phases 6-10 still run. Operators can spot the
-    // degraded scans via the `scan.step_fallback` log entries or the
-    // new `coverage.degradedPhases` field on the persisted report.
-    // phase-4:scan-assets-references: inline try/catch so the
-    // visualizer renders a `StepDo` node with the literal name. The
-    // fallback deliberately reports `degraded: false` so that a step
-    // failure (CPU time limit, network error, exhausted retries) is
-    // surfaced only via the `scan.step_fallback` log line - not via
-    // `coverage.degradedPhases` (reserved for the case where the step
-    // actually ran and the heuristic positively identified asset
-    // candidates).
-    const emptyPhase4: { refs: readonly AssetReference[]; degraded: boolean } = {
-      refs: [],
-      degraded: false,
-    };
-    let phase4: typeof emptyPhase4 = emptyPhase4;
-    try {
-      phase4 = await step.do<typeof emptyPhase4, WorkflowStepConfig>(
-        "phase-4:scan-assets-references",
-        {
-          ...DEFAULT_SCAN_STEP_CONFIG,
-          retries: { limit: 1, delay: 5_000, backoff: "constant" },
-          timeout: "2 minutes",
-        },
-        async () => {
-          const refs = await collectAssetReferencesPhase(
-            parsed.url,
-            evidencePhase.pages,
-            assetFetcher,
-          );
-          const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
-          return { refs, degraded };
-        },
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "phase-4:scan-assets-references",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    const assetRefs = phase4.refs;
-    if (phase4.degraded) {
-      degradedPhases.push("phase-4:scan-assets-references");
-    }
-    // phase-5:classify-asset-rights: inline try/catch so the
-    // visualizer renders a `StepDo` node with the literal name. The
-    // fallback is `EMPTY_DIGITAL_ASSET_COLLECTION` so subsequent
-    // phases (license evaluation, rule evaluation, aggregation,
-    // report persistence) still complete when this phase exhausts
-    // its retries.
-    let assetInventory = EMPTY_DIGITAL_ASSET_COLLECTION;
-    try {
-      assetInventory = await step.do<DigitalAssetCollection, WorkflowStepConfig>(
-        "phase-5:classify-asset-rights",
-        {
-          ...DEFAULT_SCAN_STEP_CONFIG,
-          retries: { limit: 2, delay: 5_000, backoff: "constant" },
-          timeout: "3 minutes",
-        },
-        () =>
-          classifyAssetRightsPhase(
-            assetRefs,
-            assetFetcher,
-            evidencePhase.pages.map((p) => p.html).join("\n"),
-          ),
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "phase-5:classify-asset-rights",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    if (assetInventory === EMPTY_DIGITAL_ASSET_COLLECTION) {
-      degradedPhases.push("phase-5:classify-asset-rights");
-    }
-    // Publish "evaluating" once the asset-rights classification phase
-    // is done so the polling client can advance from "extracting" to
-    // "evaluating" before the (potentially slow) RAG evaluation runs.
-    // publish:evaluating: inline try/catch so the visualizer renders
-    // a `StepDo` node with the literal name. A failure here is
-    // best-effort (transient D1 cold-start does not abort the
-    // evaluation phase).
-    try {
-      await step.do("publish:evaluating", DEFAULT_SCAN_STEP_CONFIG, () =>
-        persistProgressPhase(
-          { scanId: parsed.scanId, state: "evaluating" },
-          { db: this.env.DB, log, now },
-        ),
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "publish:evaluating",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-    const licenseClaims = evidencePhase.evidence
-      .filter((item) => item.type === "license_claim")
-      .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
-    const registry = await new InMemoryLicenseRegistry().lookup({
-      jurisdiction: parsed.jurisdiction,
-      licenseType: "online_game",
-    });
-    const licenseChecks = await step.do(
-      "phase-6:evaluate-license",
-      DEFAULT_SCAN_STEP_CONFIG,
-      async () => {
-        const result = evaluateLicenseRequirementsPhase({
-          jurisdiction: parsed.jurisdiction,
-          category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
-          signals: serviceSignals,
-          licenseClaims,
-          registry,
-          on: new Date().toISOString().slice(0, 10),
-        });
-        return await Promise.resolve(result);
-      },
-    );
-    // publish:retrieving: inline try/catch so the visualizer renders
-    // a `StepDo` node with the literal name. Fires between phase-6
-    // (deterministic license eval) and phase-7 (RAG + AI eval) so
-    // the polling client sees the "retrieving" state for the duration
-    // of the slowest phase. Best-effort.
-    try {
-      await step.do("publish:retrieving", DEFAULT_SCAN_STEP_CONFIG, () =>
-        persistProgressPhase(
-          { scanId: parsed.scanId, state: "retrieving" },
-          { db: this.env.DB, log, now },
-        ),
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "publish:retrieving",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-
-    const evaluation = await step.do("phase-7:evaluate-rules", DEFAULT_SCAN_STEP_CONFIG, () =>
-      evaluatePhase(
-        {
-          scanId: parsed.scanId,
-          jurisdiction: parsed.jurisdiction,
-          category: parsed.category as "online_game" | "electronic_press" | "digital_entertainment",
-          pages: fetchedRows,
-          coverage,
-        },
-        { evaluate: makeWorkflowEvaluator(this.env), log },
-      ),
-    );
-
-    // 6. aggregate-findings
-    const complete = coverage.failed.length === 0;
-    // eslint-disable-next-line @typescript-eslint/require-await
-    const aggregated = await step.do("phase-8:aggregate", DEFAULT_SCAN_STEP_CONFIG, async () =>
-      aggregateFindings(evaluation.findings, { complete }),
-    );
-
-    let state: ScanTerminalState;
-    if (coverage.failed.length === 0 && coverage.degradedPhases.length === 0) {
-      state = "completed";
-    } else if (coverage.fetched.length === 0) {
-      state = "failed";
-    } else {
-      // Either a page failed OR a phase was skipped (e.g. asset
-      // classification timed out). Both are surfaced as `partial` so the
-      // dashboard flags the scan for human review.
-      state = "partial";
-    }
-
-    let finalStatus: ScanTerminalStatus = aggregated;
-    if (state !== "completed" && finalStatus === "no_significant_risk") {
-      finalStatus = "needs_review";
-    }
-
-    // Publish "reporting" once aggregation finishes so the polling
-    // client can show "reporting" while the report row is upserted.
-    // publish:reporting: inline try/catch so the visualizer renders
-    // a `StepDo` node with the literal name. A failure here is
-    // best-effort (the report row is still upserted by phase-9).
-    try {
-      await step.do("publish:reporting", DEFAULT_SCAN_STEP_CONFIG, () =>
-        persistProgressPhase(
-          { scanId: parsed.scanId, state: "reporting" },
-          { db: this.env.DB, log, now },
-        ),
-      );
-    } catch (cause) {
-      log({
-        level: "warn",
-        event: "scan.step_fallback",
-        step: "publish:reporting",
-        reason: cause instanceof Error ? cause.message : String(cause),
-        at: now(),
-      });
-    }
-
-    // 7. persist-report (deterministic token, idempotent upsert)
-    const report = await step.do("phase-9:persist-report", DEFAULT_SCAN_STEP_CONFIG, async () =>
-      persistReportPhase(
-        {
-          scanId: parsed.scanId,
-          payload: {
-            scanId: parsed.scanId,
-            state,
-            status: finalStatus,
-            coverage,
-            findings: evaluation.findings,
-            serviceSignals,
-            licenseChecks,
-            assetInventory,
-            generatedAt: now(),
+      // F2: parse the homepage footer to discover the actual URLs of the
+      // about / privacy / terms / contact pages. Most sites use non-English
+      // slugs (e.g. /gioi-thieu, /chinh-sach-bao-mat) so the legacy
+      // `${baseUrl}/${pageType}` URL pattern 404s. We expose a new
+      // `discover:page-urls` step so the dashboard shows the discovery
+      // and so a malformed homepage HTML falls back to the legacy URLs
+      // (via the inline `try/catch` below; the helper is no longer
+      // called here so the visualizer renders a `StepDo` node with the
+      // literal name).
+      // discover:page-urls: inline try/catch so the visualizer renders
+      // a `StepDo` node with the literal name instead of a generic
+      // `FunctionCall` for the helper. The fallback is identical to the
+      // historical fallback behavior: runStepWithFallback with fallback {}.
+      let pageUrlMap: PageUrlMap = {};
+      try {
+        pageUrlMap = await step.do<PageUrlMap, WorkflowStepConfig>(
+          "discover:page-urls",
+          {
+            ...DEFAULT_SCAN_STEP_CONFIG,
+            retries: { limit: 1, delay: 1_000, backoff: "constant" },
+            timeout: "20 seconds",
           },
+          () => {
+            const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
+              homepagePage.html,
+            );
+            return Promise.resolve(discoverPageUrls(parsed.url, html));
+          },
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "discover:page-urls",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      {
+        const discovered = Object.keys(pageUrlMap) as SupportedPageType[];
+        const fallback = (["about", "privacy", "terms", "contact"] as const).filter(
+          (t) => requiredPages.has(t) && !pageUrlMap[t],
+        );
+        log({
+          level: "info",
+          event: "scan.page_urls_discovered",
+          discovered,
+          fallback,
+        });
+      }
+
+      const makeBaseDeps = (pageType: SupportedPageType) => ({
+        fetcher: makeWorkflowFetch(),
+        pageType,
+        baseUrl: parsed.url,
+        retries: 1,
+        backoffMs: 5,
+        timeoutPages,
+        forcedFailed,
+        urlOverrides: pageUrlMap,
+      });
+
+      perPageResults.push(
+        requiredPages.has("about")
+          ? await step.do("fetch:about", DEFAULT_SCAN_STEP_CONFIG, async () =>
+              fetchSinglePagePhase(makeBaseDeps("about"), log),
+            )
+          : { ok: true, pageType: "about", status: 200, html: new Uint8Array() },
+      );
+      perPageResults.push(
+        requiredPages.has("privacy")
+          ? await step.do("fetch:privacy", DEFAULT_SCAN_STEP_CONFIG, async () =>
+              fetchSinglePagePhase(makeBaseDeps("privacy"), log),
+            )
+          : { ok: true, pageType: "privacy", status: 200, html: new Uint8Array() },
+      );
+      perPageResults.push(
+        requiredPages.has("contact")
+          ? await step.do("fetch:contact", DEFAULT_SCAN_STEP_CONFIG, async () =>
+              fetchSinglePagePhase(makeBaseDeps("contact"), log),
+            )
+          : { ok: true, pageType: "contact", status: 200, html: new Uint8Array() },
+      );
+      perPageResults.push(
+        requiredPages.has("terms")
+          ? await step.do("fetch:terms", DEFAULT_SCAN_STEP_CONFIG, async () =>
+              fetchSinglePagePhase(makeBaseDeps("terms"), log),
+            )
+          : { ok: true, pageType: "terms", status: 200, html: new Uint8Array() },
+      );
+
+      // 4. evaluate-rules (single fan-out step — see spec §4 assumption G7).
+      // extract-evidence is currently performed inside makeWorkflowEvaluator; the
+      // step boundary still exists at evaluate-rules. Splitting extraction into a
+      // separate step would require reshaping ScanRunDeps.evaluate so runScan
+      // tests could supply evidence — that refactor is deferred.
+      const homeRow = {
+        type: "homepage" as const,
+        url: parsed.url,
+        status: homepagePage.status,
+        html: homepagePage.html,
+      };
+      const fetchedRows = [
+        homeRow,
+        ...perPageResults.flatMap((r) =>
+          r.ok
+            ? [
+                {
+                  type: r.pageType,
+                  url: `${parsed.url}/${r.pageType}`,
+                  status: r.status,
+                  html: r.html,
+                },
+              ]
+            : [],
+        ),
+      ];
+
+      const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
+      const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
+      // Phases 4 and 5 do network fetches that can blow past the per-Worker
+      // CPU budget; the inline try/catch around each .do() call records any
+      // skipped phase into this array so it propagates into the persisted
+      // coverage for operator visibility.
+      const degradedPhases: string[] = [];
+      // Delegate to `buildCoverage` so the dedupe contract is enforced: a page
+      // that is already in `fetched` is dropped from `failed` and `skipped`.
+      // Previously this branch hard-coded `"homepage"` into the failed list,
+      // causing the scan dashboard to render "Đã quét: homepage" AND
+      // "Không thể quét: homepage" simultaneously.
+      const coverage: ScanCoverage = buildCoverage(
+        ["homepage", ...fetcheds],
+        faileds,
+        [],
+        degradedPhases,
+      );
+      const rawHtml = new Map<string, Uint8Array>();
+      for (const row of fetchedRows) rawHtml.set(row.url, row.html);
+      // publish:extracting: inline try/catch so the visualizer renders
+      // a `StepDo` node with the literal name. The inner step is still
+      // wrapped in try/catch so a transient D1 cold-start does not
+      // abort the scan (matches the previous `runStepWithFallback`
+      // fallback=undefined behavior).
+      try {
+        await step.do("publish:extracting", DEFAULT_SCAN_STEP_CONFIG, () =>
+          persistProgressPhase(
+            { scanId: parsed.scanId, state: "extracting" },
+            { db: this.env.DB, log, now },
+          ),
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "publish:extracting",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      // phase-2 is CPU-bound (regex loop on every chunk of every page).
+      // A large site (e.g. dantri.com.vn) can blow the Worker CPU
+      // budget on a single attempt; the inline try/catch below turns a
+      // CPU-timeout into a degraded phase instead of stalling the
+      // dashboard in "Pending" for ~5 minutes of retries.
+      // phase-2:extract-evidence: inline try/catch so the visualizer
+      // renders a `StepDo` node with the literal name. The fallback is
+      // the previously-documented empty result so phases 3-10 still run
+      // when the evidence-extraction loop blows the CPU budget.
+      // Use the same shape the published `extractEvidencePhase` returns so
+      // downstream code that reads `.html`, `.type`, `.value`, etc. continues
+      // to type-check. The fallback is an empty result; the only impact of
+      // the fallback path is that the scan proceeds with no extracted
+      // evidence.
+      const emptyEvidence = extractEvidencePhase(
+        fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+        rawHtml,
+      );
+      // Override html to be empty string so the fallback is well-typed
+      // (downstream consumers expect `{ url, html, type }` where html is
+      // the decoded string, matching `EvidenceExtractionResult.pages`).
+      const emptyEvidenceSafe: {
+        evidence: readonly EvidenceItem[];
+        pages: { url: string; html: string; type: SupportedPageType }[];
+      } = {
+        evidence: [],
+        pages: fetchedRows.map((r) => ({ url: r.url, type: r.type, html: "" })),
+      };
+      let evidencePhase: EvidenceExtractionResult = emptyEvidenceSafe;
+      try {
+        evidencePhase = await step.do<EvidenceExtractionResult, WorkflowStepConfig>(
+          "phase-2:extract-evidence",
+          {
+            ...DEFAULT_SCAN_STEP_CONFIG,
+            retries: { limit: 1, delay: 5_000, backoff: "constant" },
+            timeout: "1 minute",
+          },
+          () => {
+            const result = extractEvidencePhase(
+              fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+              rawHtml,
+            );
+            return Promise.resolve(result);
+          },
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "phase-2:extract-evidence",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      if (evidencePhase.pages.length === 0 && fetchedRows.length > 0) {
+        // Empty pages list could be correct (no useful HTML) OR a
+        // silent phase-2 failure. Flag degraded only when fetches
+        // returned content that should have produced evidence.
+        degradedPhases.push("phase-2:extract-evidence");
+      }
+      const serviceSignals = await step.do(
+        "phase-3:extract-signals",
+        DEFAULT_SCAN_STEP_CONFIG,
+        async () => {
+          const result = extractServiceSignalsPhase(evidencePhase.pages);
+          return await Promise.resolve(result);
         },
-        { db: this.env.DB, log, now },
-      ),
-    );
+      );
+      const assetFetcher = makeWorkflowAssetFetcher();
+      // Phases 4 and 5 do network fetches (stylesheet download + per-asset
+      // probe). On a busy page the loop can blow past the per-Worker CPU
+      // budget even with individual 8s timeouts, so the runtime retries
+      // 5 times and still throws — taking 5+ minutes before the user sees
+      // a failure. The fallback wrapper turns that into a warning +
+      // empty result so phases 6-10 still run. Operators can spot the
+      // degraded scans via the `scan.step_fallback` log entries or the
+      // new `coverage.degradedPhases` field on the persisted report.
+      // phase-4:scan-assets-references: inline try/catch so the
+      // visualizer renders a `StepDo` node with the literal name. The
+      // fallback deliberately reports `degraded: false` so that a step
+      // failure (CPU time limit, network error, exhausted retries) is
+      // surfaced only via the `scan.step_fallback` log line - not via
+      // `coverage.degradedPhases` (reserved for the case where the step
+      // actually ran and the heuristic positively identified asset
+      // candidates).
+      const emptyPhase4: { refs: readonly AssetReference[]; degraded: boolean } = {
+        refs: [],
+        degraded: false,
+      };
+      let phase4: typeof emptyPhase4 = emptyPhase4;
+      try {
+        phase4 = await step.do<typeof emptyPhase4, WorkflowStepConfig>(
+          "phase-4:scan-assets-references",
+          {
+            ...DEFAULT_SCAN_STEP_CONFIG,
+            retries: { limit: 1, delay: 5_000, backoff: "constant" },
+            timeout: "2 minutes",
+          },
+          async () => {
+            const refs = await collectAssetReferencesPhase(
+              parsed.url,
+              evidencePhase.pages,
+              assetFetcher,
+            );
+            const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
+            return { refs, degraded };
+          },
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "phase-4:scan-assets-references",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      const assetRefs = phase4.refs;
+      if (phase4.degraded) {
+        degradedPhases.push("phase-4:scan-assets-references");
+      }
+      // phase-5:classify-asset-rights: inline try/catch so the
+      // visualizer renders a `StepDo` node with the literal name. The
+      // fallback is `EMPTY_DIGITAL_ASSET_COLLECTION` so subsequent
+      // phases (license evaluation, rule evaluation, aggregation,
+      // report persistence) still complete when this phase exhausts
+      // its retries.
+      let assetInventory = EMPTY_DIGITAL_ASSET_COLLECTION;
+      try {
+        assetInventory = await step.do<DigitalAssetCollection, WorkflowStepConfig>(
+          "phase-5:classify-asset-rights",
+          {
+            ...DEFAULT_SCAN_STEP_CONFIG,
+            retries: { limit: 2, delay: 5_000, backoff: "constant" },
+            timeout: "3 minutes",
+          },
+          () =>
+            classifyAssetRightsPhase(
+              assetRefs,
+              assetFetcher,
+              evidencePhase.pages.map((p) => p.html).join("\n"),
+            ),
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "phase-5:classify-asset-rights",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      if (assetInventory === EMPTY_DIGITAL_ASSET_COLLECTION) {
+        degradedPhases.push("phase-5:classify-asset-rights");
+      }
+      // Publish "evaluating" once the asset-rights classification phase
+      // is done so the polling client can advance from "extracting" to
+      // "evaluating" before the (potentially slow) RAG evaluation runs.
+      // publish:evaluating: inline try/catch so the visualizer renders
+      // a `StepDo` node with the literal name. A failure here is
+      // best-effort (transient D1 cold-start does not abort the
+      // evaluation phase).
+      try {
+        await step.do("publish:evaluating", DEFAULT_SCAN_STEP_CONFIG, () =>
+          persistProgressPhase(
+            { scanId: parsed.scanId, state: "evaluating" },
+            { db: this.env.DB, log, now },
+          ),
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "publish:evaluating",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+      const licenseClaims = evidencePhase.evidence
+        .filter((item) => item.type === "license_claim")
+        .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
+      const registry = await new InMemoryLicenseRegistry().lookup({
+        jurisdiction: parsed.jurisdiction,
+        licenseType: "online_game",
+      });
+      const licenseChecks = await step.do(
+        "phase-6:evaluate-license",
+        DEFAULT_SCAN_STEP_CONFIG,
+        async () => {
+          const result = evaluateLicenseRequirementsPhase({
+            jurisdiction: parsed.jurisdiction,
+            category: parsed.category as
+              "online_game" | "electronic_press" | "digital_entertainment",
+            signals: serviceSignals,
+            licenseClaims,
+            registry,
+            on: new Date().toISOString().slice(0, 10),
+          });
+          return await Promise.resolve(result);
+        },
+      );
+      // publish:retrieving: inline try/catch so the visualizer renders
+      // a `StepDo` node with the literal name. Fires between phase-6
+      // (deterministic license eval) and phase-7 (RAG + AI eval) so
+      // the polling client sees the "retrieving" state for the duration
+      // of the slowest phase. Best-effort.
+      try {
+        await step.do("publish:retrieving", DEFAULT_SCAN_STEP_CONFIG, () =>
+          persistProgressPhase(
+            { scanId: parsed.scanId, state: "retrieving" },
+            { db: this.env.DB, log, now },
+          ),
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "publish:retrieving",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
 
-    // 8. persist-terminal (last; same coverage shape)
-    await step.do("phase-10:persist-terminal", DEFAULT_SCAN_STEP_CONFIG, async () =>
-      persistTerminalPhase(
-        { scanId: parsed.scanId, state, status: finalStatus, coverage },
-        { db: this.env.DB, log, now },
-      ),
-    );
+      const evaluation = await step.do("phase-7:evaluate-rules", DEFAULT_SCAN_STEP_CONFIG, () =>
+        evaluatePhase(
+          {
+            scanId: parsed.scanId,
+            jurisdiction: parsed.jurisdiction,
+            category: parsed.category as
+              "online_game" | "electronic_press" | "digital_entertainment",
+            pages: fetchedRows,
+            coverage,
+          },
+          { evaluate: makeWorkflowEvaluator(this.env), log },
+        ),
+      );
 
-    return {
-      scanId: parsed.scanId,
-      state,
-      status: finalStatus,
-      coverage,
-      reportUrl: report.url,
-    };
+      // 6. aggregate-findings
+      const complete = coverage.failed.length === 0;
+      // eslint-disable-next-line @typescript-eslint/require-await
+      const aggregated = await step.do("phase-8:aggregate", DEFAULT_SCAN_STEP_CONFIG, async () =>
+        aggregateFindings(evaluation.findings, { complete }),
+      );
+
+      let state: ScanTerminalState;
+      if (coverage.failed.length === 0 && coverage.degradedPhases.length === 0) {
+        state = "completed";
+      } else if (coverage.fetched.length === 0) {
+        state = "failed";
+      } else {
+        // Either a page failed OR a phase was skipped (e.g. asset
+        // classification timed out). Both are surfaced as `partial` so the
+        // dashboard flags the scan for human review.
+        state = "partial";
+      }
+
+      let finalStatus: ScanTerminalStatus = aggregated;
+      if (state !== "completed" && finalStatus === "no_significant_risk") {
+        finalStatus = "needs_review";
+      }
+
+      // Publish "reporting" once aggregation finishes so the polling
+      // client can show "reporting" while the report row is upserted.
+      // publish:reporting: inline try/catch so the visualizer renders
+      // a `StepDo` node with the literal name. A failure here is
+      // best-effort (the report row is still upserted by phase-9).
+      try {
+        await step.do("publish:reporting", DEFAULT_SCAN_STEP_CONFIG, () =>
+          persistProgressPhase(
+            { scanId: parsed.scanId, state: "reporting" },
+            { db: this.env.DB, log, now },
+          ),
+        );
+      } catch (cause) {
+        log({
+          level: "warn",
+          event: "scan.step_fallback",
+          step: "publish:reporting",
+          reason: cause instanceof Error ? cause.message : String(cause),
+          at: now(),
+        });
+      }
+
+      // 7. persist-report (deterministic token, idempotent upsert)
+      const report = await step.do("phase-9:persist-report", DEFAULT_SCAN_STEP_CONFIG, async () =>
+        persistReportPhase(
+          {
+            scanId: parsed.scanId,
+            payload: {
+              scanId: parsed.scanId,
+              state,
+              status: finalStatus,
+              coverage,
+              findings: evaluation.findings,
+              serviceSignals,
+              licenseChecks,
+              assetInventory,
+              generatedAt: now(),
+            },
+          },
+          { db: this.env.DB, log, now },
+        ),
+      );
+
+      // 8. persist-terminal (last; same coverage shape)
+      await step.do("phase-10:persist-terminal", DEFAULT_SCAN_STEP_CONFIG, async () =>
+        persistTerminalPhase(
+          { scanId: parsed.scanId, state, status: finalStatus, coverage },
+          { db: this.env.DB, log, now },
+        ),
+      );
+
+      return {
+        scanId: parsed.scanId,
+        state,
+        status: finalStatus,
+        coverage,
+        reportUrl: report.url,
+      };
     }
   }
 }
