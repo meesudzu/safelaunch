@@ -389,6 +389,28 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       () => Promise.resolve(ScanParamsSchema.parse(params)),
     );
 
+    // publish:fetching: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name. Fires immediately after
+    // parse-params so the polling client sees the "fetching" state
+    // for the duration of all page fetches. Best-effort: a transient
+    // D1 cold-start does not abort the scan.
+    try {
+      await step.do("publish:fetching", DEFAULT_SCAN_STEP_CONFIG, () =>
+        persistProgressPhase(
+          { scanId: parsed.scanId, state: "fetching" },
+          { db: this.env.DB, log, now },
+        ),
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "publish:fetching",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
+
     // 2. fetch:homepage (must succeed for the scan to continue).
     const homepagePage = await step.do("fetch:homepage", DEFAULT_SCAN_STEP_CONFIG, async () => {
       const fetcher = makeWorkflowFetch();
