@@ -38,6 +38,9 @@ const viMessages = {
   "quota.redeem.placeholder": "SL-XXXX-XXXX",
   "quota.redeem.invalid": "Redeem code không hợp lệ hoặc đã hết hạn.",
   "quota.redeem.used": "Redeem code đã được dùng cho domain hôm nay.",
+  "quota.cached.banner": "Domain này đã được quét hôm nay. Đây là kết quả trước đó.",
+  "quota.cached.cta": "Mở báo cáo",
+  "quota.cached.failed": "Quét trước đó thất bại lúc {{time}} UTC. Để quét lại, cần redeem code.",
 } as const;
 
 type CreateScanFn = NonNullable<ScanFormProps["createScan"]>;
@@ -116,7 +119,14 @@ describe("ScanForm", () => {
     expect(screen.getByTestId("redeem-input")).toBeInTheDocument();
   });
 
-  it("renders the cached banner when the API returns a cached payload", async () => {
+  it("renders the cached banner in Vietnamese when the API returns a cached payload", async () => {
+    // Regression: scan-form.tsx reads `messages["quota.cached.banner"]`
+    // and `messages["quota.cached.cta"]` as flat dotted keys. If
+    // apps/web/src/messages/{vi,en}.json nests them under a "quota"
+    // object instead, both lookups return undefined and the form
+    // falls back to the English strings ("Already scanned today.",
+    // "Open report"). This test pins the Vietnamese copy at the
+    // banner so the flattening never silently regresses.
     const cachedResponse = {
       scanId: "scan_cached",
       state: "completed" as const,
@@ -136,7 +146,14 @@ describe("ScanForm", () => {
     await user.type(screen.getByLabelText("URL website"), "https://example.com");
     await user.selectOptions(screen.getByLabelText("Loại ứng dụng"), "online_game");
     await user.click(screen.getByRole("button", { name: "Kiểm tra website" }));
-    expect(await screen.findByTestId("cached-banner")).toBeInTheDocument();
+
+    const banner = await screen.findByTestId("cached-banner");
+    // Vietnamese banner text must be present; the English fallback
+    // "Already scanned today." must NOT be rendered for vi locale.
+    expect(banner.textContent).toContain("đã được quét");
+    expect(banner.textContent).not.toContain("Already scanned");
+    // CTA label must also be Vietnamese.
+    expect(banner.textContent).toContain("Mở báo cáo");
   });
 
   it("submits the redeem code when present", async () => {
