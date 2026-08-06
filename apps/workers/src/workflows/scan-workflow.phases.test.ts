@@ -252,7 +252,6 @@ describe("persistReportPhase", () => {
     // match the expires_at column the row binds to (call.args[3]).
     expect(persisted.expiresAt).toBe(call.args[3]);
   });
-
 });
 
 describe("persistTerminalPhase", () => {
