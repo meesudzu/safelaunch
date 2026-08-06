@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { collectDigitalAssets, collectAssetReferences, type AssetFetcher } from "./digital-assets";
+import {
+  collectDigitalAssets,
+  collectAssetReferences,
+  pageHasAssetCandidates,
+  type AssetFetcher,
+} from "./digital-assets";
+
 
 describe("digital asset collection (font-only scope)", () => {
   it("collects only font references — drops image/audio/video", () => {
@@ -156,5 +162,26 @@ describe("digital asset collection (font-only scope)", () => {
     expect(result.findings[0]?.citations[0]?.url).toMatch(/^https:\/\/vbpl\.vn\/tim-kiem/);
     // URL-encoded "Luật Sở hữu trí tuệ 2022"
     expect(result.findings[0]?.citations[0]?.url).toContain("Lu%E1%BA%ADt");
+  });
+});
+
+describe("pageHasAssetCandidates", () => {
+  it("returns true when at least one page contains a font reference", () => {
+    const pages = [
+      {
+        url: "https://example.com/",
+        html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/x.woff2" />',
+      },
+      { url: "https://example.com/about", html: "<p>no fonts here</p>" },
+    ];
+    expect(pageHasAssetCandidates(pages)).toBe(true);
+  });
+
+  it("returns false when no page contains any font reference", () => {
+    const pages = [
+      { url: "https://example.com/", html: "<p>no fonts here</p>" },
+      { url: "https://example.com/about", html: "<img src='/hero.png' />" },
+    ];
+    expect(pageHasAssetCandidates(pages)).toBe(false);
   });
 });
