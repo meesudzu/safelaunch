@@ -387,6 +387,16 @@ export interface GenerateRedeemCodesResponseDto {
   generatedAt: string;
 }
 
+export interface SystemHealthDto {
+  generatedAt: string;
+  d1: {
+    rowCounts: Array<{ tableName: string; rows: number }>;
+    retention: { oldestScan: string | null; nextPurge: string | null };
+    oldestPendingReview: string | null;
+  };
+  bindings: Array<{ name: string; status: "configured" | "missing" }>;
+}
+
 export interface ReviewSubmissionDto {
   decision: "approve" | "reject";
   reason: string;
@@ -556,6 +566,16 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "GENERATE_REDEEM_CODES_FAILED");
       }
       return (await response.json()) as GenerateRedeemCodesResponseDto;
+    },
+    getSystemHealth: async (): Promise<SystemHealthDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/health`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_SYSTEM_HEALTH_FAILED");
+      }
+      return (await response.json()) as SystemHealthDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(

@@ -17,6 +17,12 @@ import { generateRedeemCode, hashRedeemCode } from "../services/redeem-codes";
 
 export interface AdminEnv {
   DB: D1Database;
+  ARTIFACTS?: R2Bucket;
+  LEGAL_INDEX?: VectorizeIndex;
+  LEGAL_INGESTION_QUEUE?: Queue;
+  SCAN_WORKFLOW?: Workflow;
+  ABUSE_RATE_LIMITER?: DurableObjectNamespace;
+  AI?: Ai;
 }
 
 interface PendingDocumentRow {
@@ -124,6 +130,20 @@ interface RedeemBatchRow {
   redeemed: number;
   expired: number;
   unused: number;
+}
+
+interface D1RowCountRow {
+  table_name: string;
+  rows: number;
+}
+
+interface RetentionHealthRow {
+  oldest_scan: string | null;
+  next_purge: string | null;
+}
+
+interface PendingReviewHealthRow {
+  oldest_pending_review: string | null;
 }
 
 const RESOLVED_ACTOR = (request: Request): string => {
@@ -413,6 +433,49 @@ adminRouter.post("/redeem/generate", async (context) => {
     count: codes.length,
     codes,
     generatedAt: now,
+  });
+});
+
+adminRouter.get("/health", async (context) => {
+  const [rowCountsResult, retention, pendingReview] = await Promise.all([
+    context.env.DB.prepare(
+      "SELECT 'scans' AS table_name, COUNT(*) AS rows FROM scans UNION ALL SELECT 'legal_documents', COUNT(*) FROM legal_documents UNION ALL SELECT 'legal_review_events', COUNT(*) FROM legal_review_events",
+    )
+      .bind()
+      .all<D1RowCountRow>(),
+    context.env.DB.prepare(
+      "SELECT MIN(created_at) AS oldest_scan, MIN(expires_at) AS next_purge FROM scans WHERE expires_at > datetime('now')",
+    )
+      .bind()
+      .first<RetentionHealthRow>(),
+    context.env.DB.prepare(
+      "SELECT MIN(created_at) AS oldest_pending_review FROM legal_documents WHERE status = 'pending_review'",
+    )
+      .bind()
+      .first<PendingReviewHealthRow>(),
+  ]);
+
+  return context.json({
+    generatedAt: new Date().toISOString(),
+    d1: {
+      rowCounts: (rowCountsResult.results ?? []).map((row) => ({
+        tableName: row.table_name,
+        rows: row.rows,
+      })),
+      retention: {
+        oldestScan: retention?.oldest_scan ?? null,
+        nextPurge: retention?.next_purge ?? null,
+      },
+      oldestPendingReview: pendingReview?.oldest_pending_review ?? null,
+    },
+    bindings: [
+      bindingStatus("ARTIFACTS", context.env.ARTIFACTS),
+      bindingStatus("LEGAL_INDEX", context.env.LEGAL_INDEX),
+      bindingStatus("LEGAL_INGESTION_QUEUE", context.env.LEGAL_INGESTION_QUEUE),
+      bindingStatus("SCAN_WORKFLOW", context.env.SCAN_WORKFLOW),
+      bindingStatus("ABUSE_RATE_LIMITER", context.env.ABUSE_RATE_LIMITER),
+      bindingStatus("AI", context.env.AI),
+    ],
   });
 });
 
@@ -735,6 +798,14 @@ const parseRedeemGenerateBody = (
   if (!expiresAt || !isIsoDate(expiresAt)) return null;
   return { batchId, count, expiresAt };
 };
+
+const bindingStatus = (
+  name: string,
+  binding: unknown,
+): { name: string; status: "configured" | "missing" } => ({
+  name,
+  status: binding ? "configured" : "missing",
+});
 
 const daysAgoIso = (days: number): string => {
   const date = new Date();

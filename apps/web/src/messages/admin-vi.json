@@ -10,6 +10,7 @@
   "nav.metrics": "Metrics",
   "nav.scans": "Scans",
   "nav.redeem": "Redeem",
+  "nav.health": "Health",
   "nav.logs": "Logs",
   "list.title": "Hàng đợi xét duyệt",
   "list.empty": "Không có văn bản nào đang chờ xét duyệt.",
@@ -68,5 +69,15 @@
   "redeem.expired": "Expired",
   "redeem.unused": "Unused",
   "redeem.empty": "Không có batch redeem code.",
+  "health.title": "System health",
+  "health.generated_at": "Cập nhật",
+  "health.d1_rows": "D1 row counts",
+  "health.retention": "Retention",
+  "health.oldest_scan": "Oldest scan",
+  "health.next_purge": "Next purge",
+  "health.oldest_pending_review": "Oldest pending review",
+  "health.bindings": "Bindings",
+  "health.table": "Table",
+  "health.rows": "Rows",
   "footer.disclosure": "Hoạt động quản trị được ghi log để phục vụ kiểm toán."
 }

@@ -332,6 +332,55 @@ describe("admin router", () => {
     });
   });
 
+  describe("GET /v1/admin/health", () => {
+    it("returns D1 row counts and retention health without raw scan URLs", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT 'scans' AS table_name, COUNT(*) AS rows FROM scans UNION ALL SELECT 'legal_documents', COUNT(*) FROM legal_documents UNION ALL SELECT 'legal_review_events', COUNT(*) FROM legal_review_events",
+        firstReturn: null,
+        allReturn: [
+          { table_name: "scans", rows: 12 },
+          { table_name: "legal_documents", rows: 4 },
+          { table_name: "legal_review_events", rows: 7 },
+        ],
+      });
+      db.rows.push({
+        sql: "SELECT MIN(created_at) AS oldest_scan, MIN(expires_at) AS next_purge FROM scans WHERE expires_at > datetime('now')",
+        firstReturn: {
+          oldest_scan: "2026-08-01T00:00:00.000Z",
+          next_purge: "2026-08-08T00:00:00.000Z",
+        },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT MIN(created_at) AS oldest_pending_review FROM legal_documents WHERE status = 'pending_review'",
+        firstReturn: { oldest_pending_review: "2026-08-02T00:00:00.000Z" },
+        allReturn: [],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/health"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        d1: {
+          rowCounts: Array<{ tableName: string; rows: number }>;
+          retention: { oldestScan: string | null; nextPurge: string | null };
+          oldestPendingReview: string | null;
+        };
+        bindings: Array<{ name: string; status: string }>;
+      }>(response);
+      expect(body.d1.rowCounts).toEqual([
+        { tableName: "scans", rows: 12 },
+        { tableName: "legal_documents", rows: 4 },
+        { tableName: "legal_review_events", rows: 7 },
+      ]);
+      expect(body.d1.retention.nextPurge).toBe("2026-08-08T00:00:00.000Z");
+      expect(body.d1.oldestPendingReview).toBe("2026-08-02T00:00:00.000Z");
+      expect(body.bindings).toContainEqual({ name: "ARTIFACTS", status: "missing" });
+      expect(JSON.stringify(body)).not.toContain("https://");
+    });
+  });
+
   describe("GET /v1/admin/audit", () => {
     it("lists review events with default pagination and date filters", async () => {
       const db = new FakeD1();
