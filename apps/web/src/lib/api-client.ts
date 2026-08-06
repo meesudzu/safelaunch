@@ -351,6 +351,42 @@ export interface AdminScanDetailDto {
   reportUrl: string | null;
 }
 
+export interface RedeemInventoryTileDto {
+  key: "issued" | "redeemed" | "redemptionRate" | "expiringSoon";
+  label: string;
+  value: number;
+  secondaryValue?: number;
+}
+
+export interface RedeemBatchDto {
+  batchId: string;
+  issuedAt: string;
+  issuedBy: string;
+  total: number;
+  redeemed: number;
+  expired: number;
+  unused: number;
+}
+
+export interface RedeemInventoryDto {
+  generatedAt: string;
+  tiles: RedeemInventoryTileDto[];
+  batches: RedeemBatchDto[];
+}
+
+export interface GenerateRedeemCodesInput {
+  batchId: string;
+  count: number;
+  expiresAt: string;
+}
+
+export interface GenerateRedeemCodesResponseDto {
+  batchId: string;
+  count: number;
+  codes: string[];
+  generatedAt: string;
+}
+
 export interface ReviewSubmissionDto {
   decision: "approve" | "reject";
   reason: string;
@@ -496,6 +532,30 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "GET_ADMIN_SCAN_FAILED");
       }
       return (await response.json()) as AdminScanDetailDto;
+    },
+    getRedeemInventory: async (): Promise<RedeemInventoryDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/redeem`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_REDEEM_INVENTORY_FAILED");
+      }
+      return (await response.json()) as RedeemInventoryDto;
+    },
+    generateRedeemCodes: async (
+      input: GenerateRedeemCodesInput,
+    ): Promise<GenerateRedeemCodesResponseDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/redeem/generate`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        credentials: "include",
+        body: JSON.stringify(input),
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "GENERATE_REDEEM_CODES_FAILED");
+      }
+      return (await response.json()) as GenerateRedeemCodesResponseDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(

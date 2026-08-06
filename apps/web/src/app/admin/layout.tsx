@@ -13,6 +13,7 @@ const navItems = [
   { href: "/admin/audit", label: messages["nav.audit"] },
   { href: "/admin/metrics", label: messages["nav.metrics"] },
   { href: "/admin/scans", label: messages["nav.scans"] },
+  { href: "/admin/redeem", label: messages["nav.redeem"] },
   { href: "/admin/logs", label: messages["nav.logs"], disabled: true },
 ];
 

@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { generateRedeemCode, hashRedeemCode } from "../services/redeem-codes";
 
 /**
  * Admin legal-review endpoints. Access control lives at the Cloudflare
@@ -70,6 +71,9 @@ interface CountRow {
   sites?: number;
   reports?: number;
   reviewers?: number;
+  issued?: number;
+  redeemed?: number;
+  expiring?: number;
 }
 
 interface AdminScanListRow {
@@ -110,6 +114,16 @@ interface AnalysisRunRow {
 interface ReportLinkRow {
   payload_json: string;
   expires_at: string;
+}
+
+interface RedeemBatchRow {
+  batch_id: string;
+  issued_at: string;
+  issued_by: string;
+  total: number;
+  redeemed: number;
+  expired: number;
+  unused: number;
 }
 
 const RESOLVED_ACTOR = (request: Request): string => {
@@ -293,6 +307,112 @@ adminRouter.get("/scans/:scanId", async (context) => {
       createdAt: row.created_at,
     })),
     reportUrl: report ? reportUrlFromPayload(report.payload_json) : null,
+  });
+});
+
+adminRouter.get("/redeem", async (context) => {
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  const [issued, issued7d, redeemed, redeemed7d, expiringSoon, batchesResult] = await Promise.all([
+    countValue(
+      context.env.DB.prepare("SELECT COUNT(*) AS issued FROM redeem_codes")
+        .bind()
+        .first<CountRow>(),
+      "issued",
+    ),
+    countValue(
+      context.env.DB.prepare("SELECT COUNT(*) AS issued FROM redeem_codes WHERE created_at >= ?")
+        .bind(sevenDaysAgo)
+        .first<CountRow>(),
+      "issued",
+    ),
+    countValue(
+      context.env.DB.prepare("SELECT COUNT(DISTINCT code_id) AS redeemed FROM redeem_grants")
+        .bind()
+        .first<CountRow>(),
+      "redeemed",
+    ),
+    countValue(
+      context.env.DB.prepare(
+        "SELECT COUNT(DISTINCT code_id) AS redeemed FROM redeem_grants WHERE granted_at >= ?",
+      )
+        .bind(sevenDaysAgo)
+        .first<CountRow>(),
+      "redeemed",
+    ),
+    countValue(
+      context.env.DB.prepare(
+        "SELECT COUNT(*) AS expiring FROM redeem_codes c WHERE c.expires_at < ? AND c.revoked_at IS NULL AND NOT EXISTS (SELECT 1 FROM redeem_grants g WHERE g.code_id = c.id)",
+      )
+        .bind(sevenDaysFromNow)
+        .first<CountRow>(),
+      "expiring",
+    ),
+    context.env.DB.prepare(
+      "SELECT c.label AS batch_id, MIN(c.created_at) AS issued_at, c.created_by AS issued_by, COUNT(*) AS total, COUNT(DISTINCT g.code_id) AS redeemed, SUM(CASE WHEN c.expires_at < ? AND g.code_id IS NULL THEN 1 ELSE 0 END) AS expired, SUM(CASE WHEN c.expires_at >= ? AND g.code_id IS NULL AND c.revoked_at IS NULL THEN 1 ELSE 0 END) AS unused FROM redeem_codes c LEFT JOIN redeem_grants g ON g.code_id = c.id GROUP BY c.label, c.created_by ORDER BY issued_at DESC LIMIT 100",
+    )
+      .bind(nowIso, nowIso)
+      .all<RedeemBatchRow>(),
+  ]);
+
+  return context.json({
+    generatedAt: nowIso,
+    tiles: [
+      { key: "issued", label: "Codes issued", value: issued, secondaryValue: issued7d },
+      { key: "redeemed", label: "Codes redeemed", value: redeemed, secondaryValue: redeemed7d },
+      {
+        key: "redemptionRate",
+        label: "Redemption rate",
+        value: issued === 0 ? 0 : Math.round((redeemed / issued) * 100),
+      },
+      { key: "expiringSoon", label: "Expiring soon", value: expiringSoon },
+    ],
+    batches: (batchesResult.results ?? []).map((row) => ({
+      batchId: row.batch_id,
+      issuedAt: row.issued_at,
+      issuedBy: row.issued_by,
+      total: row.total,
+      redeemed: row.redeemed,
+      expired: row.expired,
+      unused: row.unused,
+    })),
+  });
+});
+
+adminRouter.post("/redeem/generate", async (context) => {
+  let body: unknown;
+  try {
+    body = await context.req.json();
+  } catch {
+    return context.json({ code: "INVALID_JSON" }, 400);
+  }
+  const parsed = parseRedeemGenerateBody(body);
+  if (!parsed) {
+    return context.json({ code: "INVALID_INPUT" }, 400);
+  }
+
+  const actor = RESOLVED_ACTOR(context.req.raw);
+  const now = new Date().toISOString();
+  const codes: string[] = [];
+  for (let i = 0; i < parsed.count; i++) {
+    const plaintext = generateRedeemCode();
+    const codeHash = await hashRedeemCode(plaintext);
+    await context.env.DB.prepare(
+      "INSERT INTO redeem_codes (id, code_hash, label, created_by, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+      .bind(`rc_${crypto.randomUUID()}`, codeHash, parsed.batchId, actor, now, parsed.expiresAt)
+      .run();
+    codes.push(plaintext);
+  }
+
+  return context.json({
+    batchId: parsed.batchId,
+    count: codes.length,
+    codes,
+    generatedAt: now,
   });
 });
 
@@ -600,6 +720,20 @@ const reportUrlFromPayload = (payloadJson: string): string | null => {
   } catch {
     return null;
   }
+};
+
+const parseRedeemGenerateBody = (
+  body: unknown,
+): { batchId: string; count: number; expiresAt: string } | null => {
+  if (typeof body !== "object" || body === null) return null;
+  const input = body as Record<string, unknown>;
+  const batchId = pickString(input.batchId);
+  const count = typeof input.count === "number" ? input.count : Number.NaN;
+  const expiresAt = pickString(input.expiresAt);
+  if (!batchId || batchId.length > 200) return null;
+  if (!Number.isInteger(count) || count < 1 || count > 100) return null;
+  if (!expiresAt || !isIsoDate(expiresAt)) return null;
+  return { batchId, count, expiresAt };
 };
 
 const daysAgoIso = (days: number): string => {

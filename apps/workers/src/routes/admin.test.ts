@@ -238,6 +238,100 @@ describe("admin router", () => {
     });
   });
 
+  describe("GET /v1/admin/redeem", () => {
+    it("returns redeem inventory tiles and batch rows without plaintext codes", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS issued FROM redeem_codes",
+        firstReturn: { issued: 10 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS issued FROM redeem_codes WHERE created_at >= ?",
+        firstReturn: { issued: 4 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(DISTINCT code_id) AS redeemed FROM redeem_grants",
+        firstReturn: { redeemed: 6 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(DISTINCT code_id) AS redeemed FROM redeem_grants WHERE granted_at >= ?",
+        firstReturn: { redeemed: 2 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS expiring FROM redeem_codes c WHERE c.expires_at < ? AND c.revoked_at IS NULL AND NOT EXISTS (SELECT 1 FROM redeem_grants g WHERE g.code_id = c.id)",
+        firstReturn: { expiring: 1 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT c.label AS batch_id, MIN(c.created_at) AS issued_at, c.created_by AS issued_by, COUNT(*) AS total, COUNT(DISTINCT g.code_id) AS redeemed, SUM(CASE WHEN c.expires_at < ? AND g.code_id IS NULL THEN 1 ELSE 0 END) AS expired, SUM(CASE WHEN c.expires_at >= ? AND g.code_id IS NULL AND c.revoked_at IS NULL THEN 1 ELSE 0 END) AS unused FROM redeem_codes c LEFT JOIN redeem_grants g ON g.code_id = c.id GROUP BY c.label, c.created_by ORDER BY issued_at DESC LIMIT 100",
+        firstReturn: null,
+        allReturn: [
+          {
+            batch_id: "Q3 marketing campaign",
+            issued_at: "2026-08-01T00:00:00.000Z",
+            issued_by: "ops@safelaunch.app",
+            total: 10,
+            redeemed: 6,
+            expired: 1,
+            unused: 3,
+          },
+        ],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/redeem"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        tiles: Array<{ key: string; value: number; secondaryValue?: number }>;
+        batches: Array<{ batchId: string; unused: number }>;
+      }>(response);
+      expect(body.tiles).toEqual([
+        { key: "issued", label: "Codes issued", value: 10, secondaryValue: 4 },
+        { key: "redeemed", label: "Codes redeemed", value: 6, secondaryValue: 2 },
+        { key: "redemptionRate", label: "Redemption rate", value: 60 },
+        { key: "expiringSoon", label: "Expiring soon", value: 1 },
+      ]);
+      expect(body.batches[0]).toMatchObject({ batchId: "Q3 marketing campaign", unused: 3 });
+      expect(JSON.stringify(body)).not.toContain("SL-");
+      expect(JSON.stringify(body)).not.toContain("code_hash");
+    });
+  });
+
+  describe("POST /v1/admin/redeem/generate", () => {
+    it("generates plaintext codes once for a batch", async () => {
+      const db = new FakeD1();
+
+      const response = await runWithDb(
+        db,
+        new Request("http://local/v1/admin/redeem/generate", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "cf-access-authenticated-user-email": "ops@safelaunch.app",
+          },
+          body: JSON.stringify({
+            batchId: "Q3 marketing campaign",
+            count: 2,
+            expiresAt: "2026-09-01T00:00:00.000Z",
+          }),
+        }),
+      );
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{ codes: string[]; batchId: string }>(response);
+      expect(body.batchId).toBe("Q3 marketing campaign");
+      expect(body.codes).toHaveLength(2);
+      expect(body.codes[0]).toMatch(/^SL-/);
+      expect(
+        db.preparedCalls.filter((call) => call.sql.includes("INSERT INTO redeem_codes")),
+      ).toHaveLength(2);
+    });
+  });
+
   describe("GET /v1/admin/audit", () => {
     it("lists review events with default pagination and date filters", async () => {
       const db = new FakeD1();
