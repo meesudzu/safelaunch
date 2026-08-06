@@ -370,3 +370,19 @@ export const collectDigitalAssets = async (input: {
     .slice(0, MAX_ASSETS);
   return classifyAssetRights(deduped, input.fetcher, input.html);
 };
+
+/**
+ * Heuristic: returns true when at least one evidence page contains a font
+ * reference candidate (preload link, @font-face url, etc.) so we can
+ * distinguish "page really has no assets" from "the loop died before
+ * producing any output". Used only to flag a degraded phase, not to change
+ * compliance findings.
+ */
+export const pageHasAssetCandidates = (
+  pages: ReadonlyArray<{ url: string; html: string }>,
+): boolean => {
+  for (const page of pages) {
+    if (collectAssetReferences(page.url, page.html).length > 0) return true;
+  }
+  return false;
+};
