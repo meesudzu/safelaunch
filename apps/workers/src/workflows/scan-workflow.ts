@@ -14,7 +14,6 @@ import {
   pageHasAssetCandidates,
   type AssetFetcher,
   type AssetFinding,
-  type AssetReference,
 } from "../services/digital-assets";
 import { detectServiceSignals } from "../services/service-signals";
 import {
