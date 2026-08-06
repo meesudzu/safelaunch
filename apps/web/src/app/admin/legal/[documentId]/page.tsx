@@ -60,42 +60,38 @@ export default async function LegalReviewPage({
   }
   if (accessDenied) {
     return (
-      <main className="bg-bg text-ink font-sans">
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="font-serif text-2xl font-semibold">{messages.title}</h1>
-          <p
-            role="alert"
-            data-testid="admin-error"
-            className="mt-4 rounded-sm border border-error bg-error/10 p-3 text-sm text-error"
-          >
-            {messages["review.access_required"]}
-          </p>
-          <a
-            href="/admin/legal"
-            className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-          >
-            {messages["review.back"]}
-          </a>
-        </div>
-      </main>
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <h1 className="font-serif text-2xl font-semibold">{messages.title}</h1>
+        <p
+          role="alert"
+          data-testid="admin-error"
+          className="mt-4 rounded-sm border border-error bg-error/10 p-3 text-sm text-error"
+        >
+          {messages["review.access_required"]}
+        </p>
+        <a
+          href="/admin/legal"
+          className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+        >
+          {messages["review.back"]}
+        </a>
+      </div>
     );
   }
   if (notFound || !document) {
     return (
-      <main className="bg-bg text-ink font-sans">
-        <div className="mx-auto max-w-2xl px-6 py-16">
-          <h1 className="font-serif text-2xl font-semibold">{messages["review.title"]}</h1>
-          <p data-testid="document-not-found" className="mt-4 text-sm text-ink-soft">
-            {messages["review.not_found"]}
-          </p>
-          <a
-            href="/admin/legal"
-            className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-          >
-            {messages["review.back"]}
-          </a>
-        </div>
-      </main>
+      <div className="mx-auto max-w-2xl px-6 py-16">
+        <h1 className="font-serif text-2xl font-semibold">{messages["review.title"]}</h1>
+        <p data-testid="document-not-found" className="mt-4 text-sm text-ink-soft">
+          {messages["review.not_found"]}
+        </p>
+        <a
+          href="/admin/legal"
+          className="mt-6 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
+        >
+          {messages["review.back"]}
+        </a>
+      </div>
     );
   }
 
@@ -107,40 +103,33 @@ export default async function LegalReviewPage({
   }
 
   return (
-    <main>
-      <header className="border-b border-rule px-6 py-5">
-        <a
-          href="/admin/legal"
-          className="text-xs font-semibold uppercase tracking-wider text-accent hover:underline"
-        >
-          {messages["review.back"]}
-        </a>
-      </header>
-      <div className="mx-auto max-w-4xl px-6 py-10">
-        <LegalReviewForm
-          messages={{
-            title: messages["review.title"],
-            source: messages["list.document"] + " URL",
-            retrievedAt: messages["list.retrieved"],
-            sourceHash: "Source hash",
-            effectiveFrom: "Effective from",
-            effectiveTo: "Effective to",
-            provisions: "Parsed provisions",
-            relations: "Document relations",
-            audit: "Audit history",
-            reason: "Reason",
-            approve: "Approve",
-            reject: "Reject",
-            reasonRequired: "A reason is required before submitting this decision.",
-            submitting: "Submitting…",
-          }}
-          document={document}
-          submit={submitReviewAction}
-        />
-      </div>
-      <footer className="border-t border-rule px-6 py-4 text-xs text-ink-soft">
-        {messages["footer.disclosure"]}
-      </footer>
-    </main>
+    <div className="mx-auto max-w-4xl px-6 py-10">
+      <a
+        href="/admin/legal"
+        className="mb-6 inline-flex text-xs font-semibold uppercase tracking-wider text-accent hover:underline"
+      >
+        {messages["review.back"]}
+      </a>
+      <LegalReviewForm
+        messages={{
+          title: messages["review.title"],
+          source: messages["list.document"] + " URL",
+          retrievedAt: messages["list.retrieved"],
+          sourceHash: "Source hash",
+          effectiveFrom: "Effective from",
+          effectiveTo: "Effective to",
+          provisions: "Parsed provisions",
+          relations: "Document relations",
+          audit: "Audit history",
+          reason: "Reason",
+          approve: "Approve",
+          reject: "Reject",
+          reasonRequired: "A reason is required before submitting this decision.",
+          submitting: "Submitting…",
+        }}
+        document={document}
+        submit={submitReviewAction}
+      />
+    </div>
   );
 }
