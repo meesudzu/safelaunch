@@ -429,6 +429,14 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       };
     }
 
+    // Cloudflare's workflow visualizer emits a discrete IfBranch for an
+    // explicit if (cond) { ... } block; without this wrapper, the
+    // visualizer treats the success path as the implicit "rest of function"
+    // tail and attaches the failure-path phase-10:persist-terminal to the
+    // left of homepagePage.ok. Wrapping the success path makes the dashboard
+    // graph render with the failure branch on the left and the success chain
+    // on the right.
+    if (homepagePage.ok) {
     // 3. fetch:<page> — four inlined literal-named `step.do` calls, one
     //    per non-homepage page type.
     //
@@ -900,6 +908,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
       coverage,
       reportUrl: report.url,
     };
+    }
   }
 }
 
