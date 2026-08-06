@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  assessFontLicense,
-  parseFontBytes,
-  type FontRegistry,
-} from "./font-inspector";
+import { assessFontLicense, parseFontBytes, type FontRegistry } from "./font-inspector";
 import fontRegistry from "../data/font-registry.json";
 import {
   robotoRegularBytes,
@@ -201,7 +197,7 @@ describe("assessFontLicense", () => {
       // SHA differs from the registered hash → registry_hash_mismatch.
       host: "cdn.example.com",
       contextHtml: "",
-      sha256: 'a'.repeat(64),
+      sha256: "a".repeat(64),
       registry: REGISTRY,
     });
     expect(assessment.status).toBe("conflicting");

@@ -32,8 +32,7 @@ import type {
  * that work here.
  */
 const STYLE_BLOCK_RE = /<style\b[^>]*>([\s\S]*?)<\/style>/giu;
-const FONT_FACE_RE =
-  /@font-face\s*\{([\s\S]*?)\}/giu;
+const FONT_FACE_RE = /@font-face\s*\{([\s\S]*?)\}/giu;
 const FONT_FAMILY_RE = /font-family\s*:\s*["']?([^;"'}\s]+)["']?/iu;
 const FONT_FACE_SRC_RE = /url\(\s*["']?([^"')\s]+)["']?\s*\)/giu;
 
@@ -43,9 +42,7 @@ const splitStyleBlocks = (html: string): string[] => {
   return out;
 };
 
-const parseFontFaceRule = (
-  body: string,
-): { family: string | null; urls: string[] } => {
+const parseFontFaceRule = (body: string): { family: string | null; urls: string[] } => {
   const family = body.match(FONT_FAMILY_RE)?.[1] ?? null;
   const urls: string[] = [];
   for (const m of body.matchAll(FONT_FACE_SRC_RE)) {
@@ -54,10 +51,7 @@ const parseFontFaceRule = (
   return { family, urls };
 };
 
-export const extractFontFamilyFromCss = (
-  css: string,
-  html: string,
-): Map<string, string[]> => {
+export const extractFontFamilyFromCss = (css: string, html: string): Map<string, string[]> => {
   const map = new Map<string, string[]>();
   const cssText = [css, ...splitStyleBlocks(html)].join("\n");
   for (const m of cssText.matchAll(FONT_FACE_RE)) {
@@ -151,18 +145,14 @@ const pickRepresentativeLicense = (
   return null;
 };
 
-const averageConfidence = (
-  variants: ReadonlyArray<{ confidence: number }>,
-): number => {
+const averageConfidence = (variants: ReadonlyArray<{ confidence: number }>): number => {
   if (variants.length === 0) return 0;
   let total = 0;
   for (const v of variants) total += v.confidence;
   return total / variants.length;
 };
 
-const minConfidence = (
-  variants: ReadonlyArray<{ confidence: number }>,
-): number => {
+const minConfidence = (variants: ReadonlyArray<{ confidence: number }>): number => {
   let min = 1;
   for (const v of variants) {
     if (v.confidence < min) min = v.confidence;
@@ -190,8 +180,7 @@ export const groupAssetsIntoFamilies = (
   for (const asset of assets) {
     if (asset.kind !== "font") continue;
     const fromInfo = normalizeFamily(asset.fontInfo?.familyName);
-    const fromCss =
-      fromInfo === "" ? findCssFamilyForAsset(asset, cssMap) : null;
+    const fromCss = fromInfo === "" ? findCssFamilyForAsset(asset, cssMap) : null;
     const familyKey = (fromInfo || fromCss || "").toLowerCase();
     const displayFamily = fromInfo || fromCss || "Unknown";
     if (familyKey === "") {
@@ -244,8 +233,7 @@ export const groupAssetsIntoFamilies = (
       (a) => ({ status: a.fontLicense?.status }),
     );
     const { status, mismatch } = mergeStatus(statusInputs);
-    const flagged =
-      g.items.some((a) => isFlaggedEvidence(a.licenseEvidence)) || mismatch;
+    const flagged = g.items.some((a) => isFlaggedEvidence(a.licenseEvidence)) || mismatch;
     const representativeFontInfo = pickRepresentativeFontInfo(
       g.items.map((a) => ({ fontInfo: a.fontInfo ?? null })),
     );
@@ -273,9 +261,7 @@ export const groupAssetsIntoFamilies = (
     }
 
     // Most common host wins.
-    const sortedHosts = Array.from(g.hosts.entries()).sort(
-      (a, b) => b[1] - a[1],
-    );
+    const sortedHosts = Array.from(g.hosts.entries()).sort((a, b) => b[1] - a[1]);
     const primaryHost = sortedHosts[0]?.[0] ?? g.items[0]!.host;
 
     const group: FontFamilyGroup = {
@@ -291,9 +277,7 @@ export const groupAssetsIntoFamilies = (
         representativeLicense?.confidence ??
         averageConfidence(g.items.map((a) => ({ confidence: a.confidence }))),
       flagged,
-      citationCount: representativeLicense
-        ? representativeLicense.evidenceSources.length
-        : 0,
+      citationCount: representativeLicense ? representativeLicense.evidenceSources.length : 0,
     };
     out.push(group);
   }

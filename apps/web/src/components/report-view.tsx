@@ -133,7 +133,13 @@ export interface ReportFontFamilyGroupView {
     readonly status: ReportFontLicenseStatusView;
     readonly reasonCodes: readonly string[];
     readonly confidence: number;
-    readonly evidenceSources: ReadonlyArray<{ provisionId: string; source: string; url: string; retrievedAt: string; excerpt: string }>;
+    readonly evidenceSources: ReadonlyArray<{
+      provisionId: string;
+      source: string;
+      url: string;
+      retrievedAt: string;
+      excerpt: string;
+    }>;
     readonly retrievedAt: string;
     readonly registryVersion: string | null;
   } | null;
@@ -522,7 +528,8 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
             <p className="mt-2 text-sm text-ink-soft">
               {report.fontInventory.totals.families} {locale === "vi" ? "family" : "families"} ·{" "}
               {report.fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
-              {report.fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
+              {report.fontInventory.totals.flagged}{" "}
+              {locale === "vi" ? "cần xem xét" : "need review"}
             </p>
             <ul className="mt-3 flex flex-col gap-3 text-xs">
               {report.fontInventory.groups.map((group) => (
@@ -532,9 +539,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                   data-testid="font-family-row"
                 >
                   <p className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold uppercase tracking-wider">
-                      {group.family}
-                    </span>
+                    <span className="font-semibold uppercase tracking-wider">{group.family}</span>
                     {group.fontLicense ? (
                       <span
                         data-testid="font-license-badge"
@@ -547,31 +552,29 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                         {fontLicenseLabel(messages, group.fontLicense.status)}
                       </span>
                     ) : (
-                      <span
-                        className="inline-flex items-center rounded-sm border border-ink-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft"
-                      >
-                        {messages["font.family.unknown"] ?? (locale === "vi" ? "Không xác định" : "Unknown")}
+                      <span className="inline-flex items-center rounded-sm border border-ink-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+                        {messages["font.family.unknown"] ??
+                          (locale === "vi" ? "Không xác định" : "Unknown")}
                       </span>
                     )}
                   </p>
                   <p className="mt-1 text-ink-soft">
-                    {group.variants.length} {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} · {group.host} ·{" "}
-                    {(group.confidence * 100).toFixed(0)}%
+                    {group.variants.length}{" "}
+                    {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} ·{" "}
+                    {group.host} · {(group.confidence * 100).toFixed(0)}%
                   </p>
                   {group.fontInfo?.familyName ? (
                     <p className="mt-1 text-ink-soft">
-                      {locale === "vi" ? "Tên trong file" : "File name"}: {group.fontInfo.familyName}
-                      {group.fontInfo.subfamilyName ? (
-                        <> {group.fontInfo.subfamilyName}</>
-                      ) : null}
-                      {group.fontInfo.version ? (
-                        <> · {group.fontInfo.version}</>
-                      ) : null}
+                      {locale === "vi" ? "Tên trong file" : "File name"}:{" "}
+                      {group.fontInfo.familyName}
+                      {group.fontInfo.subfamilyName ? <> {group.fontInfo.subfamilyName}</> : null}
+                      {group.fontInfo.version ? <> · {group.fontInfo.version}</> : null}
                     </p>
                   ) : null}
                   {group.fontLicense?.registryVersion ? (
                     <p className="mt-1 text-ink-soft">
-                      {locale === "vi" ? "Registry" : "Registry"}: {group.fontLicense.registryVersion}
+                      {locale === "vi" ? "Registry" : "Registry"}:{" "}
+                      {group.fontLicense.registryVersion}
                     </p>
                   ) : null}
                   {group.fontLicense?.evidenceSources.length ? (
@@ -581,7 +584,10 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                         if (!approved) {
                           return (
                             <span key={citation.url} className="mr-2">
-                              {messages["font.source_unavailable"] ?? (locale === "vi" ? "Liên kết nguồn không khả dụng" : "Source link unavailable")}
+                              {messages["font.source_unavailable"] ??
+                                (locale === "vi"
+                                  ? "Liên kết nguồn không khả dụng"
+                                  : "Source link unavailable")}
                             </span>
                           );
                         }
@@ -601,20 +607,21 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                   ) : null}
                   <details className="mt-2" open>
                     <summary className="cursor-pointer text-ink-soft">
-                      {messages["font.family.open_details"] ?? (locale === "vi" ? "Xem các biến thể" : "Show variants")} ({group.variants.length})
+                      {messages["font.family.open_details"] ??
+                        (locale === "vi" ? "Xem các biến thể" : "Show variants")}{" "}
+                      ({group.variants.length})
                     </summary>
                     <ul className="mt-2 flex flex-col gap-2">
                       {group.variants.map((variant) => (
                         <li key={variant.assetId} className="border-l-2 border-rule pl-2">
                           <p className="font-mono text-ink break-all">{variant.url}</p>
                           <p className="text-ink-soft">
-                            {variant.postscriptName ?? (locale === "vi" ? "Không rõ PostScript name" : "Unknown PostScript name")}
-                            {variant.subfamilyName ? (
-                              <> · {variant.subfamilyName}</>
-                            ) : null}
-                            {variant.version ? (
-                              <> · {variant.version}</>
-                            ) : null}
+                            {variant.postscriptName ??
+                              (locale === "vi"
+                                ? "Không rõ PostScript name"
+                                : "Unknown PostScript name")}
+                            {variant.subfamilyName ? <> · {variant.subfamilyName}</> : null}
+                            {variant.version ? <> · {variant.version}</> : null}
                           </p>
                         </li>
                       ))}

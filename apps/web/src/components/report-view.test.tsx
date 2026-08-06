@@ -535,7 +535,6 @@ describe("severity tabs", () => {
   });
 });
 
-
 describe("font inventory (V1)", () => {
   it("groups Roboto variants into one row with a verified_open badge", () => {
     const report: ReportPayload = {

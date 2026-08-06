@@ -1072,8 +1072,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
       return true;
     });
     const dedupedFindings = assetFindings.filter(
-      (finding, index, all) =>
-        all.findIndex((candidate) => candidate.id === finding.id) === index,
+      (finding, index, all) => all.findIndex((candidate) => candidate.id === finding.id) === index,
     );
     const fontInventory = groupAssetsIntoFamilies(dedupedAssets, pageHtml[0]?.html ?? "");
     const assetInventory = {

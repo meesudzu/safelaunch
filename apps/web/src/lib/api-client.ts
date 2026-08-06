@@ -89,21 +89,9 @@ export interface ReportLicenseCheckDto {
 }
 
 export type ReportFontFsType =
-  | "installable"
-  | "restricted"
-  | "preview_print"
-  | "editable"
-  | "bitmap_only"
-  | "unknown";
+  "installable" | "restricted" | "preview_print" | "editable" | "bitmap_only" | "unknown";
 
-export type ReportFontFormat =
-  | "TTF"
-  | "OTF"
-  | "WOFF"
-  | "WOFF2"
-  | "TTC"
-  | "DFont"
-  | "Unknown";
+export type ReportFontFormat = "TTF" | "OTF" | "WOFF" | "WOFF2" | "TTC" | "DFont" | "Unknown";
 
 export type ReportFontLicenseStatus =
   | "verified_open"

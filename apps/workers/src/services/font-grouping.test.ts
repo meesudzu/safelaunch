@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  extractFontFamilyFromCss,
-  groupAssetsIntoFamilies,
-} from "./font-grouping";
-import type {
-  DigitalAsset,
-  FontLicenseAssessment,
-  FontLicenseStatus,
-} from "@safelaunch/contracts";
+import { extractFontFamilyFromCss, groupAssetsIntoFamilies } from "./font-grouping";
+import type { DigitalAsset, FontLicenseAssessment, FontLicenseStatus } from "@safelaunch/contracts";
 
 const baseFontInfo = {
   familyName: "Roboto",
@@ -140,8 +133,16 @@ describe("groupAssetsIntoFamilies", () => {
 
   it("puts assets with no metadata into a single 'Unknown' group", () => {
     const assets: DigitalAsset[] = [
-      makeAsset({ id: "asset::font::1", url: "https://example.com/garbage.woff2", host: "example.com" }),
-      makeAsset({ id: "asset::font::2", url: "https://example.com/garbage2.woff2", host: "example.com" }),
+      makeAsset({
+        id: "asset::font::1",
+        url: "https://example.com/garbage.woff2",
+        host: "example.com",
+      }),
+      makeAsset({
+        id: "asset::font::2",
+        url: "https://example.com/garbage2.woff2",
+        host: "example.com",
+      }),
     ];
     const inv = groupAssetsIntoFamilies(assets, "");
     expect(inv.groups).toHaveLength(1);
@@ -161,7 +162,13 @@ describe("groupAssetsIntoFamilies", () => {
         id: "asset::font::2",
         url: "https://example.com/a.woff2",
         host: "example.com",
-        fontInfo: { ...baseFontInfo, familyName: "Arial", postscriptName: "ArialMT", subfamilyName: "Regular", fullName: "Arial Regular" },
+        fontInfo: {
+          ...baseFontInfo,
+          familyName: "Arial",
+          postscriptName: "ArialMT",
+          subfamilyName: "Regular",
+          fullName: "Arial Regular",
+        },
       }),
     ];
     const inv = groupAssetsIntoFamilies(assets, "");
@@ -223,7 +230,12 @@ describe("groupAssetsIntoFamilies", () => {
         id: "asset::font::2",
         url: "https://example.com/i.woff2",
         host: "example.com",
-        fontInfo: { ...baseFontInfo, familyName: "Inter", postscriptName: "Inter-Regular", fullName: "Inter Regular" },
+        fontInfo: {
+          ...baseFontInfo,
+          familyName: "Inter",
+          postscriptName: "Inter-Regular",
+          fullName: "Inter Regular",
+        },
       }),
     ];
     const inv = groupAssetsIntoFamilies(assets, "");
@@ -232,7 +244,12 @@ describe("groupAssetsIntoFamilies", () => {
 
   it("ignores non-font assets", () => {
     const assets: DigitalAsset[] = [
-      makeAsset({ id: "asset::image::1", url: "https://cdn.example.com/hero.jpg", host: "cdn.example.com", kind: "image" }),
+      makeAsset({
+        id: "asset::image::1",
+        url: "https://cdn.example.com/hero.jpg",
+        host: "cdn.example.com",
+        kind: "image",
+      }),
     ];
     const inv = groupAssetsIntoFamilies(assets, "");
     expect(inv.groups).toHaveLength(0);

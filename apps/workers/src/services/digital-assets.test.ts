@@ -30,9 +30,9 @@ describe("digital asset collection (font-only scope)", () => {
     // Token redaction still applied.
     expect(refs.some((ref) => ref.url.includes("token"))).toBe(false);
     // Google Fonts CDN recognized as font source.
-    expect(
-      refs.some((ref) => ref.kind === "font" && ref.url.includes("fonts.gstatic.com")),
-    ).toBe(true);
+    expect(refs.some((ref) => ref.kind === "font" && ref.url.includes("fonts.gstatic.com"))).toBe(
+      true,
+    );
   });
 
   it("drops CSS background-image references (image kind) even when found in inline styles", () => {

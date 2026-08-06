@@ -52,14 +52,14 @@ self-hosted OFL/CC), and a missing-evidence signal reflects the
 detection limit, not the absence of a license. The user is asked to
 verify before launch.
 
-| Status | Severity in report | Notes |
-|---|---|---|
-| `verified_open` | pass (no finding) | The asset is exposed in the inventory with a green badge. |
-| `declared_open` | review | Inventory shows a blue badge; user still confirms contract terms. |
-| `requires_license_proof` | review | Inventory shows a gold badge; "Gợi ý" tooltip makes it clear this is a hint, not a verdict. |
-| `unknown` | review | Inventory shows a grey badge; "Chưa tìm thấy bằng chứng". |
-| `conflicting` | review | Inventory shows a red badge; users should investigate (fork / mismatched binary). |
-| `unavailable` | pass (no finding) | Inventory shows a muted badge; binary was not downloaded. |
+| Status                   | Severity in report | Notes                                                                                       |
+| ------------------------ | ------------------ | ------------------------------------------------------------------------------------------- |
+| `verified_open`          | pass (no finding)  | The asset is exposed in the inventory with a green badge.                                   |
+| `declared_open`          | review             | Inventory shows a blue badge; user still confirms contract terms.                           |
+| `requires_license_proof` | review             | Inventory shows a gold badge; "Gợi ý" tooltip makes it clear this is a hint, not a verdict. |
+| `unknown`                | review             | Inventory shows a grey badge; "Chưa tìm thấy bằng chứng".                                   |
+| `conflicting`            | review             | Inventory shows a red badge; users should investigate (fork / mismatched binary).           |
+| `unavailable`            | pass (no finding)  | Inventory shows a muted badge; binary was not downloaded.                                   |
 
 ## Sources and citations
 

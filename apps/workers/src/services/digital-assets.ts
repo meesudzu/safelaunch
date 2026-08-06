@@ -63,7 +63,6 @@ export const MAX_FONT_INSPECTION_BYTES = 4_000_000;
  *  evidence-based classification but skip metadata extraction. */
 export const MAX_FONT_INSPECTIONS = 25;
 
-
 const FONT_REGISTRY: FontRegistry = {
   version: fontRegistry.registryVersion,
   fonts: fontRegistry.fonts,

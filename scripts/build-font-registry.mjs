@@ -30,13 +30,7 @@ const REGISTRY_VERSION = `google-fonts-manual-snapshot-2026-08-06`;
 // (tree API + textproto METADATA.pb), but V1 keeps the registry small and
 // auditable. Each entry MUST include a `sourceUrl` and `retrievedAt` so
 // downstream consumers can re-verify provenance.
-const FAMILIES = [
-  "roboto",
-  "inter",
-  "sourceserif4",
-  "jetbrainsmono",
-  "notosans",
-];
+const FAMILIES = ["roboto", "inter", "sourceserif4", "jetbrainsmono", "notosans"];
 
 const FONT_NAMES = {
   roboto: "Roboto",
@@ -47,9 +41,21 @@ const FONT_NAMES = {
 };
 
 const COMMERCIAL_NAME_HINTS = [
-  { family: "Arial", note: "Commonly known commercial font (Monotype)", sourceUrl: "https://en.wikipedia.org/wiki/Arial" },
-  { family: "Helvetica", note: "Commonly known commercial font (Monotype)", sourceUrl: "https://en.wikipedia.org/wiki/Helvetica" },
-  { family: "Times New Roman", note: "Commonly known commercial font (Monotype)", sourceUrl: "https://en.wikipedia.org/wiki/Times_New_Roman" },
+  {
+    family: "Arial",
+    note: "Commonly known commercial font (Monotype)",
+    sourceUrl: "https://en.wikipedia.org/wiki/Arial",
+  },
+  {
+    family: "Helvetica",
+    note: "Commonly known commercial font (Monotype)",
+    sourceUrl: "https://en.wikipedia.org/wiki/Helvetica",
+  },
+  {
+    family: "Times New Roman",
+    note: "Commonly known commercial font (Monotype)",
+    sourceUrl: "https://en.wikipedia.org/wiki/Times_New_Roman",
+  },
 ];
 
 // Minimal textproto reader: returns the first `key: "value"` pair found.
@@ -115,9 +121,8 @@ async function main() {
       console.error(`! skipping ${slug}:`, cause.message);
     }
   }
-  all.sort((a, b) =>
-    a.family.localeCompare(b.family) ||
-    a.postscriptName.localeCompare(b.postscriptName),
+  all.sort(
+    (a, b) => a.family.localeCompare(b.family) || a.postscriptName.localeCompare(b.postscriptName),
   );
   const out = {
     registryVersion: REGISTRY_VERSION,

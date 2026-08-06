@@ -58,10 +58,7 @@ export interface FontRegistry {
  * as a hard requirement because some hosts serve font bytes with a
  * generic `application/octet-stream` content type.
  */
-const probeFormat = (
-  bytes: Uint8Array,
-  contentType: string | null,
-): FontInfo["format"] => {
+const probeFormat = (bytes: Uint8Array, contentType: string | null): FontInfo["format"] => {
   if (bytes.byteLength < 4) return "Unknown";
   const tag = String.fromCharCode(bytes[0]!, bytes[1]!, bytes[2]!, bytes[3]!);
   if (tag === "wOF2") return "WOFF2";
@@ -69,11 +66,7 @@ const probeFormat = (
   if (tag === "OTTO") return "OTF";
   if (tag === "true" || tag === String.fromCharCode(0, 1, 0, 0)) return "TTF";
   if (tag === "ttcf") return "TTC";
-  if (
-    bytes.byteLength >= 256 &&
-    contentType !== null &&
-    /dfont|macbinary/i.test(contentType)
-  ) {
+  if (bytes.byteLength >= 256 && contentType !== null && /dfont|macbinary/i.test(contentType)) {
     return "DFont";
   }
   return "Unknown";
@@ -125,7 +118,18 @@ interface FontkitFont {
   postscriptName?: string | null;
   version?: string | null;
   copyright?: string | null;
-  "OS/2"?: { fsType?: number | { noEmbedding?: boolean; viewOnly?: boolean; editable?: boolean; noSubsetting?: boolean; bitmapOnly?: boolean }; achVendID?: string };
+  "OS/2"?: {
+    fsType?:
+      | number
+      | {
+          noEmbedding?: boolean;
+          viewOnly?: boolean;
+          editable?: boolean;
+          noSubsetting?: boolean;
+          bitmapOnly?: boolean;
+        };
+    achVendID?: string;
+  };
   getName?: (key: string) => string | null;
   name?: { records?: Record<string, unknown> };
 }
@@ -134,10 +138,7 @@ interface FontkitFont {
  * iterate the collection manually. The only branch we take is to keep
  * the public `format` accurate.
  */
-export const parseFontBytes = (
-  bytes: Uint8Array,
-  contentType: string | null,
-): FontInfo | null => {
+export const parseFontBytes = (bytes: Uint8Array, contentType: string | null): FontInfo | null => {
   if (bytes.byteLength < 4) return null;
   const format = probeFormat(bytes, contentType);
   let font: FontkitFont | null;
@@ -317,10 +318,7 @@ export const assessFontLicense = (input: AssessFontLicenseInput): FontLicenseAss
       status: "verified_open",
       reasonCodes: ["registry_hash_match"],
       confidence: 0.95,
-      evidenceSources: [
-        ...mergeCitations(["registry_hash_match"]),
-        registry.citation,
-      ],
+      evidenceSources: [...mergeCitations(["registry_hash_match"]), registry.citation],
       retrievedAt,
       registryVersion: registry.version,
     };
@@ -338,10 +336,7 @@ export const assessFontLicense = (input: AssessFontLicenseInput): FontLicenseAss
       status: "verified_open",
       reasonCodes: ["google_provider_identity_match"],
       confidence: 0.9,
-      evidenceSources: [
-        ...mergeCitations(["google_provider_identity_match"]),
-        registry.citation,
-      ],
+      evidenceSources: [...mergeCitations(["google_provider_identity_match"]), registry.citation],
       retrievedAt,
       registryVersion: registry.version,
     };

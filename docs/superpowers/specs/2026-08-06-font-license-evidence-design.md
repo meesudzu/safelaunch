@@ -22,7 +22,7 @@ User report (2026-08-06) of two production defects on `/vi/report/rpt_*`:
 
 1. The digital-asset inventory currently lists every font file as its
    own row. A site that uses `Roboto-Regular/Bold/Italic/Medium.woff2|
-   .woff|.ttf` shows eight lines even though they all belong to the
+.woff|.ttf` shows eight lines even though they all belong to the
    same font family. This makes the inventory noisy and pushes
    `verification before launch` noise to the top of the report.
 2. The current "license evidence" classification is **HTML-only**
