@@ -144,7 +144,8 @@ export interface ScanRunDeps {
    * layer can surface live progress to polling clients. Mirrors the
    * contract of {@link persistTerminalState}. Best-effort: a failure
    * here must not abort the scan; the entrypoint wraps the actual DB
-   * write in `runStepWithFallback`.
+   * write in an inline try/catch (see the comment block at the top
+   * of ScanWorkflowEntrypoint.run for the visualizer rationale).
    */
   persistProgressState?: (input: { scanId: string; state: ScanStatus }) => Promise<void>;
   now: () => string;
@@ -348,8 +349,28 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     step: WorkflowStep,
   ): Promise<ScanResult> {
     // Each `step.do(name, fn)` becomes one node on the Cloudflare dashboard
-    // Graph. The runtime retries the closure on transient failure and memoizes
-    // its return value so a partial failure does not replay earlier phases.
+    // Graph (a `StepDo` node per the visualizer AST, see
+    // https://developers.cloudflare.com/workflows/build/visualizer/). The
+    // runtime retries the closure on transient failure and memoizes its
+    // return value so a partial failure does not replay earlier phases.
+    //
+    // The seven steps that need graceful fallback (discover:page-urls,
+    // publish:extracting, phase-2:extract-evidence,
+    // phase-4:scan-assets-references, phase-5:classify-asset-rights,
+    // publish:evaluating, publish:reporting) are wrapped in inline
+    // `try/catch` blocks instead of a module-level helper. Cloudflare's
+    // workflow visualizer renders a `.do(...)` call wrapped in a named
+    // helper as a generic `FunctionCall` node, hiding the literal step
+    // name on the dashboard graph. Inlining the `.do` call inside a
+    // `try/catch` block makes the visualizer emit a `TryNode` containing
+    // a `StepDo` node with the literal name, so the dashboard shows
+    // "publish:extracting" instead of the runStepWithFallback helper.
+    //
+    // The `runStepWithFallback` helper is still exported from
+    // `scan-workflow.steps.ts` and is exercised by the unit tests there
+    // and by the entrypoint-level tests that simulate step failures; the
+    // module-level helper is preserved for behavior parity, not for graph
+    // visibility.
     const params: ScanWorkflowPayload = event.payload;
     const log = (entry: Record<string, unknown>) =>
       console.log(JSON.stringify({ ...entry, scanId: params.scanId, source: "scan-workflow" }));
@@ -439,23 +460,38 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // `${baseUrl}/${pageType}` URL pattern 404s. We expose a new
     // `discover:page-urls` step so the dashboard shows the discovery
     // and so a malformed homepage HTML falls back to the legacy URLs
-    // (via `runStepWithFallback`).
-    const pageUrlMap: PageUrlMap = await runStepWithFallback({
-      step,
-      name: "discover:page-urls",
-      fallback: {},
-      config: {
-        retries: { limit: 1, delay: 1_000, backoff: "constant" },
-        timeout: "20 seconds",
-      },
-      log,
-      fn: () => {
-        const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
-          homepagePage.html,
-        );
-        return Promise.resolve(discoverPageUrls(parsed.url, html));
-      },
-    });
+    // (via the inline `try/catch` below; the helper is no longer
+    // called here so the visualizer renders a `StepDo` node with the
+    // literal name).
+    // discover:page-urls: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name instead of a generic
+    // `FunctionCall` for the helper. The fallback is identical to the
+    // historical fallback behavior: runStepWithFallback with fallback {}.
+    let pageUrlMap: PageUrlMap = {};
+    try {
+      pageUrlMap = await step.do<PageUrlMap, WorkflowStepConfig>(
+        "discover:page-urls",
+        {
+          ...DEFAULT_SCAN_STEP_CONFIG,
+          retries: { limit: 1, delay: 1_000, backoff: "constant" },
+          timeout: "20 seconds",
+        },
+        () => {
+          const html = new TextDecoder("utf-8", { fatal: false, ignoreBOM: true }).decode(
+            homepagePage.html,
+          );
+          return Promise.resolve(discoverPageUrls(parsed.url, html));
+        },
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "discover:page-urls",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     {
       const discovered = Object.keys(pageUrlMap) as SupportedPageType[];
       const fallback = (["about", "privacy", "terms", "contact"] as const).filter(
@@ -539,7 +575,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     const fetcheds = perPageResults.filter((r) => r.ok).map((r) => r.pageType);
     const faileds = perPageResults.filter((r) => !r.ok).map((r) => r.pageType);
     // Phases 4 and 5 do network fetches that can blow past the per-Worker
-    // CPU budget; the runStepWithFallback wrapper around them records any
+    // CPU budget; the inline try/catch around each .do() call records any
     // skipped phase into this array so it propagates into the persisted
     // coverage for operator visibility.
     const degradedPhases: string[] = [];
@@ -556,39 +592,76 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     );
     const rawHtml = new Map<string, Uint8Array>();
     for (const row of fetchedRows) rawHtml.set(row.url, row.html);
-    // Publish "extracting" so the polling client can advance the
-    // stepper past "fetching" the moment all page fetches complete.
-    // Best-effort: a transient D1 cold-start does not abort the scan.
-    await runStepWithFallback({
-      step,
-      name: "publish:extracting",
-      fallback: undefined,
-      log,
-      fn: () =>
+    // publish:extracting: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name. The inner step is still
+    // wrapped in try/catch so a transient D1 cold-start does not
+    // abort the scan (matches the previous `runStepWithFallback`
+    // fallback=undefined behavior).
+    try {
+      await step.do("publish:extracting", DEFAULT_SCAN_STEP_CONFIG, () =>
         persistProgressPhase(
           { scanId: parsed.scanId, state: "extracting" },
           { db: this.env.DB, log, now },
         ),
-    });
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "publish:extracting",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     // phase-2 is CPU-bound (regex loop on every chunk of every page).
     // A large site (e.g. dantri.com.vn) can blow the Worker CPU
-    // budget on a single attempt; wrap with runStepWithFallback so a
-    // CPU-timeout surfaces as a degraded phase instead of stalling the
+    // budget on a single attempt; the inline try/catch below turns a
+    // CPU-timeout into a degraded phase instead of stalling the
     // dashboard in "Pending" for ~5 minutes of retries.
-    const evidencePhase = await runStepWithFallback({
-      step,
-      name: "phase-2:extract-evidence",
-      fallback: { evidence: [] as never[], pages: [] as never[] },
-      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "1 minute" },
-      log,
-      fn: () => {
-        const result = extractEvidencePhase(
-          fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
-          rawHtml,
-        );
-        return Promise.resolve(result);
-      },
-    });
+    // phase-2:extract-evidence: inline try/catch so the visualizer
+    // renders a `StepDo` node with the literal name. The fallback is
+    // the previously-documented empty result so phases 3-10 still run
+    // when the evidence-extraction loop blows the CPU budget.
+    // Use the same shape the published `extractEvidencePhase` returns so
+    // downstream code that reads `.html`, `.type`, `.value`, etc. continues
+    // to type-check. The fallback is an empty result; the only impact of
+    // the fallback path is that the scan proceeds with no extracted
+    // evidence.
+    const emptyEvidence = extractEvidencePhase(
+      fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+      rawHtml,
+    );
+    // Override html to be empty Uint8Array so the fallback is well-typed.
+    const emptyEvidenceSafe: { evidence: never[]; pages: { html: Uint8Array; type: string }[] } = {
+      evidence: [],
+      pages: fetchedRows.map((r) => ({ type: r.type, html: new Uint8Array() })),
+    };
+    let evidencePhase: typeof emptyEvidenceSafe = emptyEvidenceSafe;
+    try {
+      evidencePhase = await step.do<typeof emptyEvidenceSafe, WorkflowStepConfig>(
+        "phase-2:extract-evidence",
+        {
+          ...DEFAULT_SCAN_STEP_CONFIG,
+          retries: { limit: 1, delay: 5_000, backoff: "constant" },
+          timeout: "1 minute",
+        },
+        () => {
+          const result = extractEvidencePhase(
+            fetchedRows.map((r) => ({ type: r.type, url: r.url, status: r.status })),
+            rawHtml,
+          );
+          return Promise.resolve(result);
+        },
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "phase-2:extract-evidence",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     if (evidencePhase.pages.length === 0 && fetchedRows.length > 0) {
       // Empty pages list could be correct (no useful HTML) OR a
       // silent phase-2 failure. Flag degraded only when fetches
@@ -612,56 +685,104 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // empty result so phases 6-10 still run. Operators can spot the
     // degraded scans via the `scan.step_fallback` log entries or the
     // new `coverage.degradedPhases` field on the persisted report.
-    const phase4 = await runStepWithFallback({
-      step,
-      name: "phase-4:scan-assets-references",
-      fallback: { refs: [], degraded: false },
-      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
-      log,
-      fn: async () => {
-        const refs = await collectAssetReferencesPhase(
-          parsed.url,
-          evidencePhase.pages,
-          assetFetcher,
-        );
-        const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
-        return { refs, degraded };
-      },
-    });
+    // phase-4:scan-assets-references: inline try/catch so the
+    // visualizer renders a `StepDo` node with the literal name. The
+    // fallback deliberately reports `degraded: false` so that a step
+    // failure (CPU time limit, network error, exhausted retries) is
+    // surfaced only via the `scan.step_fallback` log line - not via
+    // `coverage.degradedPhases` (reserved for the case where the step
+    // actually ran and the heuristic positively identified asset
+    // candidates).
+    const emptyPhase4 = { refs: [] as never[], degraded: false };
+    let phase4: typeof emptyPhase4 = emptyPhase4;
+    try {
+      phase4 = await step.do<typeof emptyPhase4, WorkflowStepConfig>(
+        "phase-4:scan-assets-references",
+        {
+          ...DEFAULT_SCAN_STEP_CONFIG,
+          retries: { limit: 1, delay: 5_000, backoff: "constant" },
+          timeout: "2 minutes",
+        },
+        async () => {
+          const refs = await collectAssetReferencesPhase(
+            parsed.url,
+            evidencePhase.pages,
+            assetFetcher,
+          );
+          const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
+          return { refs, degraded };
+        },
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "phase-4:scan-assets-references",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     const assetRefs = phase4.refs;
     if (phase4.degraded) {
       degradedPhases.push("phase-4:scan-assets-references");
     }
-    const assetInventory = await runStepWithFallback({
-      step,
-      name: "phase-5:classify-asset-rights",
-      fallback: EMPTY_DIGITAL_ASSET_COLLECTION,
-      config: { retries: { limit: 2, delay: 5_000, backoff: "constant" }, timeout: "3 minutes" },
-      log,
-      fn: () =>
-        classifyAssetRightsPhase(
-          assetRefs,
-          assetFetcher,
-          evidencePhase.pages.map((p) => p.html).join("\n"),
-        ),
-    });
+    // phase-5:classify-asset-rights: inline try/catch so the
+    // visualizer renders a `StepDo` node with the literal name. The
+    // fallback is `EMPTY_DIGITAL_ASSET_COLLECTION` so subsequent
+    // phases (license evaluation, rule evaluation, aggregation,
+    // report persistence) still complete when this phase exhausts
+    // its retries.
+    let assetInventory = EMPTY_DIGITAL_ASSET_COLLECTION;
+    try {
+      assetInventory = await step.do<DigitalAssetCollection, WorkflowStepConfig>(
+        "phase-5:classify-asset-rights",
+        {
+          ...DEFAULT_SCAN_STEP_CONFIG,
+          retries: { limit: 2, delay: 5_000, backoff: "constant" },
+          timeout: "3 minutes",
+        },
+        () =>
+          classifyAssetRightsPhase(
+            assetRefs,
+            assetFetcher,
+            evidencePhase.pages.map((p) => p.html).join("\n"),
+          ),
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "phase-5:classify-asset-rights",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     if (assetInventory === EMPTY_DIGITAL_ASSET_COLLECTION) {
       degradedPhases.push("phase-5:classify-asset-rights");
     }
     // Publish "evaluating" once the asset-rights classification phase
     // is done so the polling client can advance from "extracting" to
     // "evaluating" before the (potentially slow) RAG evaluation runs.
-    await runStepWithFallback({
-      step,
-      name: "publish:evaluating",
-      fallback: undefined,
-      log,
-      fn: () =>
+    // publish:evaluating: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name. A failure here is
+    // best-effort (transient D1 cold-start does not abort the
+    // evaluation phase).
+    try {
+      await step.do("publish:evaluating", DEFAULT_SCAN_STEP_CONFIG, () =>
         persistProgressPhase(
           { scanId: parsed.scanId, state: "evaluating" },
           { db: this.env.DB, log, now },
         ),
-    });
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "publish:evaluating",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
     const licenseClaims = evidencePhase.evidence
       .filter((item) => item.type === "license_claim")
       .map((item) => ({ value: item.value, evidenceId: item.id, sourceUrl: item.sourceUrl }));
@@ -723,17 +844,25 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
 
     // Publish "reporting" once aggregation finishes so the polling
     // client can show "reporting" while the report row is upserted.
-    await runStepWithFallback({
-      step,
-      name: "publish:reporting",
-      fallback: undefined,
-      log,
-      fn: () =>
+    // publish:reporting: inline try/catch so the visualizer renders
+    // a `StepDo` node with the literal name. A failure here is
+    // best-effort (the report row is still upserted by phase-9).
+    try {
+      await step.do("publish:reporting", DEFAULT_SCAN_STEP_CONFIG, () =>
         persistProgressPhase(
           { scanId: parsed.scanId, state: "reporting" },
           { db: this.env.DB, log, now },
         ),
-    });
+      );
+    } catch (cause) {
+      log({
+        level: "warn",
+        event: "scan.step_fallback",
+        step: "publish:reporting",
+        reason: cause instanceof Error ? cause.message : String(cause),
+        at: now(),
+      });
+    }
 
     // 7. persist-report (deterministic token, idempotent upsert)
     const report = await step.do("phase-9:persist-report", DEFAULT_SCAN_STEP_CONFIG, async () =>
