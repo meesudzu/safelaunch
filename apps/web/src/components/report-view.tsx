@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import type {
   AssetRightsSummary,
   DigitalAsset,
@@ -9,7 +11,6 @@ import type {
   ScanCoverage,
   ServiceSignal,
 } from "@safelaunch/contracts";
-import { isApprovedCitationUrl } from "../lib/citation-hosts";
 
 export interface ReportMessages {
   readonly brand: string;
@@ -72,6 +73,8 @@ export interface ReportPayload {
   };
 }
 
+type Severity = "high" | "review" | "pass";
+
 const statusLabel = (messages: ReportMessages, status: OverallReportStatus): string => {
   switch (status) {
     case "high_risk":
@@ -83,7 +86,7 @@ const statusLabel = (messages: ReportMessages, status: OverallReportStatus): str
   }
 };
 
-const severityLabel = (messages: ReportMessages, severity: "high" | "review" | "pass"): string => {
+const severityLabel = (messages: ReportMessages, severity: Severity): string => {
   switch (severity) {
     case "high":
       return messages["finding.severity.high"];
@@ -91,6 +94,50 @@ const severityLabel = (messages: ReportMessages, severity: "high" | "review" | "
       return messages["finding.severity.review"];
     case "pass":
       return messages["finding.severity.pass"];
+  }
+};
+
+const severityCardClass = (severity: Severity): string => {
+  switch (severity) {
+    case "high":
+      return "border-l-error bg-error/5";
+    case "review":
+      return "border-l-gold bg-gold/10";
+    case "pass":
+      return "border-l-success bg-success/5";
+  }
+};
+
+const severityBadgeClass = (severity: Severity): string => {
+  switch (severity) {
+    case "high":
+      return "border-error text-error";
+    case "review":
+      return "border-gold text-ink";
+    case "pass":
+      return "border-success text-success";
+  }
+};
+
+const severityAccentClass = (severity: Severity): string => {
+  switch (severity) {
+    case "high":
+      return "border-error text-error bg-error";
+    case "review":
+      return "border-gold text-ink bg-gold";
+    case "pass":
+      return "border-success text-success bg-success";
+  }
+};
+
+const statusBannerClass = (status: OverallReportStatus): string => {
+  switch (status) {
+    case "high_risk":
+      return "border-error bg-error/10";
+    case "needs_review":
+      return "border-gold bg-gold/10";
+    case "no_significant_risk":
+      return "border-success bg-success/10";
   }
 };
 
@@ -153,10 +200,34 @@ export interface ReportViewProps {
 }
 
 export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
-  const currentFindings = report.findings.filter((f) => f.applicability === "current");
-  const upcomingFindings = report.findings.filter((f) => f.applicability === "upcoming");
   const failedPages = report.coverage.failed;
   const isPartial = failedPages.length > 0;
+
+  // Group findings by severity for the tab strip. Within a tab we keep the
+  // current/upcoming order intact so the temporal signal is still visible
+  // alongside the severity grouping.
+  const sortedBySeverity = (sev: Severity): readonly ReportFindingCard[] => {
+    const sameSeverity = report.findings.filter((f) => f.severity === sev);
+    return [
+      ...sameSeverity.filter((f) => f.applicability === "current"),
+      ...sameSeverity.filter((f) => f.applicability === "upcoming"),
+    ];
+  };
+
+  const allTabs = (["high", "review", "pass"] as const).map((sev) => ({
+    severity: sev,
+    findings: sortedBySeverity(sev),
+  }));
+  const visibleTabs = allTabs.filter((t) => t.findings.length > 0);
+
+  const defaultTab: Severity | null =
+    visibleTabs.find((t) => t.severity === "high")?.severity ??
+    visibleTabs[0]?.severity ??
+    null;
+
+  const [activeTab, setActiveTab] = useState<Severity | null>(defaultTab);
+
+  const totalFindings = report.findings.length;
 
   return (
     <section
@@ -187,9 +258,18 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           >
             {messages.title}
           </h1>
-          <p className="text-base text-ink-soft" data-testid="report-status">
-            {statusLabel(messages, report.status)}
-          </p>
+          <div
+            data-testid="report-status-banner"
+            data-status={report.status}
+            className={`rounded-md border p-5 ${statusBannerClass(report.status)}`}
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+              {locale === "vi" ? "Tình trạng tổng" : "Overall status"}
+            </p>
+            <p className="mt-2 text-base font-semibold">
+              {statusLabel(messages, report.status)}
+            </p>
+          </div>
         </div>
 
         <section
@@ -236,7 +316,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           </ul>
         </section>
 
-        {upcomingFindings.length > 0 ? (
+        {report.findings.some((f) => f.applicability === "upcoming") ? (
           <section
             aria-labelledby="upcoming-heading"
             data-testid="upcoming-banner"
@@ -247,11 +327,18 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
               className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
             >
               <span data-testid="upcoming-banner-label">{messages["upcoming.banner"]}</span>{" "}
-              {upcomingFindings[0]?.upcomingEffectiveAt
-                ? formatDate(upcomingFindings[0].upcomingEffectiveAt, locale)
-                : ""}
+              {(() => {
+                const nextUpcoming = report.findings.find(
+                  (f) => f.applicability === "upcoming" && f.upcomingEffectiveAt,
+                );
+                return nextUpcoming?.upcomingEffectiveAt
+                  ? formatDate(nextUpcoming.upcomingEffectiveAt, locale)
+                  : "";
+              })()}
             </h2>
-            <p className="mt-2 text-sm text-ink">{upcomingFindings[0]?.rationale}</p>
+            <p className="mt-2 text-sm text-ink">
+              {report.findings.find((f) => f.applicability === "upcoming")?.rationale}
+            </p>
           </section>
         ) : null}
 
@@ -358,7 +445,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
             id="findings-heading"
             className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
           >
-            {currentFindings.length + upcomingFindings.length > 0
+            {totalFindings > 0
               ? locale === "vi"
                 ? "Phát hiện"
                 : "Findings"
@@ -367,42 +454,83 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 : "No significant findings"}
           </h2>
 
-          {currentFindings.length > 0 ? (
-            <div data-testid="findings-current" className="flex flex-col gap-4">
-              <h3
-                data-testid="findings-current-heading"
-                className="text-xs uppercase tracking-wider text-ink-soft"
+          {visibleTabs.length > 0 && activeTab ? (
+            <>
+              <div
+                role="tablist"
+                aria-label={locale === "vi" ? "Phát hiện theo mức độ" : "Findings by severity"}
+                data-testid="findings-tabs"
+                className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-rule"
               >
-                {messages["finding.applicability.current"]}
-              </h3>
-              {currentFindings.map((finding) => (
-                <FindingCard
-                  key={finding.id}
-                  finding={finding}
-                  messages={messages}
-                  locale={locale}
-                />
-              ))}
-            </div>
-          ) : null}
+                {visibleTabs.map((tab) => {
+                  const isActive = tab.severity === activeTab;
+                  const accent = severityAccentClass(tab.severity);
+                  return (
+                    <button
+                      key={tab.severity}
+                      type="button"
+                      role="tab"
+                      id={`tab-${tab.severity}`}
+                      aria-selected={isActive}
+                      aria-controls={`tabpanel-${tab.severity}`}
+                      data-testid={`findings-tab-${tab.severity}`}
+                      onClick={() => setActiveTab(tab.severity)}
+                      className={`inline-flex items-center gap-2 border-b-2 pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                        isActive
+                          ? `${accent}`
+                          : "border-transparent text-ink-soft hover:text-ink hover:border-ink/20"
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`inline-block h-2 w-2 rounded-full ${
+                          isActive ? accent.split(" ").find((c) => c.startsWith("bg-")) ?? "" : "bg-ink/30"
+                        }`}
+                      />
+                      <span>{severityLabel(messages, tab.severity)}</span>
+                      <span
+                        data-testid={`findings-tab-count-${tab.severity}`}
+                        className="rounded-full bg-surface px-2 py-0.5 font-mono text-xs"
+                      >
+                        {tab.findings.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
 
-          {upcomingFindings.length > 0 ? (
-            <div data-testid="findings-upcoming" className="flex flex-col gap-4">
-              <h3
-                data-testid="findings-upcoming-heading"
-                className="text-xs uppercase tracking-wider text-ink-soft"
-              >
-                {messages["finding.applicability.upcoming"]}
-              </h3>
-              {upcomingFindings.map((finding) => (
-                <FindingCard
-                  key={finding.id}
-                  finding={finding}
-                  messages={messages}
-                  locale={locale}
-                />
-              ))}
-            </div>
+              {visibleTabs.map((tab) => {
+                const isActive = tab.severity === activeTab;
+                if (!isActive) return null;
+                return (
+                  <div
+                    key={tab.severity}
+                    role="tabpanel"
+                    id={`tabpanel-${tab.severity}`}
+                    aria-labelledby={`tab-${tab.severity}`}
+                    data-testid={`findings-tabpanel-${tab.severity}`}
+                    className="flex flex-col gap-4"
+                  >
+                    {tab.findings.length === 0 ? (
+                      <p className="text-sm italic text-ink-soft">
+                        {locale === "vi"
+                          ? "Không có phát hiện ở mức này."
+                          : "No findings at this level."}
+                      </p>
+                    ) : (
+                      tab.findings.map((finding) => (
+                        <FindingCard
+                          key={finding.id}
+                          finding={finding}
+                          messages={messages}
+                          locale={locale}
+                        />
+                      ))
+                    )}
+                  </div>
+                );
+              })}
+            </>
           ) : null}
         </section>
 
@@ -434,20 +562,29 @@ interface FindingCardProps {
 
 const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
   const citation = finding.citations[0];
+  const applicabilityLabel =
+    finding.applicability === "current"
+      ? messages["finding.applicability.current"]
+      : messages["finding.applicability.upcoming"];
   return (
     <article
       data-finding-id={finding.id}
       data-severity={finding.severity}
       data-applicability={finding.applicability}
-      className="rounded-md border border-rule bg-surface p-5"
+      className={`rounded-md border border-rule border-l-4 bg-surface p-5 ${severityCardClass(finding.severity)}`}
     >
-      <header className="flex flex-col gap-1">
-        <p className="text-xs uppercase tracking-wider text-ink-soft">
-          {severityLabel(messages, finding.severity)} ·{" "}
-          {finding.applicability === "current"
-            ? messages["finding.applicability.current"]
-            : messages["finding.applicability.upcoming"]}
-        </p>
+      <header className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            data-testid={`severity-badge-${finding.id}`}
+            className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${severityBadgeClass(finding.severity)}`}
+          >
+            {severityLabel(messages, finding.severity)}
+          </span>
+          <span className="text-xs uppercase tracking-wider text-ink-soft">
+            {applicabilityLabel}
+          </span>
+        </div>
         <p className="font-serif text-lg font-semibold leading-snug">{finding.rationale}</p>
       </header>
 
@@ -484,24 +621,16 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
               {messages["finding.retrieved_at"]}
             </dt>
             <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
-            {isApprovedCitationUrl(citation.url) ? (
-              <a
-                data-testid={`provision-link-${finding.id}`}
-                href={citation.url}
-                rel="noopener noreferrer"
-                target="_blank"
-                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs font-semibold uppercase tracking-wider text-accent hover:border-accent"
-              >
-                {messages["finding.provision_link"]}
-              </a>
-            ) : (
-              <p
-                data-testid={`provision-link-unavailable-${finding.id}`}
-                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
-              >
-                {messages["finding.source_link_unavailable"]}
-              </p>
-            )}
+            {/* TODO: re-enable "Xem văn bản đầy đủ" link when vbpl.vn link 404 is fixed.
+                The current behavior intentionally hides outbound links and shows
+                a fallback label so users are never sent to a broken source.
+                Revert by restoring the `isApprovedCitationUrl(citation.url) ? <a> : <p>` block. */}
+            <p
+              data-testid={`provision-link-unavailable-${finding.id}`}
+              className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
+            >
+              {messages["finding.source_link_unavailable"]}
+            </p>
           </div>
         ) : null}
 
