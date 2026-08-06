@@ -110,6 +110,12 @@ interface FindingSeverityRow {
   n: number;
 }
 
+interface CategorySeverityRow {
+  category: string;
+  severity: string;
+  n: number;
+}
+
 interface AnalysisRunRow {
   model_id: string;
   prompt_version: string;
@@ -212,6 +218,27 @@ adminRouter.get("/metrics/usage", async (context) => {
       metricTile("reportsOpened24h", "Reports opened", reportsOpened),
       metricTile("activeReviewers24h", "Active reviewers", activeReviewers),
     ],
+  });
+});
+
+adminRouter.get("/metrics/compliance", async (context) => {
+  const [histogramResult, categoryResult] = await Promise.all([
+    context.env.DB.prepare(
+      "SELECT f.severity, COUNT(*) AS n FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.created_at >= datetime('now','-7 day') GROUP BY f.severity",
+    )
+      .bind()
+      .all<FindingSeverityRow>(),
+    context.env.DB.prepare(
+      "SELECT s.category, f.severity, COUNT(*) AS n FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.created_at >= datetime('now','-7 day') GROUP BY s.category, f.severity ORDER BY s.category, f.severity",
+    )
+      .bind()
+      .all<CategorySeverityRow>(),
+  ]);
+
+  return context.json({
+    generatedAt: new Date().toISOString(),
+    severityHistogram: severityHistogram(histogramResult.results ?? []),
+    categorySeverity: categorySeverity(categoryResult.results ?? []),
   });
 });
 
@@ -774,6 +801,39 @@ const severityCounts = (
     }
   }
   return counts;
+};
+
+const severityHistogram = (
+  rows: FindingSeverityRow[],
+): Array<{ severity: "high" | "review" | "pass"; count: number }> => {
+  const counts = severityCounts(rows);
+  return [
+    { severity: "high", count: counts.high },
+    { severity: "review", count: counts.review },
+    { severity: "pass", count: counts.pass },
+  ];
+};
+
+const categorySeverity = (
+  rows: CategorySeverityRow[],
+): Array<{ category: string; high: number; review: number; pass: number }> => {
+  const byCategory = new Map<
+    string,
+    { category: string; high: number; review: number; pass: number }
+  >();
+  for (const row of rows) {
+    const current = byCategory.get(row.category) ?? {
+      category: row.category,
+      high: 0,
+      review: 0,
+      pass: 0,
+    };
+    if (row.severity === "high" || row.severity === "review" || row.severity === "pass") {
+      current[row.severity] = row.n;
+    }
+    byCategory.set(row.category, current);
+  }
+  return Array.from(byCategory.values());
 };
 
 const reportUrlFromPayload = (payloadJson: string): string | null => {

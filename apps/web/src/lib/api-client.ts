@@ -296,6 +296,12 @@ export interface UsageMetricsDto {
   tiles: UsageMetricTileDto[];
 }
 
+export interface ComplianceMetricsDto {
+  generatedAt: string;
+  severityHistogram: Array<{ severity: "high" | "review" | "pass"; count: number }>;
+  categorySeverity: Array<{ category: string; high: number; review: number; pass: number }>;
+}
+
 export interface AdminScanSummaryDto {
   scanId: string;
   createdAt: string;
@@ -507,6 +513,16 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "GET_USAGE_METRICS_FAILED");
       }
       return (await response.json()) as UsageMetricsDto;
+    },
+    getComplianceMetrics: async (): Promise<ComplianceMetricsDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/metrics/compliance`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_COMPLIANCE_METRICS_FAILED");
+      }
+      return (await response.json()) as ComplianceMetricsDto;
     },
     listAdminScans: async (query: AdminScansQuery = {}): Promise<AdminScansResponseDto> => {
       const params = new URLSearchParams();

@@ -127,6 +127,44 @@ describe("admin router", () => {
     });
   });
 
+  describe("GET /v1/admin/metrics/compliance", () => {
+    it("returns last-7-day severity and category distributions", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT f.severity, COUNT(*) AS n FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.created_at >= datetime('now','-7 day') GROUP BY f.severity",
+        firstReturn: null,
+        allReturn: [
+          { severity: "high", n: 2 },
+          { severity: "review", n: 3 },
+        ],
+      });
+      db.rows.push({
+        sql: "SELECT s.category, f.severity, COUNT(*) AS n FROM findings f JOIN scans s ON s.id = f.scan_id WHERE s.created_at >= datetime('now','-7 day') GROUP BY s.category, f.severity ORDER BY s.category, f.severity",
+        firstReturn: null,
+        allReturn: [
+          { category: "online_game", severity: "high", n: 2 },
+          { category: "online_game", severity: "review", n: 1 },
+        ],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/metrics/compliance"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        severityHistogram: Array<{ severity: string; count: number }>;
+        categorySeverity: Array<{ category: string; high: number; review: number; pass: number }>;
+      }>(response);
+      expect(body.severityHistogram).toEqual([
+        { severity: "high", count: 2 },
+        { severity: "review", count: 3 },
+        { severity: "pass", count: 0 },
+      ]);
+      expect(body.categorySeverity).toEqual([
+        { category: "online_game", high: 2, review: 1, pass: 0 },
+      ]);
+    });
+  });
+
   describe("GET /v1/admin/scans", () => {
     it("lists scan statuses with page counts and truncated url hashes", async () => {
       const db = new FakeD1();

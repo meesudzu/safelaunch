@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const { getUsageMetricsMock } = vi.hoisted(() => ({
+const { getUsageMetricsMock, getComplianceMetricsMock } = vi.hoisted(() => ({
   getUsageMetricsMock: vi.fn(async () => {
     await Promise.resolve();
     return {
@@ -15,11 +15,24 @@ const { getUsageMetricsMock } = vi.hoisted(() => ({
       ],
     };
   }),
+  getComplianceMetricsMock: vi.fn(async () => {
+    await Promise.resolve();
+    return {
+      generatedAt: "2026-08-06T00:00:00.000Z",
+      severityHistogram: [
+        { severity: "high" as const, count: 2 },
+        { severity: "review" as const, count: 3 },
+        { severity: "pass" as const, count: 5 },
+      ],
+      categorySeverity: [{ category: "online_game", high: 2, review: 1, pass: 0 }],
+    };
+  }),
 }));
 
 vi.mock("../../../lib/api-client", () => ({
   createApiClient: () => ({
     getUsageMetrics: getUsageMetricsMock,
+    getComplianceMetrics: getComplianceMetricsMock,
   }),
 }));
 
@@ -32,13 +45,17 @@ describe("MetricsPage", () => {
     render(element);
 
     expect(getUsageMetricsMock).toHaveBeenCalledWith();
+    expect(getComplianceMetricsMock).toHaveBeenCalledWith();
     expect(screen.getByRole("heading", { name: "Metrics" })).toBeVisible();
-    expect(screen.getByText("Scans in last 24h")).toBeVisible();
-    expect(screen.getByText("6")).toBeVisible();
-    expect(screen.getByText("+2 vs previous 24h")).toBeVisible();
-    expect(screen.getByText("Unique sites scanned")).toBeVisible();
-    expect(screen.getByText("3")).toBeVisible();
+    const scansTile = screen.getByRole("region", { name: "Scans in last 24h" });
+    expect(within(scansTile).getByText("6")).toBeVisible();
+    expect(within(scansTile).getByText("+2 vs previous 24h")).toBeVisible();
+    const sitesTile = screen.getByRole("region", { name: "Unique sites scanned" });
+    expect(within(sitesTile).getByText("3")).toBeVisible();
     expect(screen.getByText("Reports opened")).toBeVisible();
     expect(screen.getByText("Active reviewers")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Compliance distribution" })).toBeVisible();
+    expect(screen.getByRole("table", { name: "Severity histogram" })).toBeVisible();
+    expect(screen.getByText("online_game")).toBeVisible();
   });
 });
