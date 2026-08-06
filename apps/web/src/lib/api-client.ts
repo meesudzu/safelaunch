@@ -283,6 +283,19 @@ export interface AuditEventsQuery {
   limit?: number;
 }
 
+export interface UsageMetricTileDto {
+  key: "scans24h" | "uniqueSites24h" | "reportsOpened24h" | "activeReviewers24h";
+  label: string;
+  value: number;
+  delta?: number;
+}
+
+export interface UsageMetricsDto {
+  windowHours: number;
+  generatedAt: string;
+  tiles: UsageMetricTileDto[];
+}
+
 export interface ReviewSubmissionDto {
   decision: "approve" | "reject";
   reason: string;
@@ -383,6 +396,16 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "LIST_AUDIT_FAILED");
       }
       return (await response.json()) as AuditEventsResponseDto;
+    },
+    getUsageMetrics: async (): Promise<UsageMetricsDto> => {
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/metrics/usage`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_USAGE_METRICS_FAILED");
+      }
+      return (await response.json()) as UsageMetricsDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(

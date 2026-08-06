@@ -33,5 +33,8 @@
   "audit.all_decisions": "Tất cả",
   "audit.filter": "Lọc",
   "audit.next": "Trang sau",
+  "metrics.title": "Metrics",
+  "metrics.usage_window": "Cửa sổ vận hành 24 giờ gần nhất.",
+  "metrics.generated_at": "Cập nhật",
   "footer.disclosure": "Hoạt động quản trị được ghi log để phục vụ kiểm toán."
 }

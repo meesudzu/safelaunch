@@ -80,6 +80,7 @@ describe("D1 repositories", () => {
     await scans.create({
       id: "scan-1",
       url: "https://example.com",
+      urlHash: "hash-example",
       jurisdiction: "VN",
       category: "online_game",
       analysisVersion: "v1",
@@ -88,6 +89,7 @@ describe("D1 repositories", () => {
     });
     expect(await scans.get("scan-1")).toMatchObject({
       id: "scan-1",
+      urlHash: "hash-example",
       state: "queued",
       analysisVersion: "v1",
     });
@@ -109,6 +111,7 @@ describe("D1 repositories", () => {
     await scans.create({
       id: "scan-9",
       url: "https://example.com",
+      urlHash: "hash-example",
       jurisdiction: "VN",
       category: "online_game",
       analysisVersion: "v1",

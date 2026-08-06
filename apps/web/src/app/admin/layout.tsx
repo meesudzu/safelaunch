@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const navItems = [
   { href: "/admin/legal", label: messages["nav.legal"] },
   { href: "/admin/audit", label: messages["nav.audit"] },
-  { href: "/admin/metrics", label: messages["nav.metrics"], disabled: true },
+  { href: "/admin/metrics", label: messages["nav.metrics"] },
   { href: "/admin/logs", label: messages["nav.logs"], disabled: true },
 ];
 

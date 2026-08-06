@@ -26,6 +26,7 @@ export interface RoutesEnv {
   SCAN_WORKFLOW?: Workflow;
   ABUSE_RATE_LIMITER?: DurableObjectNamespace;
   ENABLE_DAILY_QUOTA?: string;
+  URL_HASH_SALT?: string;
 }
 
 interface StoredScanRow {
@@ -85,6 +86,17 @@ const normalizeCoverage = (raw: Record<string, unknown> | null | undefined): Sca
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
+
+const sha256Hex = async (input: string): Promise<string> => {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  const bytes = new Uint8Array(digest);
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+};
+
+const hashScanUrl = (url: string, salt: string | undefined): Promise<string> =>
+  sha256Hex(`${salt ?? "local-dev-url-hash-salt"}:${url.trim().toLowerCase()}`);
 
 export interface CreateScanResponse {
   scanId: string;
@@ -262,6 +274,7 @@ scansRouter.post("/v1/scans", async (context) => {
   await repository.create({
     id: scanId,
     url: input.url,
+    urlHash: await hashScanUrl(input.url, context.env.URL_HASH_SALT),
     jurisdiction: input.jurisdiction,
     category: input.category,
     analysisVersion: ANALYSIS_VERSION,

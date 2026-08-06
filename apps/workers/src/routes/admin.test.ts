@@ -80,6 +80,53 @@ const runWithDb = async (db: FakeD1, request: Request): Promise<Response> => {
 };
 
 describe("admin router", () => {
+  describe("GET /v1/admin/metrics/usage", () => {
+    it("returns 24h usage metrics without exposing raw URLs", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS scans FROM scans WHERE created_at >= ?",
+        firstReturn: { scans: 6 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS scans FROM scans WHERE created_at >= ? AND created_at < ?",
+        firstReturn: { scans: 4 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(DISTINCT url_hash) AS sites FROM scans WHERE created_at >= ? AND url_hash IS NOT NULL",
+        firstReturn: { sites: 3 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(*) AS reports FROM reports r JOIN scans s ON s.id = r.scan_id WHERE r.expires_at > ? AND s.created_at >= ?",
+        firstReturn: { reports: 2 },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT COUNT(DISTINCT actor) AS reviewers FROM legal_review_events WHERE created_at >= ?",
+        firstReturn: { reviewers: 1 },
+        allReturn: [],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/metrics/usage"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        windowHours: number;
+        tiles: Array<{ key: string; label: string; value: number; delta?: number }>;
+      }>(response);
+      expect(body.windowHours).toBe(24);
+      expect(body.tiles).toEqual([
+        { key: "scans24h", label: "Scans in last 24h", value: 6, delta: 2 },
+        { key: "uniqueSites24h", label: "Unique sites scanned", value: 3 },
+        { key: "reportsOpened24h", label: "Reports opened", value: 2 },
+        { key: "activeReviewers24h", label: "Active reviewers", value: 1 },
+      ]);
+      expect(JSON.stringify(body)).not.toContain("https://");
+    });
+  });
+
   describe("GET /v1/admin/audit", () => {
     it("lists review events with default pagination and date filters", async () => {
       const db = new FakeD1();

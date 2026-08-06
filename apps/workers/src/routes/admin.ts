@@ -63,6 +63,15 @@ interface AuditCursor {
   id: string;
 }
 
+type UsageMetricKey = "scans24h" | "uniqueSites24h" | "reportsOpened24h" | "activeReviewers24h";
+
+interface CountRow {
+  scans?: number;
+  sites?: number;
+  reports?: number;
+  reviewers?: number;
+}
+
 const RESOLVED_ACTOR = (request: Request): string => {
   // Cloudflare Access forwards the authenticated user's email as a header.
   // In local dev (no Access app), fall back to a stable placeholder so
@@ -71,6 +80,66 @@ const RESOLVED_ACTOR = (request: Request): string => {
 };
 
 export const adminRouter = new Hono<{ Bindings: AdminEnv }>();
+
+adminRouter.get("/metrics/usage", async (context) => {
+  const now = new Date();
+  const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const previousStart = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString();
+  const nowIso = now.toISOString();
+
+  const [scansCurrent, scansPrevious, uniqueSites, reportsOpened, activeReviewers] =
+    await Promise.all([
+      countValue(
+        context.env.DB.prepare("SELECT COUNT(*) AS scans FROM scans WHERE created_at >= ?")
+          .bind(windowStart)
+          .first<CountRow>(),
+        "scans",
+      ),
+      countValue(
+        context.env.DB.prepare(
+          "SELECT COUNT(*) AS scans FROM scans WHERE created_at >= ? AND created_at < ?",
+        )
+          .bind(previousStart, windowStart)
+          .first<CountRow>(),
+        "scans",
+      ),
+      countValue(
+        context.env.DB.prepare(
+          "SELECT COUNT(DISTINCT url_hash) AS sites FROM scans WHERE created_at >= ? AND url_hash IS NOT NULL",
+        )
+          .bind(windowStart)
+          .first<CountRow>(),
+        "sites",
+      ),
+      countValue(
+        context.env.DB.prepare(
+          "SELECT COUNT(*) AS reports FROM reports r JOIN scans s ON s.id = r.scan_id WHERE r.expires_at > ? AND s.created_at >= ?",
+        )
+          .bind(nowIso, windowStart)
+          .first<CountRow>(),
+        "reports",
+      ),
+      countValue(
+        context.env.DB.prepare(
+          "SELECT COUNT(DISTINCT actor) AS reviewers FROM legal_review_events WHERE created_at >= ?",
+        )
+          .bind(windowStart)
+          .first<CountRow>(),
+        "reviewers",
+      ),
+    ]);
+
+  return context.json({
+    windowHours: 24,
+    generatedAt: nowIso,
+    tiles: [
+      metricTile("scans24h", "Scans in last 24h", scansCurrent, scansCurrent - scansPrevious),
+      metricTile("uniqueSites24h", "Unique sites scanned", uniqueSites),
+      metricTile("reportsOpened24h", "Reports opened", reportsOpened),
+      metricTile("activeReviewers24h", "Active reviewers", activeReviewers),
+    ],
+  });
+});
 
 adminRouter.get("/audit", async (context) => {
   const query = context.req.query();
@@ -306,6 +375,27 @@ const pickString = (value: unknown): string | null => {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
 };
+
+const countValue = async (
+  rowPromise: Promise<CountRow | null>,
+  key: keyof CountRow,
+): Promise<number> => {
+  const row = await rowPromise;
+  const value = row?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+};
+
+const metricTile = (
+  key: UsageMetricKey,
+  label: string,
+  value: number,
+  delta?: number,
+): { key: UsageMetricKey; label: string; value: number; delta?: number } => ({
+  key,
+  label,
+  value,
+  ...(delta === undefined ? {} : { delta }),
+});
 
 const daysAgoIso = (days: number): string => {
   const date = new Date();

@@ -1,6 +1,7 @@
 export interface NewScan {
   id: string;
   url: string;
+  urlHash: string;
   jurisdiction: string;
   category: string;
   analysisVersion: string;
@@ -11,6 +12,7 @@ export interface NewScan {
 export interface StoredScan {
   id: string;
   url: string;
+  urlHash: string | null;
   jurisdiction: string;
   category: string;
   state: string;
@@ -23,6 +25,7 @@ export interface StoredScan {
 interface ScanRow {
   id: string;
   url: string;
+  url_hash: string | null;
   jurisdiction: string;
   category: string;
   state: string;
@@ -38,11 +41,12 @@ export class ScanRepository {
   async create(scan: NewScan): Promise<void> {
     await this.db
       .prepare(
-        "INSERT INTO scans (id, url, jurisdiction, category, state, coverage_json, analysis_version, created_at, expires_at) VALUES (?, ?, ?, ?, 'queued', '{}', ?, ?, ?)",
+        "INSERT INTO scans (id, url, url_hash, jurisdiction, category, state, coverage_json, analysis_version, created_at, expires_at) VALUES (?, ?, ?, ?, ?, 'queued', '{}', ?, ?, ?)",
       )
       .bind(
         scan.id,
         scan.url,
+        scan.urlHash,
         scan.jurisdiction,
         scan.category,
         scan.analysisVersion,
@@ -58,6 +62,7 @@ export class ScanRepository {
     return {
       id: row.id,
       url: row.url,
+      urlHash: row.url_hash,
       jurisdiction: row.jurisdiction,
       category: row.category,
       state: row.state,
