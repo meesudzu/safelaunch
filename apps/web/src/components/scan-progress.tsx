@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { SCAN_PIPELINE, ScanStepper, type ScanStepperMessages } from "./scan-stepper";
 
 export type ScanTerminalState = "completed" | "partial" | "failed";
@@ -32,7 +33,6 @@ export interface ScanProgressMessages extends ScanStepperMessages {
   readonly "state.failed": string;
   readonly "view.report": string;
   readonly "expiry.label": string;
-  readonly "coverage.title": string;
 }
 
 export interface ScanProgressProps {
@@ -44,7 +44,12 @@ export interface ScanProgressProps {
 
 const TERMINAL_STATES = new Set<string>(["completed", "partial", "failed"]);
 
-const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+// Delay (ms) between the scan reaching a terminal state and the page
+// navigating to the report. Long enough for sighted and screen-reader
+// users to register the "Hoàn tất" / "Hoàn tất một phần" announcement,
+// short enough to feel automatic. Users can also click the manual
+// "Xem báo cáo" link during this window.
+const AUTO_REDIRECT_DELAY_MS = 1500;
 
 const backoffMs = (attempt: number): number => {
   if (attempt <= 1) return 1000;
@@ -76,7 +81,7 @@ const formatHeadline = (messages: ScanProgressMessages, state: string): string =
   if (activeIndex < 0) {
     // Unknown state — keep the original static headline so the screen never
     // blanks out before the first valid poll lands.
-    return messages["headline"];
+    return messages.headline;
   }
   return messages["headline.scanning"]
     .replace("{current}", String(activeIndex + 1))
@@ -92,7 +97,12 @@ const stateLabel = (messages: ScanProgressMessages, state: string): string => {
 export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
   const [state, setState] = useState<ScanProgressState>(initialState);
   const attempt = useRef(0);
+  // Tracks the reportUrl we've already navigated to so duplicate terminal
+  // polls (same URL) don't fire `router.push` twice. Reset when the URL
+  // changes to a new scan/report.
+  const redirectedRef = useRef<string | null>(null);
   const isTerminal = TERMINAL_STATES.has(state.state);
+  const router = useRouter();
 
   useEffect(() => {
     if (isTerminal) return undefined;
@@ -130,44 +140,28 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
     };
   }, [isTerminal, poll, state.scanId]);
 
-  // The server may return coverage without fetched/failed/skipped
-  // (DB default for a freshly queued scan is `coverage_json='{}'`).
-  // Defensively coerce to arrays so a malformed payload never crashes
-  // the render tree. The API is also expected to normalize, but never
-  // trust the wire.
-  // The server may return coverage without fetched/failed/skipped
-  // (DB default for a freshly queued scan is `coverage_json='{}'`).
-  // Defensively coerce to arrays so a malformed payload never crashes
-  // the render tree. Then dedupe across lists — fetched wins, then
-  // failed, then skipped. Legacy DB rows can ship a page in more than
-  // one list, which would otherwise render as contradictory rows.
-  const dedupeCoverageLists = (
-    fetchedList: readonly string[],
-    failedList: readonly string[],
-    skippedList: readonly string[],
-  ): { fetched: string[]; failed: string[]; skipped: string[] } => {
-    const seen = new Set<string>();
-    const take = (list: readonly string[]): string[] => {
-      const result: string[] = [];
-      for (const item of list) {
-        if (seen.has(item)) continue;
-        seen.add(item);
-        result.push(item);
-      }
-      return result;
-    };
-    return {
-      fetched: take(fetchedList),
-      failed: take(failedList),
-      skipped: take(skippedList),
-    };
-  };
+  // Auto-redirect to the report ~1.5s after the scan lands in a terminal
+  // state with a usable reportUrl. We skip `failed` (no report to open)
+  // and we never push the same URL twice for the same scan.
+  useEffect(() => {
+    if (!isTerminal) return undefined;
+    if (state.state === "failed") return undefined;
+    const target = state.reportUrl;
+    if (!target) return undefined;
+    if (redirectedRef.current === target) return undefined;
 
-  const coverage = dedupeCoverageLists(
-    Array.isArray(state.coverage?.fetched) ? state.coverage.fetched : [],
-    Array.isArray(state.coverage?.failed) ? state.coverage.failed : [],
-    Array.isArray(state.coverage?.skipped) ? state.coverage.skipped : [],
-  );
+    const timer = setTimeout(() => {
+      // Re-check inside the timeout in case the user unmounted or the
+      // scanUrl already changed (e.g. they navigated manually).
+      if (redirectedRef.current === target) return;
+      redirectedRef.current = target;
+      router.push(target);
+    }, AUTO_REDIRECT_DELAY_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [isTerminal, router, state.reportUrl, state.state]);
 
   const headline = formatHeadline(messages, state.state);
   const announcement = stateLabel(messages, state.state);
@@ -210,44 +204,22 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
         ) : null}
 
         {state.reportUrl && isTerminal ? (
+          // data-cf-no-prefetch: opt out of Cloudflare Speed Brain prefetch.
+          // Speed Brain is enabled on this site (/cdn-cgi/speculation serves
+          // a rule with href_matches:"/*" and conservative eagerness, which
+          // prefetches same-origin links on hover/viewport). Keeping the
+          // opt-out avoids pulling the (heavy) report HTML on hover — the
+          // redirect below handles the navigation the user actually wants.
           <a
             data-testid="view-report-link"
             href={state.reportUrl}
+            data-cf-no-prefetch
             className="inline-flex w-fit rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-surface hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             {messages["view.report"]}
           </a>
         ) : null}
-
-        <section aria-labelledby="coverage-heading" className="flex flex-col gap-2">
-          <h2
-            id="coverage-heading"
-            className="font-serif text-sm font-semibold uppercase tracking-[0.18em] text-ink-soft"
-          >
-            {messages["coverage.title"]}
-          </h2>
-          <ul data-testid="coverage-list" className="flex flex-col gap-1 text-sm">
-            {coverage.fetched.map((page) => (
-              <li key={`f-${page}`} className="text-success">
-                ✓ {page}
-              </li>
-            ))}
-            {coverage.failed.map((page) => (
-              <li key={`x-${page}`} className="text-error">
-                ! {page}
-              </li>
-            ))}
-            {coverage.skipped.map((page) => (
-              <li key={`s-${page}`} className="text-ink-soft">
-                · {page}
-              </li>
-            ))}
-          </ul>
-        </section>
       </div>
     </section>
   );
 };
-
-// suppress unused delay import warning by referencing it
-void delay;

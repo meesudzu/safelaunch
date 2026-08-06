@@ -1,5 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { collectDigitalAssets, collectAssetReferences, type AssetFetcher } from "./digital-assets";
+import {
+  collectDigitalAssets,
+  collectAssetReferences,
+  pageHasAssetCandidates,
+  type AssetFetcher,
+} from "./digital-assets";
+import { FontFamilyGroup, FontLicenseAssessment } from "@safelaunch/contracts";
+import {
+  robotoRegularBytes,
+  robotoRegularSha256,
+  robotoBoldBytes,
+  robotoItalicBytes,
+} from "./__fixtures__/font-fixtures";
 
 describe("digital asset collection (font-only scope)", () => {
   it("collects only font references — drops image/audio/video", () => {
@@ -36,7 +48,7 @@ describe("digital asset collection (font-only scope)", () => {
     expect(refs.some((ref) => ref.url.endsWith("/banner.png"))).toBe(false);
   });
 
-  it("blocks private hosts and classifies missing font license evidence as high", async () => {
+  it("blocks private hosts and classifies missing font license evidence as review", async () => {
     const fetcher: AssetFetcher = {
       fetch: async (url) => {
         await Promise.resolve();
@@ -60,7 +72,7 @@ describe("digital asset collection (font-only scope)", () => {
       licenseEvidence: "no_license_evidence",
       url: "https://example.com/public.woff2",
     });
-    expect(result.findings[0]).toMatchObject({ severity: "high", domain: "digital-rights" });
+    expect(result.findings[0]).toMatchObject({ severity: "review", domain: "digital-rights" });
   });
 
   it("recognizes Creative Commons page markers for fonts without downloading originals", async () => {
@@ -103,7 +115,7 @@ describe("digital asset collection (font-only scope)", () => {
     };
     const result = await collectDigitalAssets({
       sourceUrl: "https://example.com/",
-      html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto.woff2" />',
+      html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/v51/KFOMCnqEu92Fr1ME7kSn66aGLdTylUAMQXC89YmC2DPNWubEbWmT.ttf" />',
       fetcher,
     });
     expect(result.assets).toHaveLength(1);
@@ -154,7 +166,131 @@ describe("digital asset collection (font-only scope)", () => {
       fetcher,
     });
     expect(result.findings[0]?.citations[0]?.url).toMatch(/^https:\/\/vbpl\.vn\/tim-kiem/);
-    // URL-encoded "Luật Sở hữu trí tuệ 2022"
     expect(result.findings[0]?.citations[0]?.url).toContain("Lu%E1%BA%ADt");
+  });
+});
+
+describe("pageHasAssetCandidates", () => {
+  it("returns true when at least one page contains a font reference", () => {
+    const pages = [
+      {
+        url: "https://example.com/",
+        html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/x.woff2" />',
+      },
+      { url: "https://example.com/about", html: "<p>no fonts here</p>" },
+    ];
+    expect(pageHasAssetCandidates(pages)).toBe(true);
+  });
+
+  it("returns false when no page contains any font reference", () => {
+    const pages = [
+      { url: "https://example.com/", html: "<p>no fonts here</p>" },
+      { url: "https://example.com/about", html: "<img src='/hero.png' />" },
+    ];
+    expect(pageHasAssetCandidates(pages)).toBe(false);
+  });
+});
+
+describe("font binary inspection (V1)", () => {
+  it("parses a Roboto Regular WOFF2 served from fonts.gstatic.com and reports verified_open", async () => {
+    const fetcher: AssetFetcher = {
+      fetch: async () => {
+        await Promise.resolve();
+        return {
+          status: 200,
+          bytes: robotoRegularBytes,
+          contentType: "font/woff2",
+          finalUrl: "",
+        };
+      },
+    };
+    const result = await collectDigitalAssets({
+      sourceUrl: "https://example.com/",
+      html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/regular.woff2" />',
+      fetcher,
+    });
+    const asset = result.assets[0]!;
+    expect(asset.sha256).toBe(robotoRegularSha256);
+    expect(asset.fontInfo?.postscriptName).toBe("Roboto-Regular");
+    expect(asset.fontLicense?.status).toBe("verified_open");
+    expect(result.fontInventory.totals.families).toBe(1);
+    expect(result.fontInventory.groups[0]!.family).toBe("Roboto");
+  });
+
+  it("groups multiple Roboto variants into one family in fontInventory", async () => {
+    let counter = 0;
+    const fetcher: AssetFetcher = {
+      fetch: async (url) => {
+        await Promise.resolve();
+        const bytes = [robotoRegularBytes, robotoBoldBytes, robotoItalicBytes][counter++]!;
+        return {
+          status: 200,
+          bytes,
+          contentType: "font/woff2",
+          finalUrl: url,
+        };
+      },
+    };
+    const result = await collectDigitalAssets({
+      sourceUrl: "https://example.com/",
+      html: `
+        <link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/regular.woff2" />
+        <link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/bold.woff2" />
+        <link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/italic.woff2" />
+      `,
+      fetcher,
+    });
+    expect(result.assets).toHaveLength(3);
+    expect(result.fontInventory.totals.families).toBe(1);
+    expect(result.fontInventory.totals.files).toBe(3);
+    expect(result.fontInventory.groups[0]!.variants).toHaveLength(3);
+  });
+
+  it("reports parse_failed when font bytes are garbage", async () => {
+    const fetcher: AssetFetcher = {
+      fetch: async () => {
+        await Promise.resolve();
+        return {
+          status: 200,
+          bytes: new Uint8Array([0, 1, 0, 0]),
+          contentType: "font/woff2",
+          finalUrl: "",
+        };
+      },
+    };
+    const result = await collectDigitalAssets({
+      sourceUrl: "https://example.com/",
+      html: '<link rel="preload" as="font" href="https://cdn.example.com/garbage.woff2" />',
+      fetcher,
+    });
+    const asset = result.assets[0]!;
+    expect(asset.fontInfo).toBeNull();
+    expect(asset.fontLicense?.status).toBe("unavailable");
+    expect(asset.fontLicense?.reasonCodes).toContain("parse_failed");
+  });
+
+  it("exposes FontFamilyGroup + FontLicenseAssessment shapes that match the contracts schema", async () => {
+    const fetcher: AssetFetcher = {
+      fetch: async () => {
+        await Promise.resolve();
+        return {
+          status: 200,
+          bytes: robotoRegularBytes,
+          contentType: "font/woff2",
+          finalUrl: "",
+        };
+      },
+    };
+    const result = await collectDigitalAssets({
+      sourceUrl: "https://example.com/",
+      html: '<link rel="preload" as="font" href="https://fonts.gstatic.com/s/roboto/r.woff2" />',
+      fetcher,
+    });
+    const group = result.fontInventory.groups[0];
+    expect(group).toBeDefined();
+    expect(FontFamilyGroup.parse(group)).toBeTruthy();
+    if (result.assets[0]?.fontLicense) {
+      expect(FontLicenseAssessment.parse(result.assets[0]?.fontLicense)).toBeTruthy();
+    }
   });
 });

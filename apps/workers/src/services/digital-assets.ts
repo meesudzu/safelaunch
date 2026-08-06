@@ -3,8 +3,19 @@ import type {
   AssetRightsSummary,
   DigitalAsset,
   DigitalAssetKind,
+  FontInfo,
+  FontInventory,
+  FontLicenseAssessment,
   LegalCitation,
 } from "@safelaunch/contracts";
+import {
+  assessFontLicense,
+  parseFontBytes,
+  unavailableFontLicense,
+  type FontRegistry,
+} from "./font-inspector";
+import fontRegistry from "../data/font-registry.json";
+import { groupAssetsIntoFamilies } from "./font-grouping";
 
 export type AssetReference = {
   kind: DigitalAssetKind;
@@ -40,10 +51,24 @@ export type DigitalAssetCollection = {
   assets: DigitalAsset[];
   findings: AssetFinding[];
   summary: AssetRightsSummary;
+  fontInventory: FontInventory;
 };
 
 export const MAX_ASSETS = 50;
 export const MAX_ASSET_BYTES = 2_000_000;
+/** Larger byte cap for font binaries only — covers the largest
+ *  variable WOFF2 subsets served by Google Fonts in production. */
+export const MAX_FONT_INSPECTION_BYTES = 4_000_000;
+/** Cap on per-scan font binary parses. Past this we keep the
+ *  evidence-based classification but skip metadata extraction. */
+export const MAX_FONT_INSPECTIONS = 25;
+
+const FONT_REGISTRY: FontRegistry = {
+  version: fontRegistry.registryVersion,
+  fonts: fontRegistry.fonts,
+  commercialNameHints: fontRegistry.commercialNameHints,
+  citation: fontRegistry.registryCitation,
+};
 
 const COPYRIGHT_CITATION: LegalCitation = {
   provisionId: "vn-ip-law-2022",
@@ -254,9 +279,11 @@ export const classifyAssetRights = async (
   references: readonly AssetReference[],
   fetcher: AssetFetcher,
   contextHtml: string = "",
+  _options: { fontInspectionCache?: Map<string, FontInfo> } = {},
 ): Promise<DigitalAssetCollection> => {
   const assets: DigitalAsset[] = [];
   const findings: AssetFinding[] = [];
+  const inspectionCache = _options.fontInspectionCache ?? new Map<string, FontInfo>();
   for (const ref of references) {
     const parsed = absoluteUrl(ref.sourceUrl, ref.url);
     if (!parsed || !isAllowedAssetUrl(parsed)) continue;
@@ -266,6 +293,26 @@ export const classifyAssetRights = async (
     try {
       const result = await fetcher.fetch(redactedUrl);
       if (result.bytes.byteLength > MAX_ASSET_BYTES) throw new Error("asset exceeds size limit");
+      const sha256 = await sha256Hex(result.bytes);
+      let fontInfo: FontInfo | null = null;
+      let fontLicense: FontLicenseAssessment | null = null;
+      if (ref.kind === "font" && result.bytes.byteLength <= MAX_FONT_INSPECTION_BYTES) {
+        fontInfo = parseFontBytes(result.bytes, result.contentType);
+        if (inspectionCache.size < MAX_FONT_INSPECTIONS) {
+          fontLicense = assessFontLicense({
+            fontInfo,
+            host: parsed.hostname,
+            contextHtml,
+            sha256,
+            registry: FONT_REGISTRY,
+          });
+          if (fontInfo !== null) {
+            inspectionCache.set(sha256, fontInfo);
+          }
+        } else {
+          fontLicense = unavailableFontLicense(FONT_REGISTRY, "size_or_count_limit");
+        }
+      }
       const asset: DigitalAsset = {
         id,
         kind: ref.kind,
@@ -273,21 +320,29 @@ export const classifyAssetRights = async (
         host: parsed.hostname,
         sourceUrl: ref.sourceUrl,
         contentType: result.contentType,
-        sha256: await sha256Hex(result.bytes),
+        sha256,
         status: result.status >= 200 && result.status < 300 ? "fetched" : "inaccessible",
         licenseEvidence:
           result.status >= 200 && result.status < 300 ? evidence.evidence : "inaccessible",
         licenseExcerpt: result.status >= 200 && result.status < 300 ? evidence.excerpt : null,
         confidence: result.status >= 200 && result.status < 300 ? evidence.confidence : 0,
+        fontInfo,
+        fontLicense,
       };
       assets.push(asset);
       if (isFlagged(asset.licenseEvidence)) {
+        // Severity: `review` (not `high`) per v2 rubric Revision Log 2026-08-06.
+        // Web fonts are typically covered by permissive web-embedding licenses
+        // (e.g. Google Fonts under SIL OFL, Adobe Fonts ToS). A missing-evidence
+        // signal here is a verify-before-launch prompt for a human, not a
+        // launch-blocker. See docs/compliance/rubrics/vn-mvp-v2-licensing-
+        // digital-rights-strict.md for the full audit trail.
         findings.push({
           id: `digital-rights::${id}`,
           domain: "digital-rights",
-          severity: "high",
+          severity: "review",
           rationale:
-            "Chưa tìm thấy bằng chứng license cho tài sản này; đây là tín hiệu rủi ro, không phải kết luận vi phạm.",
+            "Chưa tìm thấy bằng chứng license cho tài sản này; vui lòng xác minh quyền sử dụng trước khi phát hành (đây là tín hiệu xem xét, không phải kết luận vi phạm).",
           confidence: asset.confidence,
           evidenceIds: [asset.id],
           citations: [COPYRIGHT_CITATION],
@@ -315,9 +370,9 @@ export const classifyAssetRights = async (
       findings.push({
         id: `digital-rights::${id}`,
         domain: "digital-rights",
-        severity: "high",
+        severity: "review",
         rationale:
-          "Không thể kiểm tra tài sản số hoặc bằng chứng license; đây là tín hiệu rủi ro, không phải kết luận vi phạm.",
+          "Không thể kiểm tra tài sản số hoặc bằng chứng license; vui lòng xác minh thủ công trước khi phát hành (đây là tín hiệu xem xét, không phải kết luận vi phạm).",
         confidence: 0,
         evidenceIds: [asset.id],
         citations: [COPYRIGHT_CITATION],
@@ -329,7 +384,13 @@ export const classifyAssetRights = async (
   }
   const byKind: Record<string, number> = {};
   for (const asset of assets) byKind[asset.kind] = (byKind[asset.kind] ?? 0) + 1;
-  return { assets, findings, summary: { total: assets.length, byKind, flagged: findings.length } };
+  const fontInventory = groupAssetsIntoFamilies(assets, contextHtml, "");
+  return {
+    assets,
+    findings,
+    summary: { total: assets.length, byKind, flagged: findings.length },
+    fontInventory,
+  };
 };
 
 /**
@@ -363,4 +424,20 @@ export const collectDigitalAssets = async (input: {
     })
     .slice(0, MAX_ASSETS);
   return classifyAssetRights(deduped, input.fetcher, input.html);
+};
+
+/**
+ * Heuristic: returns true when at least one evidence page contains a font
+ * reference candidate (preload link, @font-face url, etc.) so we can
+ * distinguish "page really has no assets" from "the loop died before
+ * producing any output". Used only to flag a degraded phase, not to change
+ * compliance findings.
+ */
+export const pageHasAssetCandidates = (
+  pages: ReadonlyArray<{ url: string; html: string }>,
+): boolean => {
+  for (const page of pages) {
+    if (collectAssetReferences(page.url, page.html).length > 0) return true;
+  }
+  return false;
 };

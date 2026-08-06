@@ -8,7 +8,9 @@ const workflowSource = readFileSync(
 
 const expectedSteps = [
   "parse-params",
+  "publish:fetching",
   "fetch:homepage",
+  "discover:page-urls",
   "fetch:about",
   "fetch:privacy",
   "fetch:contact",
@@ -20,6 +22,7 @@ const expectedSteps = [
   "phase-5:classify-asset-rights",
   "publish:evaluating",
   "phase-6:evaluate-license",
+  "publish:retrieving",
   "phase-7:evaluate-rules",
   "phase-8:aggregate",
   "publish:reporting",

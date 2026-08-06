@@ -224,6 +224,34 @@ describe("persistReportPhase", () => {
     expect(db.calls[0]!.sql).toMatch(/INSERT INTO reports .* ON CONFLICT\(scan_id\) DO UPDATE/);
     expect(db.calls[0]!.args[0]).toBe("scan-empty");
   });
+  it("includes expiresAt in the persisted payload so the report page can show the expiry date", async () => {
+    // Regression: the public /vi/report/<token> page renders
+    // "{expiry.label} {formatDate(report.expiresAt, locale)}". The
+    // page reads `expiresAt` from the payload JSON, so the workflow
+    // must persist it alongside the rest of the report fields —
+    // otherwise the footer renders "Báo cáo hết hạn vào" with no
+    // date. The expiresAt we persist must equal the expires_at
+    // already stored in the reports row (single source of truth).
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-06T00:00:00.000Z",
+    };
+    await persistReportPhase(
+      {
+        scanId: "scan-expiry",
+        payload: { findings: [], status: "needs_review" as const },
+      },
+      deps,
+    );
+    const call = db.calls[0]!;
+    const persisted = JSON.parse(call.args[2] as string) as Record<string, unknown>;
+    expect(persisted.expiresAt).toBe("2026-08-13T00:00:00.000Z");
+    // Single source of truth: the persisted payload's expiresAt must
+    // match the expires_at column the row binds to (call.args[3]).
+    expect(persisted.expiresAt).toBe(call.args[3]);
+  });
 });
 
 describe("persistTerminalPhase", () => {

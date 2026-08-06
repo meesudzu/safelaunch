@@ -132,9 +132,12 @@ export class ReportRepository {
 
   async getByTokenHash(tokenHash: string): Promise<StoredReport | null> {
     // Look up the report by its token hash. Used by the public report
-    // page whose URL contains the one-time token, not the scanId.
-    // Returns null after the token has been burned (token_hash IS NULL),
-    // which gives us the single-use guarantee for free.
+    // page whose URL contains the token, not the scanId. Returns null
+    // when no report row has ever been persisted against this hash.
+    // (Earlier versions also returned null after the first successful
+    // read because the route burned the token; that behaviour was
+    // removed to support owner-side reloads — see apps/workers/src/
+    // routes/reports.ts.)
     const row = await this.db
       .prepare(
         "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
@@ -145,6 +148,13 @@ export class ReportRepository {
   }
 
   async burnToken(scanId: string): Promise<void> {
+    // Vestigial: production routes no longer call this (the report URL
+    // is reusable until `expires_at`). Kept on the repository surface
+    // so the repositories.test.ts coverage and any external callers
+    // continue to compile and behave as before. New code should not
+    // call this; if you need single-use semantics again, resurrect the
+    // call from `apps/workers/src/routes/reports.ts` instead of doing
+    // it ad-hoc at a new call site.
     await this.db
       .prepare("UPDATE reports SET token_hash = NULL WHERE scan_id = ?")
       .bind(scanId)
