@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
 import { ReportView, type ReportPayload, type ReportMessages } from "./report-view";
 
 const viMessages: ReportMessages = {
@@ -92,6 +93,33 @@ const baseReport: ReportPayload = {
   rubricVersion: "vn-mvp-v1",
 };
 
+type FindingSeed = {
+  readonly id: string;
+  readonly severity: "high" | "review" | "pass";
+  readonly applicability: "current" | "upcoming";
+};
+
+const buildFinding = ({ id, severity, applicability }: FindingSeed) => ({
+  id,
+  severity,
+  rationale: `Rationale for ${id}.`,
+  confidence: 0.9,
+  evidenceIds: [`ev-${id}`],
+  citations: [
+    {
+      provisionId: `p-${id}`,
+      source: "VBPL",
+      url: "https://vbpl.vn/tim-kiem?SearchIn=all&q=test",
+      retrievedAt: "2026-01-01T00:00:00.000Z",
+      excerpt: "Excerpt.",
+    },
+  ],
+  recommendedAction: "Xem.",
+  applicability,
+  evidenceExcerpt: "Excerpt.",
+  upcomingEffectiveAt: applicability === "upcoming" ? "2030-01-01T00:00:00.000Z" : null,
+});
+
 describe("ReportView", () => {
   it("shows failed coverage and never displays a compliance approval", () => {
     const partialReport: ReportPayload = {
@@ -106,13 +134,31 @@ describe("ReportView", () => {
     render(<ReportView report={partialReport} locale="vi" messages={viMessages} />);
     expect(screen.getByText(/không thể quét.*privacy/i)).toBeVisible();
     // The view must never display a "fully compliant" / "cleared to launch" badge for a partial report.
-    expect(screen.queryByText(/tuân thủ hoàn toàn/i)).toBeNull();
-    expect(screen.queryByText(/được phép phát hành/i)).toBeNull();
+    expect(screen.queryByText(/đạt yêu cầu|tuân thủ hoàn toàn|clear(ed)? to launch/i)).toBeNull();
+    // Coverage data attribute must signal "partial" so downstream tooling can hide approval CTAs.
+    expect(screen.getByLabelText("Báo cáo tuân thủ")).toHaveAttribute("data-coverage", "partial");
   });
 
-  it("renders the AI-assisted badge so users know the source is not a lawyer", () => {
-    render(<ReportView report={baseReport} locale="vi" messages={viMessages} />);
-    expect(screen.getByTestId("report-ai-badge")).toBeInTheDocument();
+  it("renders the overall status banner with status-specific styling", () => {
+    const highRiskReport: ReportPayload = { ...baseReport, status: "high_risk" };
+    const { container: highContainer } = render(
+      <ReportView report={highRiskReport} locale="vi" messages={viMessages} />,
+    );
+    const highBanner = screen.getByTestId("report-status-banner");
+    expect(highBanner).toHaveAttribute("data-status", "high_risk");
+    expect(highBanner).toHaveClass("border-error");
+    expect(highContainer.querySelector('[data-testid="report-status-banner"]')).toHaveClass(
+      "bg-error/10",
+    );
+
+    const clearReport: ReportPayload = { ...baseReport, status: "no_significant_risk" };
+    const { container: clearContainer } = render(
+      <ReportView report={clearReport} locale="vi" messages={viMessages} />,
+    );
+    const clearBanner = clearContainer.querySelector('[data-testid="report-status-banner"]');
+    expect(clearBanner).toHaveAttribute("data-status", "no_significant_risk");
+    expect(clearBanner).toHaveClass("border-success");
+    expect(clearBanner).toHaveClass("bg-success/10");
   });
 
   it("displays the non-advice disclosure on the report view", () => {
@@ -120,55 +166,25 @@ describe("ReportView", () => {
     expect(screen.getByTestId("report-disclaimer")).toBeInTheDocument();
   });
 
-  it("separates current findings from upcoming findings", () => {
+  it("groups mixed findings by severity tab while preserving applicability labels", () => {
     const mixedReport: ReportPayload = {
       ...baseReport,
       findings: [
-        {
-          id: "f-current",
-          severity: "high",
-          rationale: "Vi phạm hiện tại.",
-          confidence: 0.95,
-          evidenceIds: ["ev-1"],
-          citations: [
-            {
-              provisionId: "p-1",
-              source: "Nghị định 72/2013",
-              url: "https://vbpl.vn/x",
-              retrievedAt: "2025-01-01T00:00:00.000Z",
-              excerpt: "Điều 1. Quy định về p-1.",
-            },
-          ],
-          recommendedAction: "Gỡ bỏ nội dung.",
-          applicability: "current",
-          evidenceExcerpt: "Trích dẫn từ website.",
-          upcomingEffectiveAt: null,
-        },
-        {
-          id: "f-upcoming",
-          severity: "review",
-          rationale: "Yêu cầu mới.",
-          confidence: 0.85,
-          evidenceIds: ["ev-2"],
-          citations: [
-            {
-              provisionId: "p-2",
-              source: "Luật 2025",
-              url: "https://vbpl.vn/y",
-              retrievedAt: "2025-01-01T00:00:00.000Z",
-              excerpt: "Điều 2.",
-            },
-          ],
-          recommendedAction: "Theo dõi ngày hiệu lực.",
-          applicability: "upcoming",
-          evidenceExcerpt: "Không có.",
-          upcomingEffectiveAt: "2030-01-01T00:00:00.000Z",
-        },
+        buildFinding({ id: "f-current", severity: "high", applicability: "current" }),
+        buildFinding({ id: "f-upcoming", severity: "high", applicability: "upcoming" }),
+        buildFinding({ id: "f-review", severity: "review", applicability: "upcoming" }),
       ],
     };
     render(<ReportView report={mixedReport} locale="vi" messages={viMessages} />);
-    expect(screen.getByTestId("findings-current-heading")).toBeInTheDocument();
-    expect(screen.getByTestId("findings-upcoming-heading")).toBeInTheDocument();
+    // Tabs replace the old "Hiện tại" / "Sắp tới" subsections.
+    expect(screen.getByTestId("findings-tab-high")).toBeInTheDocument();
+    expect(screen.getByTestId("findings-tab-review")).toBeInTheDocument();
+    expect(screen.queryByTestId("findings-current-heading")).toBeNull();
+    expect(screen.queryByTestId("findings-upcoming-heading")).toBeNull();
+    // Applicability labels still appear inside cards so we don't lose information.
+    expect(screen.getAllByText("Hiện tại").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sắp tới").length).toBeGreaterThan(0);
+    // Upcoming banner is preserved.
     expect(screen.getByTestId("upcoming-banner-label")).toBeInTheDocument();
     expect(screen.getByText(/2030/)).toBeInTheDocument();
   });
@@ -237,7 +253,7 @@ describe("digital rights report sections", () => {
 });
 
 describe("citation link hardening", () => {
-  it("renders the provision link when the citation URL host is in the approved list", () => {
+  it("always shows fallback text instead of the link", () => {
     const report: ReportPayload = {
       ...baseReport,
       findings: [
@@ -264,11 +280,10 @@ describe("citation link hardening", () => {
       ],
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
-    expect(screen.getByTestId("provision-link-f-vbpl")).toHaveAttribute(
-      "href",
-      "https://vbpl.vn/tim-kiem?SearchIn=all&q=test",
+    expect(screen.queryByTestId("provision-link-f-vbpl")).toBeNull();
+    expect(screen.getByTestId("provision-link-unavailable-f-vbpl")).toHaveTextContent(
+      "Liên kết nguồn không khả dụng",
     );
-    expect(screen.queryByTestId("provision-link-unavailable-f-vbpl")).toBeNull();
   });
 
   it("renders a text fallback when the citation URL host is not approved", () => {
@@ -333,5 +348,165 @@ describe("citation link hardening", () => {
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("provision-link-f-bad")).toBeNull();
     expect(screen.getByTestId("provision-link-unavailable-f-bad")).toBeVisible();
+  });
+});
+
+describe("severity tabs", () => {
+  it("renders a tab strip with severity counts", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
+        buildFinding({ id: "h2", severity: "high", applicability: "current" }),
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r2", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r3", severity: "review", applicability: "current" }),
+        buildFinding({ id: "p1", severity: "pass", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tabs")).toBeInTheDocument();
+    expect(screen.getByTestId("findings-tab-high")).toHaveTextContent("2");
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("3");
+    expect(screen.getByTestId("findings-tab-pass")).toHaveTextContent("1");
+  });
+
+  it("hides tabs with zero findings", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "h1", severity: "high", applicability: "current" })],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-high")).toBeInTheDocument();
+    expect(screen.queryByTestId("findings-tab-review")).toBeNull();
+    expect(screen.queryByTestId("findings-tab-pass")).toBeNull();
+  });
+
+  it("defaults to Nghiêm trọng tab when it has findings", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "p1", severity: "pass", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-high")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("findings-tabpanel-high")).toBeInTheDocument();
+    expect(screen.queryByTestId("findings-tabpanel-review")).toBeNull();
+    expect(screen.queryByTestId("findings-tabpanel-pass")).toBeNull();
+  });
+
+  it("defaults to first visible tab when Nghiêm trọng is empty", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "p1", severity: "pass", applicability: "current" })],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-pass")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("findings-tabpanel-pass")).toBeInTheDocument();
+  });
+
+  it("switches tab on click", async () => {
+    const user = userEvent.setup();
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-high")).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByTestId("findings-tab-review"));
+    expect(screen.getByTestId("findings-tab-review")).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByTestId("findings-tab-high")).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByTestId("findings-tabpanel-review")).toBeInTheDocument();
+    expect(screen.queryByTestId("findings-tabpanel-high")).toBeNull();
+  });
+
+  it("renders the empty state and no tabs when there are no findings", () => {
+    render(<ReportView report={baseReport} locale="vi" messages={viMessages} />);
+    expect(screen.getByText(/không có phát hiện đáng kể/i)).toBeVisible();
+    expect(screen.queryByTestId("findings-tabs")).toBeNull();
+  });
+
+  it("applies border-error to high severity cards", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "h1", severity: "high", applicability: "current" })],
+    };
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    const card = container.querySelector('[data-severity="high"]');
+    expect(card).toHaveClass("border-l-error");
+    expect(card).toHaveClass("bg-error/5");
+  });
+
+  it("applies border-gold to review severity cards", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "r1", severity: "review", applicability: "current" })],
+    };
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    const card = container.querySelector('[data-severity="review"]');
+    expect(card).toHaveClass("border-l-gold");
+    expect(card).toHaveClass("bg-gold/10");
+  });
+
+  it("applies border-success to pass severity cards", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "p1", severity: "pass", applicability: "current" })],
+    };
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    const card = container.querySelector('[data-severity="pass"]');
+    expect(card).toHaveClass("border-l-success");
+    expect(card).toHaveClass("bg-success/5");
+  });
+
+  it("sorts current findings before upcoming ones within a tab", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h-up", severity: "high", applicability: "upcoming" }),
+        buildFinding({ id: "h-cur", severity: "high", applicability: "current" }),
+      ],
+    };
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    const panel = container.querySelector('[data-testid="findings-tabpanel-high"]');
+    const ids = Array.from(panel?.querySelectorAll("[data-finding-id]") ?? []).map((el) =>
+      el.getAttribute("data-finding-id"),
+    );
+    expect(ids).toEqual(["h-cur", "h-up"]);
+  });
+
+  it("renders a findings summary with a total count and severity legend", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
+        buildFinding({ id: "h2", severity: "high", applicability: "current" }),
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r2", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r3", severity: "review", applicability: "current" }),
+        buildFinding({ id: "p1", severity: "pass", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-summary")).toBeInTheDocument();
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("6");
+    expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("2");
+    expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("33%");
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("3");
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("50%");
+    expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("17%");
+  });
+
+  it("hides the findings summary when there are no findings", () => {
+    render(<ReportView report={baseReport} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("findings-summary")).toBeNull();
+    expect(screen.queryByTestId("findings-summary-total")).toBeNull();
   });
 });

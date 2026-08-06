@@ -78,6 +78,30 @@ describe("ScanProgress", () => {
     );
   });
 
+  it("opts the report link out of Cloudflare Speed Brain prefetch", () => {
+    // Regression: Cloudflare Speed Brain (configured at
+    // /cdn-cgi/speculation with href_matches:"/*" and conservative
+    // eagerness) prefetches any same-origin link on hover/viewport.
+    // For a single-use report URL that prefetch runs the Next.js
+    // server component, which calls the API and burns the token
+    // before the user actually clicks - so a later direct open of
+    // the same URL returns 404 REPORT_NOT_FOUND. The documented
+    // opt-out for Cloudflare Speed Brain is the data-cf-no-prefetch
+    // attribute on the <a> element.
+    const terminal = progress("completed", "/vi/report/report-token");
+    render(
+      <ScanProgress
+        locale="vi"
+        messages={messages}
+        initialState={terminal}
+        poll={vi.fn().mockResolvedValue(terminal)}
+      />,
+    );
+    const link = screen.getByTestId("view-report-link");
+    expect(link.tagName).toBe("A");
+    expect(link).toHaveAttribute("data-cf-no-prefetch");
+  });
+
   it("does not crash when coverage is an empty object (server default)", () => {
     // Bug repro: GET /v1/scans/:id returns `coverage: {}` for a fresh scan
     // (DB default `coverage_json = '{}'`). The client must not call

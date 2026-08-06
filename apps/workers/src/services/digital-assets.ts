@@ -282,12 +282,18 @@ export const classifyAssetRights = async (
       };
       assets.push(asset);
       if (isFlagged(asset.licenseEvidence)) {
+        // Severity: `review` (not `high`) per v2 rubric Revision Log 2026-08-06.
+        // Web fonts are typically covered by permissive web-embedding licenses
+        // (e.g. Google Fonts under SIL OFL, Adobe Fonts ToS). A missing-evidence
+        // signal here is a verify-before-launch prompt for a human, not a
+        // launch-blocker. See docs/compliance/rubrics/vn-mvp-v2-licensing-
+        // digital-rights-strict.md for the full audit trail.
         findings.push({
           id: `digital-rights::${id}`,
           domain: "digital-rights",
-          severity: "high",
+          severity: "review",
           rationale:
-            "Chưa tìm thấy bằng chứng license cho tài sản này; đây là tín hiệu rủi ro, không phải kết luận vi phạm.",
+            "Chưa tìm thấy bằng chứng license cho tài sản này; vui lòng xác minh quyền sử dụng trước khi phát hành (đây là tín hiệu xem xét, không phải kết luận vi phạm).",
           confidence: asset.confidence,
           evidenceIds: [asset.id],
           citations: [COPYRIGHT_CITATION],
@@ -315,9 +321,9 @@ export const classifyAssetRights = async (
       findings.push({
         id: `digital-rights::${id}`,
         domain: "digital-rights",
-        severity: "high",
+        severity: "review",
         rationale:
-          "Không thể kiểm tra tài sản số hoặc bằng chứng license; đây là tín hiệu rủi ro, không phải kết luận vi phạm.",
+          "Không thể kiểm tra tài sản số hoặc bằng chứng license; vui lòng xác minh thủ công trước khi phát hành (đây là tín hiệu xem xét, không phải kết luận vi phạm).",
         confidence: 0,
         evidenceIds: [asset.id],
         citations: [COPYRIGHT_CITATION],

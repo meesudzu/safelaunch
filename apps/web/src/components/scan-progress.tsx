@@ -210,9 +210,21 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
         ) : null}
 
         {state.reportUrl && isTerminal ? (
+          // data-cf-no-prefetch: opt out of Cloudflare Speed Brain prefetch.
+          // Speed Brain is enabled on this site (/cdn-cgi/speculation serves
+          // a rule with href_matches:"/*" and conservative eagerness, which
+          // prefetches same-origin links on hover/viewport). For the report
+          // URL this is destructive: the prefetch runs the Next.js server
+          // component, which calls /v1/reports/by-token and burns the
+          // single-use token before the user actually clicks. The cached
+          // prefetch response then makes the click "look like" it works,
+          // while any direct open of the same URL later returns 404
+          // REPORT_NOT_FOUND. Keep this attribute on every link to a
+          // single-use tokenised URL.
           <a
             data-testid="view-report-link"
             href={state.reportUrl}
+            data-cf-no-prefetch
             className="inline-flex w-fit rounded-sm bg-accent px-4 py-2 text-sm font-semibold text-surface hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           >
             {messages["view.report"]}
