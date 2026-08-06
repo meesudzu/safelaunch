@@ -420,3 +420,44 @@ describe("discover:page-urls + fetchSinglePagePhase integration", () => {
     },
   );
 });
+
+describe("phase-4 fallback shape (graph-degraded refactor)", () => {
+  // The phase-4:scan-assets-references step uses
+  // runStepWithFallback with a fallback value of { refs: [], degraded: false }.
+  // The fallback deliberately reports `degraded: false` so that a step
+  // failure (CPU time limit, network error, exhausted retries) is
+  // surfaced only via the scan.step_fallback log line — not via
+  // coverage.degradedPhases. The latter is reserved for the case
+  // where the step actually ran and the heuristic positively identified
+  // the page had candidates the loop should have surfaced.
+
+  it("returns { refs: [], degraded: false } when the phase-4 step throws", async () => {
+    const warnings: Array<Record<string, unknown>> = [];
+    const log = (entry: Record<string, unknown>) => warnings.push(entry);
+    const step = makeRecordingStep({
+      "phase-4:scan-assets-references": () => {
+        throw new Error("CPU time limit exceeded");
+      },
+    });
+    const phase4 = await runStepWithFallback<{ refs: never[]; degraded: boolean }>({
+      step,
+      name: "phase-4:scan-assets-references",
+      fallback: { refs: [], degraded: false },
+      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
+      log,
+      fn: () => Promise.resolve({ refs: [], degraded: false }),
+    });
+    expect(phase4).toEqual({ refs: [], degraded: false });
+    const fallbackLog = warnings.find((w) => w["event"] === "scan.step_fallback");
+    expect(fallbackLog).toBeDefined();
+    expect(fallbackLog?.["step"]).toBe("phase-4:scan-assets-references");
+    // The workflow MUST NOT push "phase-4:scan-assets-references" into
+    // coverage.degradedPhases when reading `phase4.degraded` (which is
+    // false on the fallback path). Locked here so a future refactor
+    // cannot reintroduce the heuristic-evaluated-in-the-workflow-body
+    // pattern that was the source of the misleading graph node.
+    expect(phase4.degraded).toBe(false);
+
+  });
+
+});
