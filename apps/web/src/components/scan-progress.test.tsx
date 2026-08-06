@@ -2,6 +2,14 @@ import { act, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ScanProgress, type ScanProgressMessages, type ScanProgressState } from "./scan-progress";
 
+const { pushMock, replaceMock } = vi.hoisted(() => ({
+  pushMock: vi.fn(),
+  replaceMock: vi.fn(),
+}));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: pushMock, replace: replaceMock }),
+}));
+
 const messages: ScanProgressMessages = {
   headline: "Scanning",
   "headline.scanning": "Scanning website — step {current} / {total}",
@@ -16,7 +24,6 @@ const messages: ScanProgressMessages = {
   "state.failed": "Failed",
   "view.report": "View report",
   "expiry.label": "Expires",
-  "coverage.title": "Scanned pages",
   "steps.title": "Scan steps",
   "steps.subtitle": "Step {current} / {total}",
   "step.queued.label": "Queued",
@@ -41,6 +48,8 @@ const progress = (state: string, reportUrl?: string): ScanProgressState => ({
 });
 
 afterEach(() => {
+  pushMock.mockClear();
+  replaceMock.mockClear();
   vi.useRealTimers();
 });
 
@@ -82,12 +91,10 @@ describe("ScanProgress", () => {
     // Regression: Cloudflare Speed Brain (configured at
     // /cdn-cgi/speculation with href_matches:"/*" and conservative
     // eagerness) prefetches any same-origin link on hover/viewport.
-    // For a single-use report URL that prefetch runs the Next.js
-    // server component, which calls the API and burns the token
-    // before the user actually clicks - so a later direct open of
-    // the same URL returns 404 REPORT_NOT_FOUND. The documented
-    // opt-out for Cloudflare Speed Brain is the data-cf-no-prefetch
-    // attribute on the <a> element.
+    // Keeping the opt-out avoids pulling in the full report HTML on
+    // hover, which would be wasteful for the heavy compliance view.
+    // The documented opt-out for Cloudflare Speed Brain is the
+    // data-cf-no-prefetch attribute on the <a> element.
     const terminal = progress("completed", "/vi/report/report-token");
     render(
       <ScanProgress
@@ -100,73 +107,6 @@ describe("ScanProgress", () => {
     const link = screen.getByTestId("view-report-link");
     expect(link.tagName).toBe("A");
     expect(link).toHaveAttribute("data-cf-no-prefetch");
-  });
-
-  it("does not crash when coverage is an empty object (server default)", () => {
-    // Bug repro: GET /v1/scans/:id returns `coverage: {}` for a fresh scan
-    // (DB default `coverage_json = '{}'`). The client must not call
-    // `.map()` on undefined sub-fields.
-    const incompleteState = {
-      scanId: "scan_test",
-      state: "queued",
-      coverage: {},
-    } as unknown as ScanProgressState;
-
-    expect(() =>
-      render(
-        <ScanProgress
-          locale="vi"
-          messages={messages}
-          initialState={incompleteState}
-          poll={vi.fn().mockResolvedValue(incompleteState)}
-        />,
-      ),
-    ).not.toThrow();
-
-    expect(screen.getByTestId("progress-state")).toHaveTextContent("Queued");
-  });
-
-  it("does not crash when coverage is missing entirely", () => {
-    const incompleteState = {
-      scanId: "scan_test",
-      state: "queued",
-    } as unknown as ScanProgressState;
-
-    expect(() =>
-      render(
-        <ScanProgress
-          locale="vi"
-          messages={messages}
-          initialState={incompleteState}
-          poll={vi.fn().mockResolvedValue(incompleteState)}
-        />,
-      ),
-    ).not.toThrow();
-  });
-
-  it("does not render the same page in both fetched and failed lists", () => {
-    const inconsistentState = {
-      scanId: "scan_test",
-      state: "completed",
-      coverage: {
-        fetched: ["homepage", "about"],
-        failed: ["homepage", "privacy"],
-        skipped: [],
-      },
-    } satisfies ScanProgressState;
-    render(
-      <ScanProgress
-        locale="vi"
-        messages={messages}
-        initialState={inconsistentState}
-        poll={vi.fn().mockResolvedValue(inconsistentState)}
-      />,
-    );
-    const list = screen.getByTestId("coverage-list");
-    expect(list.textContent?.match(/homepage/g)).toHaveLength(1);
-    expect(list.textContent?.includes("! homepage")).toBe(false);
-    expect(list.textContent?.includes("✓ homepage")).toBe(true);
-    expect(list.textContent?.includes("! privacy")).toBe(true);
   });
 
   it("updates the aria-live announcement and the stepper when the state advances", async () => {
@@ -268,18 +208,161 @@ describe("ScanProgress", () => {
     expect(expiry.textContent ?? "").not.toContain("2026-08-05T10:30:00Z");
   });
 
-  it("renders the coverage heading above the URL list", () => {
-    render(
-      <ScanProgress
-        locale="vi"
-        messages={messages}
-        initialState={{
-          ...progress("fetching"),
-          coverage: { fetched: ["/about"], failed: [], skipped: [] },
-        }}
-        poll={vi.fn().mockResolvedValue(progress("fetching"))}
-      />,
-    );
-    expect(screen.getByRole("heading", { name: messages["coverage.title"] })).toBeInTheDocument();
+  describe("auto-redirect after terminal state", () => {
+    it("redirects to the report URL ~1.5s after reaching a terminal state with a reportUrl", async () => {
+      vi.useFakeTimers();
+      const reportUrl = "/vi/report/auto-redirect-token";
+      // First poll @t≈1000 -> fetching. Second poll @t≈2000 -> completed
+      // (terminal with reportUrl). The auto-redirect useEffect schedules
+      // router.push at terminal_time + 1500ms.
+      const poll = vi
+        .fn<(scanId: string) => Promise<ScanProgressState>>()
+        .mockResolvedValueOnce(progress("fetching"))
+        .mockResolvedValueOnce(progress("completed", reportUrl));
+
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={progress("queued")}
+          poll={poll}
+        />,
+      );
+
+      // Land in terminal state. With fake timers the queued->fetching
+      // poll resolves at t≈1000, the fetching->completed poll at t≈2000.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      // Right after terminal: redirect window (1.5s) not yet elapsed.
+      expect(pushMock).not.toHaveBeenCalled();
+
+      // Advance 1.4s -- still inside the 1.5s window. Nothing should fire.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1400);
+      });
+      expect(pushMock).not.toHaveBeenCalled();
+
+      // Cross the 1.5s threshold (now t ≈ 3400, past the t=3500 window).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(700);
+      });
+      expect(pushMock).toHaveBeenCalledTimes(1);
+      expect(pushMock).toHaveBeenCalledWith(reportUrl);
+    });
+
+    it("does not redirect when the terminal state has no reportUrl (e.g. failed)", async () => {
+      vi.useFakeTimers();
+      const poll = vi
+        .fn<(scanId: string) => Promise<ScanProgressState>>()
+        .mockResolvedValueOnce(progress("failed"));
+
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={progress("queued")}
+          poll={poll}
+        />,
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      // Advance well past the 1.5s redirect window.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(5000);
+      });
+
+      expect(pushMock).not.toHaveBeenCalled();
+    });
+
+    it("does not redirect while the scan is still running", async () => {
+      vi.useFakeTimers();
+      const poll = vi
+        .fn<(scanId: string) => Promise<ScanProgressState>>()
+        .mockResolvedValue(progress("fetching"));
+
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={progress("queued")}
+          poll={poll}
+        />,
+      );
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000);
+      });
+
+      expect(pushMock).not.toHaveBeenCalled();
+    });
+
+    it("still renders the manual report link while auto-redirect is pending", async () => {
+      vi.useFakeTimers();
+      const reportUrl = "/vi/report/manual-link-token";
+      const poll = vi
+        .fn<(scanId: string) => Promise<ScanProgressState>>()
+        .mockResolvedValueOnce(progress("completed", reportUrl));
+
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={progress("queued")}
+          poll={poll}
+        />,
+      );
+
+      // Reach terminal, but stay inside the redirect window.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+
+      const link = screen.getByTestId("view-report-link");
+      expect(link).toHaveAttribute("href", reportUrl);
+      expect(pushMock).not.toHaveBeenCalled();
+    });
+
+    it("does not redirect twice if the state updates again with the same reportUrl", async () => {
+      vi.useFakeTimers();
+      const reportUrl = "/vi/report/dedup-token";
+      // Two terminal polls in a row with the same URL should still only
+      // fire router.push once.
+      const poll = vi
+        .fn<(scanId: string) => Promise<ScanProgressState>>()
+        .mockResolvedValueOnce(progress("completed", reportUrl))
+        .mockResolvedValueOnce(progress("completed", reportUrl));
+
+      render(
+        <ScanProgress
+          locale="vi"
+          messages={messages}
+          initialState={progress("queued")}
+          poll={poll}
+        />,
+      );
+
+      // First terminal state.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      // Past the redirect window.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+      // Second terminal poll (same URL).
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000);
+      });
+      // Past another redirect window — should still be only one push.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000);
+      });
+
+      expect(pushMock).toHaveBeenCalledTimes(1);
+      expect(pushMock).toHaveBeenCalledWith(reportUrl);
+    });
   });
 });

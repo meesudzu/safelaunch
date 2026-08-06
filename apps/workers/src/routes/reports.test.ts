@@ -204,25 +204,33 @@ const runWithDbByToken = async (
   db: FakeD1Database,
   request: Request,
   body?: { tokenHash?: string; payloadJson?: string; expiresAt?: string },
+  options?: { repeat?: number },
 ) => {
+  // Repeat the SELECT setup `repeat` times so we can verify that the
+  // route does NOT burn the token between calls. Each repetition gets
+  // its own row entry on the FakeD1Database in case the test wants to
+  // observe the DML after the first response.
+  const repeats = Math.max(1, options?.repeat ?? 1);
   const app = buildApp();
-  if (body?.tokenHash) {
-    db.rows.push({
-      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
-      firstReturn: {
-        scan_id: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
-        token_hash: body.tokenHash,
-        payload_json: body.payloadJson ?? "{}",
-        expires_at: body.expiresAt ?? "2099-01-01T00:00:00.000Z",
-      },
-      runReturn: null,
-    });
-  } else {
-    db.rows.push({
-      sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
-      firstReturn: null,
-      runReturn: null,
-    });
+  for (let i = 0; i < repeats; i += 1) {
+    if (body?.tokenHash) {
+      db.rows.push({
+        sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
+        firstReturn: {
+          scan_id: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+          token_hash: body.tokenHash,
+          payload_json: body.payloadJson ?? "{}",
+          expires_at: body.expiresAt ?? "2099-01-01T00:00:00.000Z",
+        },
+        runReturn: null,
+      });
+    } else {
+      db.rows.push({
+        sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
+        firstReturn: null,
+        runReturn: null,
+      });
+    }
   }
   return app.fetch(request, { DB: db });
 };
@@ -276,14 +284,62 @@ describe("reports router — by-token lookup", () => {
     expect(response.status).toBe(410);
   });
 
-  it("returns 404 after the token has been burned (single-use guarantee)", async () => {
+  it("allows the same URL to be read repeatedly until the report expires", async () => {
+    // Regression: the report page is server-rendered (Next.js page
+    // component), so a hard reload of `/vi/report/<token>` re-runs the
+    // GET against this endpoint. Earlier versions invalidated the
+    // stored token_hash on the first successful read (single-use
+    // guarantee), which made every reload after the first open return
+    // 404 REPORT_NOT_FOUND. We now keep token_hash across reads so the
+    // owner can refresh, copy the URL, etc., until `expires_at`.
+    const token = "rpt_reusable_abc";
+    const stored = await sha256(token);
+    const payload = JSON.stringify({
+      scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+      status: "no_significant_risk",
+    });
     const db = new FakeD1Database();
-    // After burn, token_hash is NULL, so the hash lookup yields no row.
+
+    // First read.
+    const first = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${token}`),
+      { tokenHash: stored, payloadJson: payload },
+      { repeat: 2 },
+    );
+    expect(first.status).toBe(200);
+    const firstBody = await first.json();
+    expect(firstBody).toEqual({
+      scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+      status: "no_significant_risk",
+    });
+    // Body must NOT contain the private _reportToken field.
+    expect(firstBody).not.toHaveProperty("_reportToken");
+
+    // Second read of the SAME URL with the SAME token — must succeed
+    // and return the same payload. (With single-use, this would have
+    // been 404.)
+    const second = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${token}`),
+      { tokenHash: stored, payloadJson: payload },
+    );
+    expect(second.status).toBe(200);
+    expect(await second.json()).toEqual(firstBody);
+  });
+
+  it("still returns 404 when no row matches the supplied token hash", async () => {
+    // Distinct from the now-removed "burned" test: 404 here means the
+    // URL points at no report we ever generated. With token burning
+    // disabled, this is the only way to get 404 from this route.
+    const db = new FakeD1Database();
     const response = await runWithDbByToken(
       db,
-      new Request("http://local/v1/reports/by-token/rpt_alreadyused"),
+      new Request("http://local/v1/reports/by-token/rpt_never_existed"),
     );
     expect(response.status).toBe(404);
+    const body = await response.json();
+    expect(body).toEqual({ code: "REPORT_NOT_FOUND" });
   });
 
   it("never logs the plaintext token or its hash via the by-token path", async () => {
