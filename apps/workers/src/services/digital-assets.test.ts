@@ -36,7 +36,7 @@ describe("digital asset collection (font-only scope)", () => {
     expect(refs.some((ref) => ref.url.endsWith("/banner.png"))).toBe(false);
   });
 
-  it("blocks private hosts and classifies missing font license evidence as high", async () => {
+  it("blocks private hosts and classifies missing font license evidence as review", async () => {
     const fetcher: AssetFetcher = {
       fetch: async (url) => {
         await Promise.resolve();
@@ -60,7 +60,7 @@ describe("digital asset collection (font-only scope)", () => {
       licenseEvidence: "no_license_evidence",
       url: "https://example.com/public.woff2",
     });
-    expect(result.findings[0]).toMatchObject({ severity: "high", domain: "digital-rights" });
+    expect(result.findings[0]).toMatchObject({ severity: "review", domain: "digital-rights" });
   });
 
   it("recognizes Creative Commons page markers for fonts without downloading originals", async () => {
