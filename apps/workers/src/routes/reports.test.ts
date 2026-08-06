@@ -189,7 +189,9 @@ describe("reports router", () => {
     );
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.expiresAt).toBe("2026-08-13T10:00:00.000Z");
+    // The by-token route projects the row's expires_at into the public
+    // payload so the report page can render "Báo cáo hết hạn vào <date>".
+    expect(body).toHaveProperty("expiresAt", "2026-08-13T10:00:00.000Z");
   });
 
   it("returns 410 Gone when the report has expired", async () => {
@@ -330,7 +332,10 @@ describe("reports router — by-token lookup", () => {
     );
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.expiresAt).toBe("2026-08-13T10:00:00.000Z");
+    // Same regression as the by-token route: the public payload must
+    // include the row's expires_at so the report page can render the
+    // expiry date. Both routes share the same payload shape.
+    expect(body).toHaveProperty("expiresAt", "2026-08-13T10:00:00.000Z");
   });
 
   it("returns 410 Gone when the matched report has expired", async () => {
