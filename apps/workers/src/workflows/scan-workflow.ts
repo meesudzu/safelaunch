@@ -613,7 +613,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // empty result so phases 6-10 still run. Operators can spot the
     // degraded scans via the `scan.step_fallback` log entries or the
     // new `coverage.degradedPhases` field on the persisted report.
-    const phase4 = await runStepWithFallback<{ refs: AssetReference[]; degraded: boolean }>({
+    const phase4 = await runStepWithFallback({
       step,
       name: "phase-4:scan-assets-references",
       fallback: { refs: [], degraded: false },
