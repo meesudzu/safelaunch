@@ -12,8 +12,8 @@ export const SCAN_PIPELINE = [
   "queued",
   "fetching",
   "extracting",
-  "retrieving",
   "evaluating",
+  "retrieving",
   "reporting",
 ] as const;
 
