@@ -127,6 +127,117 @@ describe("admin router", () => {
     });
   });
 
+  describe("GET /v1/admin/scans", () => {
+    it("lists scan statuses with page counts and truncated url hashes", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT s.id, s.created_at, s.jurisdiction, s.category, s.state, s.expires_at, s.url_hash, COUNT(p.id) AS total_pages, SUM(CASE WHEN p.state = 'completed' THEN 1 ELSE 0 END) AS pages_done FROM scans s LEFT JOIN scan_pages p ON p.scan_id = s.id WHERE s.state NOT IN ('completed','failed','partial') AND s.created_at >= ? GROUP BY s.id ORDER BY s.created_at DESC, s.id DESC LIMIT ?",
+        firstReturn: null,
+        allReturn: [
+          {
+            id: "scan_1",
+            created_at: "2026-08-06T01:00:00.000Z",
+            jurisdiction: "VN",
+            category: "online_game",
+            state: "evaluating",
+            expires_at: "2026-08-13T01:00:00.000Z",
+            url_hash: "abcdef1234567890",
+            total_pages: 3,
+            pages_done: 2,
+          },
+        ],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/scans"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        scans: Array<{
+          scanId: string;
+          urlHashPrefix: string;
+          pagesDone: number;
+          totalPages: number;
+        }>;
+        live: boolean;
+      }>(response);
+      expect(body.live).toBe(true);
+      expect(body.scans).toEqual([
+        {
+          scanId: "scan_1",
+          createdAt: "2026-08-06T01:00:00.000Z",
+          jurisdiction: "VN",
+          category: "online_game",
+          state: "evaluating",
+          expiresAt: "2026-08-13T01:00:00.000Z",
+          urlHashPrefix: "abcdef123456",
+          pagesDone: 2,
+          totalPages: 3,
+        },
+      ]);
+      expect(JSON.stringify(body)).not.toContain("https://");
+    });
+  });
+
+  describe("GET /v1/admin/scans/:scanId", () => {
+    it("returns scan detail with coverage, severity counts, analysis runs, and report link", async () => {
+      const db = new FakeD1();
+      db.rows.push({
+        sql: "SELECT id, created_at, jurisdiction, category, state, expires_at, url_hash, coverage_json FROM scans WHERE id = ?",
+        firstReturn: {
+          id: "scan_1",
+          created_at: "2026-08-06T01:00:00.000Z",
+          jurisdiction: "VN",
+          category: "online_game",
+          state: "completed",
+          expires_at: "2099-08-13T01:00:00.000Z",
+          url_hash: "abcdef1234567890",
+          coverage_json: '{"fetched":["homepage"],"failed":[],"skipped":["terms"]}',
+        },
+        allReturn: [],
+      });
+      db.rows.push({
+        sql: "SELECT severity, COUNT(*) AS n FROM findings WHERE scan_id = ? GROUP BY severity",
+        firstReturn: null,
+        allReturn: [{ severity: "high", n: 2 }],
+      });
+      db.rows.push({
+        sql: "SELECT model_id, prompt_version, retrieval_version, created_at FROM analysis_runs WHERE scan_id = ? ORDER BY created_at DESC",
+        firstReturn: null,
+        allReturn: [
+          {
+            model_id: "@cf/meta/llama",
+            prompt_version: "p1",
+            retrieval_version: "r1",
+            created_at: "2026-08-06T01:30:00.000Z",
+          },
+        ],
+      });
+      db.rows.push({
+        sql: "SELECT payload_json, expires_at FROM reports WHERE scan_id = ? AND expires_at > ?",
+        firstReturn: {
+          payload_json: '{"_reportToken":"tok_1"}',
+          expires_at: "2099-08-13T01:00:00.000Z",
+        },
+        allReturn: [],
+      });
+
+      const response = await runWithDb(db, new Request("http://local/v1/admin/scans/scan_1"));
+
+      expect(response.status).toBe(200);
+      const body = await jsonBody<{
+        scanId: string;
+        urlHashPrefix: string;
+        reportUrl: string | null;
+        severityCounts: Record<string, number>;
+      }>(response);
+      expect(body.scanId).toBe("scan_1");
+      expect(body.urlHashPrefix).toBe("abcdef123456");
+      expect(body.severityCounts).toEqual({ high: 2, review: 0, pass: 0 });
+      expect(body.reportUrl).toBe("/vi/report/tok_1");
+      expect(JSON.stringify(body)).not.toContain("https://");
+    });
+  });
+
   describe("GET /v1/admin/audit", () => {
     it("lists review events with default pagination and date filters", async () => {
       const db = new FakeD1();

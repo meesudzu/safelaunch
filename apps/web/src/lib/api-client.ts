@@ -296,6 +296,61 @@ export interface UsageMetricsDto {
   tiles: UsageMetricTileDto[];
 }
 
+export interface AdminScanSummaryDto {
+  scanId: string;
+  createdAt: string;
+  jurisdiction: string;
+  category: string;
+  state: string;
+  pagesDone: number;
+  totalPages: number;
+  expiresAt: string;
+  urlHashPrefix: string;
+}
+
+export interface AdminScansQuery {
+  live?: boolean;
+  state?: string;
+  jurisdiction?: string;
+  category?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}
+
+export interface AdminScansResponseDto {
+  scans: AdminScanSummaryDto[];
+  nextCursor: string | null;
+  live: boolean;
+}
+
+export interface AdminScanDetailDto {
+  scanId: string;
+  createdAt: string;
+  jurisdiction: string;
+  category: string;
+  state: string;
+  expiresAt: string;
+  urlHashPrefix: string;
+  coverage: {
+    fetched: string[];
+    failed: string[];
+    skipped: string[];
+  };
+  severityCounts: {
+    high: number;
+    review: number;
+    pass: number;
+  };
+  analysisRuns: Array<{
+    modelId: string;
+    promptVersion: string;
+    retrievalVersion: string;
+    createdAt: string;
+  }>;
+  reportUrl: string | null;
+}
+
 export interface ReviewSubmissionDto {
   decision: "approve" | "reject";
   reason: string;
@@ -406,6 +461,41 @@ export const createApiClient = (env: Partial<ApiClientEnv> = {}) => {
         throw await toApiClientError(response, "GET_USAGE_METRICS_FAILED");
       }
       return (await response.json()) as UsageMetricsDto;
+    },
+    listAdminScans: async (query: AdminScansQuery = {}): Promise<AdminScansResponseDto> => {
+      const params = new URLSearchParams();
+      if (query.live !== undefined) params.set("live", String(query.live));
+      if (query.state) params.set("state", query.state);
+      if (query.jurisdiction) params.set("jurisdiction", query.jurisdiction);
+      if (query.category) params.set("category", query.category);
+      if (query.from) params.set("from", query.from);
+      if (query.to) params.set("to", query.to);
+      if (query.limit) params.set("limit", String(query.limit));
+      const suffix = params.size > 0 ? `?${params.toString()}` : "";
+      const response = await fetch(`${requireOrigin(base)}/v1/admin/scans${suffix}`, {
+        headers: { accept: "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw await toApiClientError(response, "LIST_ADMIN_SCANS_FAILED");
+      }
+      return (await response.json()) as AdminScansResponseDto;
+    },
+    getAdminScan: async (scanId: string): Promise<AdminScanDetailDto | null> => {
+      const response = await fetch(
+        `${requireOrigin(base)}/v1/admin/scans/${encodeURIComponent(scanId)}`,
+        {
+          headers: { accept: "application/json" },
+          credentials: "include",
+        },
+      );
+      if (response.status === 404) {
+        return null;
+      }
+      if (!response.ok) {
+        throw await toApiClientError(response, "GET_ADMIN_SCAN_FAILED");
+      }
+      return (await response.json()) as AdminScanDetailDto;
     },
     getPendingDocument: async (documentId: string): Promise<PendingLegalDocumentDto | null> => {
       const response = await fetch(

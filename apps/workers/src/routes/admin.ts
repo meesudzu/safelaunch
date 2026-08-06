@@ -72,6 +72,46 @@ interface CountRow {
   reviewers?: number;
 }
 
+interface AdminScanListRow {
+  id: string;
+  created_at: string;
+  jurisdiction: string;
+  category: string;
+  state: string;
+  expires_at: string;
+  url_hash: string | null;
+  total_pages: number | null;
+  pages_done: number | null;
+}
+
+interface AdminScanDetailRow {
+  id: string;
+  created_at: string;
+  jurisdiction: string;
+  category: string;
+  state: string;
+  expires_at: string;
+  url_hash: string | null;
+  coverage_json: string;
+}
+
+interface FindingSeverityRow {
+  severity: string;
+  n: number;
+}
+
+interface AnalysisRunRow {
+  model_id: string;
+  prompt_version: string;
+  retrieval_version: string;
+  created_at: string;
+}
+
+interface ReportLinkRow {
+  payload_json: string;
+  expires_at: string;
+}
+
 const RESOLVED_ACTOR = (request: Request): string => {
   // Cloudflare Access forwards the authenticated user's email as a header.
   // In local dev (no Access app), fall back to a stable placeholder so
@@ -138,6 +178,121 @@ adminRouter.get("/metrics/usage", async (context) => {
       metricTile("reportsOpened24h", "Reports opened", reportsOpened),
       metricTile("activeReviewers24h", "Active reviewers", activeReviewers),
     ],
+  });
+});
+
+adminRouter.get("/scans", async (context) => {
+  const query = context.req.query();
+  const limit = clampLimit(query.limit ?? "100");
+  const live = pickString(query.live) !== "false";
+  const rawFrom = pickString(query.from);
+  const rawTo = pickString(query.to);
+  if ((rawFrom && !isIsoDate(rawFrom)) || (rawTo && !isIsoDate(rawTo))) {
+    return context.json({ code: "INVALID_DATE" }, 400);
+  }
+
+  const filters: string[] = [];
+  const bindings: unknown[] = [];
+  if (live) {
+    filters.push("s.state NOT IN ('completed','failed','partial')");
+    filters.push("s.created_at >= ?");
+    bindings.push(daysAgoIso(1));
+  } else {
+    const state = pickString(query.state);
+    const jurisdiction = pickString(query.jurisdiction);
+    const category = pickString(query.category);
+    if (state) {
+      filters.push("s.state = ?");
+      bindings.push(state);
+    }
+    if (jurisdiction) {
+      filters.push("s.jurisdiction = ?");
+      bindings.push(jurisdiction);
+    }
+    if (category) {
+      filters.push("s.category = ?");
+      bindings.push(category);
+    }
+    if (rawFrom) {
+      filters.push("s.created_at >= ?");
+      bindings.push(rawFrom);
+    }
+    if (rawTo) {
+      filters.push("s.created_at <= ?");
+      bindings.push(rawTo);
+    }
+  }
+  bindings.push(limit);
+
+  const where = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+  const result = await context.env.DB.prepare(
+    "SELECT s.id, s.created_at, s.jurisdiction, s.category, s.state, s.expires_at, s.url_hash, " +
+      "COUNT(p.id) AS total_pages, SUM(CASE WHEN p.state = 'completed' THEN 1 ELSE 0 END) AS pages_done " +
+      "FROM scans s LEFT JOIN scan_pages p ON p.scan_id = s.id " +
+      `${where} ` +
+      "GROUP BY s.id ORDER BY s.created_at DESC, s.id DESC LIMIT ?",
+  )
+    .bind(...bindings)
+    .all<AdminScanListRow>();
+
+  return context.json({
+    scans: (result.results ?? []).map(toAdminScanSummary),
+    nextCursor: null,
+    live,
+  });
+});
+
+adminRouter.get("/scans/:scanId", async (context) => {
+  const scanId = context.req.param("scanId");
+  if (!scanId || scanId.length > 256) {
+    return context.json({ code: "INVALID_SCAN_ID" }, 400);
+  }
+
+  const scan = await context.env.DB.prepare(
+    "SELECT id, created_at, jurisdiction, category, state, expires_at, url_hash, coverage_json FROM scans WHERE id = ?",
+  )
+    .bind(scanId)
+    .first<AdminScanDetailRow>();
+  if (!scan) {
+    return context.json({ code: "NOT_FOUND" }, 404);
+  }
+
+  const nowIso = new Date().toISOString();
+  const [severityResult, analysisResult, report] = await Promise.all([
+    context.env.DB.prepare(
+      "SELECT severity, COUNT(*) AS n FROM findings WHERE scan_id = ? GROUP BY severity",
+    )
+      .bind(scanId)
+      .all<FindingSeverityRow>(),
+    context.env.DB.prepare(
+      "SELECT model_id, prompt_version, retrieval_version, created_at FROM analysis_runs WHERE scan_id = ? ORDER BY created_at DESC",
+    )
+      .bind(scanId)
+      .all<AnalysisRunRow>(),
+    context.env.DB.prepare(
+      "SELECT payload_json, expires_at FROM reports WHERE scan_id = ? AND expires_at > ?",
+    )
+      .bind(scanId, nowIso)
+      .first<ReportLinkRow>(),
+  ]);
+
+  return context.json({
+    scanId: scan.id,
+    createdAt: scan.created_at,
+    jurisdiction: scan.jurisdiction,
+    category: scan.category,
+    state: scan.state,
+    expiresAt: scan.expires_at,
+    urlHashPrefix: truncateHash(scan.url_hash),
+    coverage: parseCoverage(scan.coverage_json),
+    severityCounts: severityCounts(severityResult.results ?? []),
+    analysisRuns: (analysisResult.results ?? []).map((row) => ({
+      modelId: row.model_id,
+      promptVersion: row.prompt_version,
+      retrievalVersion: row.retrieval_version,
+      createdAt: row.created_at,
+    })),
+    reportUrl: report ? reportUrlFromPayload(report.payload_json) : null,
   });
 });
 
@@ -396,6 +551,56 @@ const metricTile = (
   value,
   ...(delta === undefined ? {} : { delta }),
 });
+
+const truncateHash = (hash: string | null): string => (hash ? hash.slice(0, 12) : "unknown");
+
+const toAdminScanSummary = (row: AdminScanListRow) => ({
+  scanId: row.id,
+  createdAt: row.created_at,
+  jurisdiction: row.jurisdiction,
+  category: row.category,
+  state: row.state,
+  expiresAt: row.expires_at,
+  urlHashPrefix: truncateHash(row.url_hash),
+  pagesDone: row.pages_done ?? 0,
+  totalPages: row.total_pages ?? 0,
+});
+
+const parseCoverage = (raw: string): { fetched: string[]; failed: string[]; skipped: string[] } => {
+  const safeStringArray = (value: unknown): string[] =>
+    Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      fetched: safeStringArray(parsed.fetched),
+      failed: safeStringArray(parsed.failed),
+      skipped: safeStringArray(parsed.skipped),
+    };
+  } catch {
+    return { fetched: [], failed: [], skipped: [] };
+  }
+};
+
+const severityCounts = (
+  rows: FindingSeverityRow[],
+): { high: number; review: number; pass: number } => {
+  const counts = { high: 0, review: 0, pass: 0 };
+  for (const row of rows) {
+    if (row.severity === "high" || row.severity === "review" || row.severity === "pass") {
+      counts[row.severity] = row.n;
+    }
+  }
+  return counts;
+};
+
+const reportUrlFromPayload = (payloadJson: string): string | null => {
+  try {
+    const payload = JSON.parse(payloadJson) as Record<string, unknown>;
+    return typeof payload._reportToken === "string" ? `/vi/report/${payload._reportToken}` : null;
+  } catch {
+    return null;
+  }
+};
 
 const daysAgoIso = (days: number): string => {
   const date = new Date();
