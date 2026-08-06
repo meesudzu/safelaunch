@@ -374,9 +374,7 @@ describe("severity tabs", () => {
   it("hides tabs with zero findings", () => {
     const report: ReportPayload = {
       ...baseReport,
-      findings: [
-        buildFinding({ id: "h1", severity: "high", applicability: "current" }),
-      ],
+      findings: [buildFinding({ id: "h1", severity: "high", applicability: "current" })],
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     expect(screen.getByTestId("findings-tab-high")).toBeInTheDocument();
@@ -403,9 +401,7 @@ describe("severity tabs", () => {
   it("defaults to first visible tab when Nghiêm trọng is empty", () => {
     const report: ReportPayload = {
       ...baseReport,
-      findings: [
-        buildFinding({ id: "p1", severity: "pass", applicability: "current" }),
-      ],
+      findings: [buildFinding({ id: "p1", severity: "pass", applicability: "current" })],
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     expect(screen.getByTestId("findings-tab-pass")).toHaveAttribute("aria-selected", "true");
@@ -441,9 +437,7 @@ describe("severity tabs", () => {
       ...baseReport,
       findings: [buildFinding({ id: "h1", severity: "high", applicability: "current" })],
     };
-    const { container } = render(
-      <ReportView report={report} locale="vi" messages={viMessages} />,
-    );
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
     const card = container.querySelector('[data-severity="high"]');
     expect(card).toHaveClass("border-l-error");
     expect(card).toHaveClass("bg-error/5");
@@ -454,9 +448,7 @@ describe("severity tabs", () => {
       ...baseReport,
       findings: [buildFinding({ id: "r1", severity: "review", applicability: "current" })],
     };
-    const { container } = render(
-      <ReportView report={report} locale="vi" messages={viMessages} />,
-    );
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
     const card = container.querySelector('[data-severity="review"]');
     expect(card).toHaveClass("border-l-gold");
     expect(card).toHaveClass("bg-gold/10");
@@ -467,9 +459,7 @@ describe("severity tabs", () => {
       ...baseReport,
       findings: [buildFinding({ id: "p1", severity: "pass", applicability: "current" })],
     };
-    const { container } = render(
-      <ReportView report={report} locale="vi" messages={viMessages} />,
-    );
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
     const card = container.querySelector('[data-severity="pass"]');
     expect(card).toHaveClass("border-l-success");
     expect(card).toHaveClass("bg-success/5");
@@ -483,12 +473,10 @@ describe("severity tabs", () => {
         buildFinding({ id: "h-cur", severity: "high", applicability: "current" }),
       ],
     };
-    const { container } = render(
-      <ReportView report={report} locale="vi" messages={viMessages} />,
-    );
+    const { container } = render(<ReportView report={report} locale="vi" messages={viMessages} />);
     const panel = container.querySelector('[data-testid="findings-tabpanel-high"]');
-    const ids = Array.from(panel?.querySelectorAll("[data-finding-id]") ?? []).map(
-      (el) => el.getAttribute("data-finding-id"),
+    const ids = Array.from(panel?.querySelectorAll("[data-finding-id]") ?? []).map((el) =>
+      el.getAttribute("data-finding-id"),
     );
     expect(ids).toEqual(["h-cur", "h-up"]);
   });

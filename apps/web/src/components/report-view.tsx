@@ -221,9 +221,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
   const visibleTabs = allTabs.filter((t) => t.findings.length > 0);
 
   const defaultTab: Severity | null =
-    visibleTabs.find((t) => t.severity === "high")?.severity ??
-    visibleTabs[0]?.severity ??
-    null;
+    visibleTabs.find((t) => t.severity === "high")?.severity ?? visibleTabs[0]?.severity ?? null;
 
   const [activeTab, setActiveTab] = useState<Severity | null>(defaultTab);
 
@@ -266,9 +264,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
             <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
               {locale === "vi" ? "Tình trạng tổng" : "Overall status"}
             </p>
-            <p className="mt-2 text-base font-semibold">
-              {statusLabel(messages, report.status)}
-            </p>
+            <p className="mt-2 text-base font-semibold">{statusLabel(messages, report.status)}</p>
           </div>
         </div>
 
@@ -459,17 +455,21 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
               data-testid="findings-summary"
               className="flex flex-col gap-4 rounded-md border border-rule bg-surface p-5 sm:flex-row sm:items-center sm:gap-6"
             >
-              <FindingsDonut total={totalFindings} segments={visibleTabs.map((tab) => ({
-                severity: tab.severity,
-                count: tab.findings.length,
-                accentClass: severityAccentClass(tab.severity),
-              }))} />
+              <FindingsDonut
+                total={totalFindings}
+                segments={visibleTabs.map((tab) => ({
+                  severity: tab.severity,
+                  count: tab.findings.length,
+                  accentClass: severityAccentClass(tab.severity),
+                }))}
+              />
               <ul className="flex flex-col gap-2 text-sm">
                 {visibleTabs.map((tab) => {
                   const pct = Math.round((tab.findings.length / totalFindings) * 100);
-                  const dotBg = severityAccentClass(tab.severity)
-                    .split(" ")
-                    .find((c) => c.startsWith("bg-")) ?? "bg-ink-soft";
+                  const dotBg =
+                    severityAccentClass(tab.severity)
+                      .split(" ")
+                      .find((c) => c.startsWith("bg-")) ?? "bg-ink-soft";
                   return (
                     <li
                       key={tab.severity}
@@ -480,9 +480,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                         aria-hidden="true"
                         className={`inline-block h-2 w-2 rounded-full ${dotBg}`}
                       />
-                      <span className="text-ink">
-                        {severityLabel(messages, tab.severity)}
-                      </span>
+                      <span className="text-ink">{severityLabel(messages, tab.severity)}</span>
                       <span className="font-mono text-ink-soft">{tab.findings.length}</span>
                       <span className="font-mono text-ink-soft">({pct}%)</span>
                     </li>
@@ -522,7 +520,9 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                       <span
                         aria-hidden="true"
                         className={`inline-block h-2 w-2 rounded-full ${
-                          isActive ? accent.split(" ").find((c) => c.startsWith("bg-")) ?? "" : "bg-ink/30"
+                          isActive
+                            ? (accent.split(" ").find((c) => c.startsWith("bg-")) ?? "")
+                            : "bg-ink/30"
                         }`}
                       />
                       <span>{severityLabel(messages, tab.severity)}</span>
@@ -613,8 +613,10 @@ const FindingsDonut = ({ total, segments }: FindingsDonutProps) => {
   const arcs = segments.map((segment) => {
     const length = total > 0 ? (segment.count / total) * CIRCUMFERENCE : 0;
     const strokeClass =
-      segment.accentClass.split(" ").find((c) => c.startsWith("bg-"))?.replace(/^bg-/, "stroke-") ??
-      "stroke-rule";
+      segment.accentClass
+        .split(" ")
+        .find((c) => c.startsWith("bg-"))
+        ?.replace(/^bg-/, "stroke-") ?? "stroke-rule";
     const arc = {
       key: segment.severity,
       strokeClass,
