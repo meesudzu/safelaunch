@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 
+import { isApprovedFontSourceUrl } from "../lib/citation-hosts";
+
 import type {
   AssetRightsSummary,
-  DigitalAsset,
   LicenseCheck,
   OverallReportStatus,
   ReportFinding,
@@ -48,6 +49,18 @@ export interface ReportMessages {
   readonly "asset.inventory.summary": string;
   readonly "asset.inventory.flagged": string;
   readonly "asset.inventory.scope"?: string;
+  readonly "font.license.verified_open": string;
+  readonly "font.license.declared_open": string;
+  readonly "font.license.requires_license_proof": string;
+  readonly "font.license.unknown": string;
+  readonly "font.license.conflicting": string;
+  readonly "font.license.unavailable": string;
+  readonly "font.family.files": string;
+  readonly "font.family.unknown": string;
+  readonly "font.family.open_details": string;
+  readonly "font.family.confidence": string;
+  readonly "font.variant.see_source": string;
+  readonly "font.source_unavailable": string;
 }
 
 export interface ReportFindingCard extends ReportFinding {
@@ -65,12 +78,73 @@ export interface ReportPayload {
   readonly generatedAt: string;
   readonly expiresAt: string;
   readonly rubricVersion: string;
-  readonly serviceSignals?: readonly ServiceSignal[];
-  readonly licenseChecks?: readonly LicenseCheck[];
+  readonly serviceSignals?: readonly ServiceSignal[] | undefined;
+  readonly licenseChecks?: readonly LicenseCheck[] | undefined;
   readonly assetInventory?: {
-    readonly assets: readonly DigitalAsset[];
+    readonly assets: ReadonlyArray<{
+      readonly id: string;
+      readonly kind: import("@safelaunch/contracts").DigitalAssetKind;
+      readonly url: string;
+      readonly host: string;
+      readonly sourceUrl: string;
+      readonly contentType: string | null;
+      readonly sha256: string | null;
+      readonly status: "fetched" | "inaccessible" | "blocked";
+      readonly licenseEvidence: import("@safelaunch/contracts").AssetLicenseEvidence;
+      readonly licenseExcerpt: string | null;
+      readonly confidence: number;
+      readonly fontInfo?: import("@safelaunch/contracts").FontInfo | null;
+      readonly fontLicense?: import("@safelaunch/contracts").FontLicenseAssessment | null;
+    }>;
     readonly summary: AssetRightsSummary;
   };
+  readonly fontInventory?: ReportFontInventoryView | undefined;
+}
+
+export type ReportFontLicenseStatusView =
+  | "verified_open"
+  | "declared_open"
+  | "requires_license_proof"
+  | "unknown"
+  | "conflicting"
+  | "unavailable";
+
+export interface ReportFontVariantView {
+  readonly assetId: string;
+  readonly url: string;
+  readonly format: string | null;
+  readonly postscriptName: string | null;
+  readonly subfamilyName: string | null;
+  readonly version: string | null;
+  readonly fileSha256: string | null;
+  readonly status: "fetched" | "inaccessible" | "blocked";
+  readonly licenseEvidence: string;
+}
+
+export interface ReportFontFamilyGroupView {
+  readonly id: string;
+  readonly family: string;
+  readonly kind?: "font" | undefined;
+  readonly host: string;
+  readonly hosts: readonly string[];
+  readonly variants: readonly ReportFontVariantView[];
+  readonly fontInfo: import("../lib/api-client").ReportFontInfoDto | null;
+  readonly fontLicense: {
+    readonly status: ReportFontLicenseStatusView;
+    readonly reasonCodes: readonly string[];
+    readonly confidence: number;
+    readonly evidenceSources: ReadonlyArray<{ provisionId: string; source: string; url: string; retrievedAt: string; excerpt: string }>;
+    readonly retrievedAt: string;
+    readonly registryVersion: string | null;
+  } | null;
+  readonly confidence: number;
+  readonly flagged: boolean;
+  readonly citationCount: number;
+}
+
+export interface ReportFontInventoryView {
+  readonly groups: readonly ReportFontFamilyGroupView[];
+  readonly totals: { families: number; files: number; flagged: number };
 }
 
 type Severity = "high" | "review" | "pass";
@@ -129,6 +203,45 @@ const severityAccentClass = (severity: Severity): string => {
       return "border-success text-success bg-success";
   }
 };
+
+const fontLicenseBadgeClass = (status: ReportFontLicenseStatusView): string => {
+  switch (status) {
+    case "verified_open":
+      return "border-success text-success bg-success/10";
+    case "declared_open":
+      return "border-info text-info bg-info/10";
+    case "requires_license_proof":
+      return "border-gold text-ink bg-gold/10";
+    case "unknown":
+      return "border-ink-soft text-ink-soft bg-ink-soft/10";
+    case "conflicting":
+      return "border-error text-error bg-error/10";
+    case "unavailable":
+      return "border-ink-soft text-ink-soft bg-ink-soft/10";
+  }
+};
+
+const fontLicenseLabel = (
+  messages: ReportMessages,
+  status: ReportFontLicenseStatusView,
+): string => {
+  switch (status) {
+    case "verified_open":
+      return messages["font.license.verified_open"];
+    case "declared_open":
+      return messages["font.license.declared_open"];
+    case "requires_license_proof":
+      return messages["font.license.requires_license_proof"];
+    case "unknown":
+      return messages["font.license.unknown"];
+    case "conflicting":
+      return messages["font.license.conflicting"];
+    case "unavailable":
+      return messages["font.license.unavailable"];
+  }
+};
+
+const fontLicenseReasonCodes = (codes: readonly string[]): string => codes.join(", ");
 
 const statusBannerClass = (status: OverallReportStatus): string => {
   switch (status) {
@@ -388,6 +501,125 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                     {messages["finding.recommended_action"] ?? "Hành động đề xuất"}:{" "}
                     {check.recommendedAction}
                   </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {report.fontInventory && report.fontInventory.groups.length > 0 ? (
+          <section
+            aria-labelledby="font-inventory-heading"
+            data-testid="font-inventory-section"
+            className="rounded-md border border-rule bg-surface p-5"
+          >
+            <h2
+              id="font-inventory-heading"
+              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+            >
+              {locale === "vi" ? "Kiểm tra font" : "Font audit"}
+            </h2>
+            <p className="mt-2 text-sm text-ink-soft">
+              {report.fontInventory.totals.families} {locale === "vi" ? "family" : "families"} ·{" "}
+              {report.fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
+              {report.fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
+            </p>
+            <ul className="mt-3 flex flex-col gap-3 text-xs">
+              {report.fontInventory.groups.map((group) => (
+                <li
+                  key={group.id}
+                  className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
+                  data-testid="font-family-row"
+                >
+                  <p className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold uppercase tracking-wider">
+                      {group.family}
+                    </span>
+                    {group.fontLicense ? (
+                      <span
+                        data-testid="font-license-badge"
+                        className={
+                          "inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider " +
+                          fontLicenseBadgeClass(group.fontLicense.status)
+                        }
+                        title={fontLicenseReasonCodes(group.fontLicense.reasonCodes)}
+                      >
+                        {fontLicenseLabel(messages, group.fontLicense.status)}
+                      </span>
+                    ) : (
+                      <span
+                        className="inline-flex items-center rounded-sm border border-ink-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft"
+                      >
+                        {messages["font.family.unknown"] ?? (locale === "vi" ? "Không xác định" : "Unknown")}
+                      </span>
+                    )}
+                  </p>
+                  <p className="mt-1 text-ink-soft">
+                    {group.variants.length} {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} · {group.host} ·{" "}
+                    {(group.confidence * 100).toFixed(0)}%
+                  </p>
+                  {group.fontInfo?.familyName ? (
+                    <p className="mt-1 text-ink-soft">
+                      {locale === "vi" ? "Tên trong file" : "File name"}: {group.fontInfo.familyName}
+                      {group.fontInfo.subfamilyName ? (
+                        <> {group.fontInfo.subfamilyName}</>
+                      ) : null}
+                      {group.fontInfo.version ? (
+                        <> · {group.fontInfo.version}</>
+                      ) : null}
+                    </p>
+                  ) : null}
+                  {group.fontLicense?.registryVersion ? (
+                    <p className="mt-1 text-ink-soft">
+                      {locale === "vi" ? "Registry" : "Registry"}: {group.fontLicense.registryVersion}
+                    </p>
+                  ) : null}
+                  {group.fontLicense?.evidenceSources.length ? (
+                    <p className="mt-1 break-all text-ink-soft">
+                      {group.fontLicense.evidenceSources.map((citation) => {
+                        const approved = isApprovedFontSourceUrl(citation.url);
+                        if (!approved) {
+                          return (
+                            <span key={citation.url} className="mr-2">
+                              {messages["font.source_unavailable"] ?? (locale === "vi" ? "Liên kết nguồn không khả dụng" : "Source link unavailable")}
+                            </span>
+                          );
+                        }
+                        return (
+                          <a
+                            key={citation.url}
+                            href={citation.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="mr-2 underline text-info"
+                          >
+                            {citation.source}
+                          </a>
+                        );
+                      })}
+                    </p>
+                  ) : null}
+                  <details className="mt-2" open>
+                    <summary className="cursor-pointer text-ink-soft">
+                      {messages["font.family.open_details"] ?? (locale === "vi" ? "Xem các biến thể" : "Show variants")} ({group.variants.length})
+                    </summary>
+                    <ul className="mt-2 flex flex-col gap-2">
+                      {group.variants.map((variant) => (
+                        <li key={variant.assetId} className="border-l-2 border-rule pl-2">
+                          <p className="font-mono text-ink break-all">{variant.url}</p>
+                          <p className="text-ink-soft">
+                            {variant.postscriptName ?? (locale === "vi" ? "Không rõ PostScript name" : "Unknown PostScript name")}
+                            {variant.subfamilyName ? (
+                              <> · {variant.subfamilyName}</>
+                            ) : null}
+                            {variant.version ? (
+                              <> · {variant.version}</>
+                            ) : null}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
                 </li>
               ))}
             </ul>

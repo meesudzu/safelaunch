@@ -10,12 +10,14 @@ import type { Locale } from "../../../../lib/locale";
 
 const messagesFor = (locale: Locale): ReportMessages => (locale === "vi" ? reportVi : reportEn);
 
-const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
+const toReportPayload = (dto: ReportPayloadDto): ReportPayload => {
+  const view: ReportPayload = {
   scanId: dto.scanId,
   jurisdiction: dto.jurisdiction,
   category: dto.category,
   status: dto.status,
   coverage: dto.coverage,
+  fontInventory: dto.fontInventory,
   findings: dto.findings.map((finding) => ({
     id: finding.id,
     severity: finding.severity,
@@ -34,8 +36,10 @@ const toReportPayload = (dto: ReportPayloadDto): ReportPayload => ({
   rubricVersion: dto.rubricVersion,
   ...(dto.serviceSignals === undefined ? {} : { serviceSignals: dto.serviceSignals }),
   ...(dto.licenseChecks === undefined ? {} : { licenseChecks: dto.licenseChecks }),
-  ...(dto.assetInventory === undefined ? {} : { assetInventory: dto.assetInventory }),
-});
+  assetInventory: dto.assetInventory as unknown as NonNullable<ReportPayload["assetInventory"]>,
+  };
+  return view;
+}
 
 export default async function ReportPage({
   params,

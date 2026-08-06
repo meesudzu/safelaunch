@@ -8,19 +8,22 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src vitest.config.ts",
     "test": "vitest run",
-    "wrangler": "wrangler"
+    "wrangler": "wrangler",
+    "build:font-registry": "node ../../scripts/build-font-registry.mjs"
   },
   "dependencies": {
     "@safelaunch/ai": "workspace:*",
     "@safelaunch/compliance-core": "workspace:*",
     "@safelaunch/contracts": "workspace:*",
     "@safelaunch/db": "workspace:*",
+    "fontkit": "^2.0.4",
     "hono": "4.12.32",
     "zod": "4.3.6"
   },
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "0.18.8",
     "@cloudflare/workers-types": "5.20260728.1",
+    "@types/fontkit": "^2.0.9",
     "@types/node": "22.20.1",
     "fast-xml-parser": "5.10.1",
     "fflate": "0.8.3",

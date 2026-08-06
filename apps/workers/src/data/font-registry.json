@@ -1,0 +1,223 @@
+{
+  "registryVersion": "google-fonts-manual-snapshot-2026-08-06",
+  "fetchedAt": "2026-08-06T00:00:00.000Z",
+  "sourceCommit": "main@2026-08-01",
+  "fonts": [
+    {
+      "family": "Inter",
+      "postscriptName": "Inter-Bold",
+      "weight": 700,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "4.0",
+      "copyright": "Copyright 2020 The Inter Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Inter",
+      "postscriptName": "Inter-Italic",
+      "weight": 400,
+      "style": "italic",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "4.0",
+      "copyright": "Copyright 2020 The Inter Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Inter",
+      "postscriptName": "Inter-Regular",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "4.0",
+      "copyright": "Copyright 2020 The Inter Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "JetBrains Mono",
+      "postscriptName": "JetBrainsMono-Bold",
+      "weight": 700,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "2.304",
+      "copyright": "Copyright 2020 The JetBrains Mono Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "JetBrains Mono",
+      "postscriptName": "JetBrainsMono-Italic",
+      "weight": 400,
+      "style": "italic",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "2.304",
+      "copyright": "Copyright 2020 The JetBrains Mono Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "JetBrains Mono",
+      "postscriptName": "JetBrainsMono-Regular",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "2.304",
+      "copyright": "Copyright 2020 The JetBrains Mono Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Noto Sans",
+      "postscriptName": "NotoSans-Bold",
+      "weight": 700,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "2.014",
+      "copyright": "Copyright 2022 The Noto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Noto Sans",
+      "postscriptName": "NotoSans-Regular",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "2.014",
+      "copyright": "Copyright 2022 The Noto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Roboto",
+      "postscriptName": "Roboto-Bold",
+      "weight": 700,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "3.015",
+      "copyright": "Copyright 2011 The Roboto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/METADATA.pb",
+      "sha256": "b64aec59c2342a732ec9a766e0846692dad652c571ca3bc7fd31bf53943887eb"
+    },
+    {
+      "family": "Roboto",
+      "postscriptName": "Roboto-BoldItalic",
+      "weight": 700,
+      "style": "italic",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "3.015",
+      "copyright": "Copyright 2011 The Roboto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Roboto",
+      "postscriptName": "Roboto-Italic",
+      "weight": 400,
+      "style": "italic",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "3.015",
+      "copyright": "Copyright 2011 The Roboto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/METADATA.pb",
+      "sha256": "b560528833481e301ca27e15fb2c208702dbaa4c4d355a50394695917cb31557"
+    },
+    {
+      "family": "Roboto",
+      "postscriptName": "Roboto-Medium",
+      "weight": 500,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "3.015",
+      "copyright": "Copyright 2011 The Roboto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Roboto",
+      "postscriptName": "Roboto-Regular",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "3.015",
+      "copyright": "Copyright 2011 The Roboto Project Authors",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/METADATA.pb",
+      "sha256": "6d6be3a7d40feb9b785e62c4b629a0e5949e50cbbbad06eea4800a4c311e9898"
+    },
+    {
+      "family": "Source Serif 4",
+      "postscriptName": "SourceSerif4-Bold",
+      "weight": 700,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "7.0",
+      "copyright": "Copyright 2014-2021 Adobe (http://www.adobe.com/)",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Source Serif 4",
+      "postscriptName": "SourceSerif4-Italic",
+      "weight": 400,
+      "style": "italic",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "7.0",
+      "copyright": "Copyright 2014-2021 Adobe (http://www.adobe.com/)",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/METADATA.pb",
+      "sha256": null
+    },
+    {
+      "family": "Source Serif 4",
+      "postscriptName": "SourceSerif4-Regular",
+      "weight": 400,
+      "style": "normal",
+      "license": "OFL",
+      "licenseUrl": "https://openfontlicense.org",
+      "version": "7.0",
+      "copyright": "Copyright 2014-2021 Adobe (http://www.adobe.com/)",
+      "sourceUrl": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/METADATA.pb",
+      "sha256": null
+    }
+  ],
+  "commercialNameHints": [
+    {
+      "family": "Arial",
+      "note": "Commonly known commercial font (Monotype)",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Arial"
+    },
+    {
+      "family": "Helvetica",
+      "note": "Commonly known commercial font (Monotype)",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Helvetica"
+    },
+    {
+      "family": "Times New Roman",
+      "note": "Commonly known commercial font (Monotype)",
+      "sourceUrl": "https://en.wikipedia.org/wiki/Times_New_Roman"
+    }
+  ],
+  "registryCitation": {
+    "provisionId": "google-fonts-snapshot-2026-08",
+    "source": "Google Fonts OFL snapshot",
+    "url": "https://github.com/google/fonts/tree/main/ofl",
+    "retrievedAt": "2026-08-06T00:00:00.000Z",
+    "excerpt": "Open-source fonts published by Google Fonts under SIL Open Font License 1.1. The registry exposes a PostScript-name and version index, never a copyrighted binary."
+  }
+}

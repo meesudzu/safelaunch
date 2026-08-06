@@ -41,5 +41,17 @@
   "asset.inventory.title": "Digital asset inventory",
   "asset.inventory.summary": "Assets referenced by the site",
   "asset.inventory.flagged": "Assets requiring license review",
-  "status.high_risk": "High-risk signals detected"
+  "status.high_risk": "High-risk signals detected",
+  "font.license.verified_open": "License verified (registry match)",
+  "font.license.declared_open": "Declared open license",
+  "font.license.requires_license_proof": "Verify license before launch",
+  "font.license.unknown": "No license evidence found",
+  "font.license.conflicting": "Hash mismatch vs registry",
+  "font.license.unavailable": "Font metadata unavailable",
+  "font.family.files": "files",
+  "font.family.unknown": "Unknown family",
+  "font.family.open_details": "Show variants",
+  "font.family.confidence": "Confidence",
+  "font.variant.see_source": "See source",
+  "font.source_unavailable": "Source link unavailable"
 }

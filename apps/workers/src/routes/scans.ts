@@ -18,7 +18,7 @@ import { hashRedeemCode } from "../services/redeem-codes";
 import type { ScanResult, ScanTerminalState } from "../workflows/scan-workflow";
 
 const SCAN_TTL_SECONDS = 7 * 24 * 60 * 60;
-const ANALYSIS_VERSION = "vn-mvp-v2-licensing-digital-rights-strict";
+const ANALYSIS_VERSION = "vn-mvp-v2-licensing-font-evidence-v1";
 
 export interface RoutesEnv {
   DB: D1Database;

@@ -88,6 +88,59 @@ export interface ReportLicenseCheckDto {
   retrievedAt?: string | null;
 }
 
+export type ReportFontFsType =
+  | "installable"
+  | "restricted"
+  | "preview_print"
+  | "editable"
+  | "bitmap_only"
+  | "unknown";
+
+export type ReportFontFormat =
+  | "TTF"
+  | "OTF"
+  | "WOFF"
+  | "WOFF2"
+  | "TTC"
+  | "DFont"
+  | "Unknown";
+
+export type ReportFontLicenseStatus =
+  | "verified_open"
+  | "declared_open"
+  | "requires_license_proof"
+  | "unknown"
+  | "conflicting"
+  | "unavailable";
+
+export interface ReportFontInfoDto {
+  familyName: string | null;
+  subfamilyName: string | null;
+  fullName: string | null;
+  postscriptName: string | null;
+  version: string | null;
+  copyright: string | null;
+  vendorId: string | null;
+  fsType: ReportFontFsType;
+  format: ReportFontFormat;
+  fileSize: number;
+}
+
+export interface ReportFontLicenseDto {
+  status: ReportFontLicenseStatus;
+  reasonCodes: readonly string[];
+  confidence: number;
+  evidenceSources: ReadonlyArray<{
+    provisionId: string;
+    source: string;
+    url: string;
+    retrievedAt: string;
+    excerpt: string;
+  }>;
+  retrievedAt: string;
+  registryVersion: string | null;
+}
+
 export interface ReportDigitalAssetDto {
   id: string;
   kind: DigitalAssetKind;
@@ -100,6 +153,39 @@ export interface ReportDigitalAssetDto {
   licenseEvidence: AssetLicenseEvidence;
   licenseExcerpt: string | null;
   confidence: number;
+  fontInfo?: ReportFontInfoDto | null;
+  fontLicense?: ReportFontLicenseDto | null;
+}
+
+export interface ReportFontVariantDto {
+  assetId: string;
+  url: string;
+  format: string | null;
+  postscriptName: string | null;
+  subfamilyName: string | null;
+  version: string | null;
+  fileSha256: string | null;
+  status: "fetched" | "inaccessible" | "blocked";
+  licenseEvidence: AssetLicenseEvidence;
+}
+
+export interface ReportFontFamilyGroupDto {
+  id: string;
+  family: string;
+  kind: "font";
+  host: string;
+  hosts: readonly string[];
+  variants: readonly ReportFontVariantDto[];
+  fontInfo: ReportFontInfoDto | null;
+  fontLicense: ReportFontLicenseDto | null;
+  confidence: number;
+  flagged: boolean;
+  citationCount: number;
+}
+
+export interface ReportFontInventoryDto {
+  groups: readonly ReportFontFamilyGroupDto[];
+  totals: { families: number; files: number; flagged: number };
 }
 
 export interface ReportFindingDto {
@@ -137,7 +223,9 @@ export interface ReportPayloadDto {
   assetInventory?: {
     assets: readonly ReportDigitalAssetDto[];
     summary: { total: number; byKind: Record<string, number>; flagged: number };
+    fontInventory?: ReportFontInventoryDto;
   };
+  fontInventory?: ReportFontInventoryDto;
 }
 
 export interface PendingDocumentSummary {
