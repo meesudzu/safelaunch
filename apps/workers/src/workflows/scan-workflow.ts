@@ -613,18 +613,24 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // empty result so phases 6-10 still run. Operators can spot the
     // degraded scans via the `scan.step_fallback` log entries or the
     // new `coverage.degradedPhases` field on the persisted report.
-    const assetRefs = await runStepWithFallback({
+    const phase4 = await runStepWithFallback<{ refs: AssetReference[]; degraded: boolean }>({
       step,
       name: "phase-4:scan-assets-references",
-      fallback: [] as AssetReference[],
+      fallback: { refs: [], degraded: false },
       config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
       log,
-      fn: () => collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher),
+      fn: async () => {
+        const refs = await collectAssetReferencesPhase(
+          parsed.url,
+          evidencePhase.pages,
+          assetFetcher,
+        );
+        const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
+        return { refs, degraded };
+      },
     });
-    if (assetRefs.length === 0 && pageHasAssetCandidates(evidencePhase.pages)) {
-      // Empty list could be correct OR could be a silent failure. Flag
-      // the phase as degraded only when the page had candidates the
-      // loop should have surfaced (heuristic below).
+    const assetRefs = phase4.refs;
+    if (phase4.degraded) {
       degradedPhases.push("phase-4:scan-assets-references");
     }
     const assetInventory = await runStepWithFallback({
