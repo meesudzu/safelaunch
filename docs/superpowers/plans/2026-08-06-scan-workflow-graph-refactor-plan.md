@@ -16,15 +16,15 @@
 
 ## File Structure
 
-| File                                                                | Responsibility                                                                                          |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `apps/workers/src/workflows/scan-workflow.ts`                       | `ScanWorkflowEntrypoint.run()` body: 9 inline try/catch blocks, success-path wrapped in `if(homepagePage.ok)`, two new `publish:*` steps |
-| `apps/workers/src/workflows/scan-workflow.steps.ts`                 | unchanged — `runStepWithFallback` helper preserved for behavior parity + unit tests                       |
-| `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts`       | NEW structural source-code test asserting visible `step.do` call names + order                            |
-| `apps/workers/scripts/check-step-graph.mjs`                         | `EXPECTED_STEP_NAMES` array updated to include `publish:fetching` + `publish:retrieving`                  |
-| `apps/web/src/components/scan-stepper.tsx`                          | `SCAN_PIPELINE` array order swapped (evaluating ↔ retrieving)                                              |
-| `apps/web/src/components/scan-stepper.test.tsx`                     | "renders exactly the six pipeline steps in the canonical order" assertion updated to match new order     |
-| `apps/web/src/components/scan-stepper.snapshot.test.tsx`            | snapshot re-baselined                                                                                    |
+| File                                                          | Responsibility                                                                                                                           |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/workers/src/workflows/scan-workflow.ts`                 | `ScanWorkflowEntrypoint.run()` body: 9 inline try/catch blocks, success-path wrapped in `if(homepagePage.ok)`, two new `publish:*` steps |
+| `apps/workers/src/workflows/scan-workflow.steps.ts`           | unchanged — `runStepWithFallback` helper preserved for behavior parity + unit tests                                                      |
+| `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts` | NEW structural source-code test asserting visible `step.do` call names + order                                                           |
+| `apps/workers/scripts/check-step-graph.mjs`                   | `EXPECTED_STEP_NAMES` array updated to include `publish:fetching` + `publish:retrieving`                                                 |
+| `apps/web/src/components/scan-stepper.tsx`                    | `SCAN_PIPELINE` array order swapped (evaluating ↔ retrieving)                                                                            |
+| `apps/web/src/components/scan-stepper.test.tsx`               | "renders exactly the six pipeline steps in the canonical order" assertion updated to match new order                                     |
+| `apps/web/src/components/scan-stepper.snapshot.test.tsx`      | snapshot re-baselined                                                                                                                    |
 
 No new files. No DB schema change. No i18n key change. No compliance-finding change.
 
@@ -33,6 +33,7 @@ No new files. No DB schema change. No i18n key change. No compliance-finding cha
 ## Task 1: Add structural source-code test (RED)
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.entrypoint.test.ts` (append a new `describe` block at the end)
 
 - [ ] **Step 1: Append the new describe block**
@@ -101,11 +102,12 @@ describe("ScanWorkflowEntrypoint step graph structure", () => {
     // calls inside the workflow itself. Assert the union contains the
     // expected names in the expected order — extras (the helper's own
     // step.do) are tolerated but ordered matches must be exact.
-    const ordered = matches.filter((name, index) =>
-      EXPECTED_STEP_NAMES.includes(name as (typeof EXPECTED_STEP_NAMES)[number]) &&
-      // Take only the first occurrence of each name; later occurrences
-      // (e.g. inside `runStepWithFallback`) are ignored.
-      matches.indexOf(name) === index,
+    const ordered = matches.filter(
+      (name, index) =>
+        EXPECTED_STEP_NAMES.includes(name as (typeof EXPECTED_STEP_NAMES)[number]) &&
+        // Take only the first occurrence of each name; later occurrences
+        // (e.g. inside `runStepWithFallback`) are ignored.
+        matches.indexOf(name) === index,
     );
 
     expect(ordered).toEqual(EXPECTED_STEP_NAMES);
@@ -149,9 +151,11 @@ git commit -m "test(workflow): add structural test locking visible step.do names
 ## Task 2: Inline try/catch for the 7 existing runStepWithFallback calls
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts` — replace 7 `runStepWithFallback({...})` blocks with inline `try { step.do(...) } catch { log(...) }`
 
 The seven step names to inline (in their current source order):
+
 1. `discover:page-urls` (around lines 461-490)
 2. `publish:extracting` (around lines 596-616)
 3. `phase-2:extract-evidence` (around lines 622-665)
@@ -342,11 +346,7 @@ try {
       timeout: "2 minutes",
     },
     async () => {
-      const refs = await collectAssetReferencesPhase(
-        parsed.url,
-        evidencePhase.pages,
-        assetFetcher,
-      );
+      const refs = await collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher);
       const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
       return { refs, degraded };
     },
@@ -531,6 +531,7 @@ git commit -m "refactor(workflow): inline try/catch around 7 step.do calls for g
 ## Task 3: Wrap success-path in `if (homepagePage.ok) { ... }`
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts` — wrap everything after the `homepagePage.ok` early-return inside an `if (homepagePage.ok) { ... }` block
 
 - [ ] **Step 1: Locate the boundary**
@@ -622,6 +623,7 @@ git commit -m "refactor(workflow): wrap success-path in if(homepagePage.ok) for 
 ## Task 4: Add `publish:fetching` step
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts` — insert a new `try { step.do("publish:fetching", ...) } catch { log(...) }` block immediately after `parse-params` and before `fetch:homepage`
 
 - [ ] **Step 1: Locate the insertion point**
@@ -672,6 +674,7 @@ git commit -m "feat(workflow): publish fetching state to D1 before page fetches"
 ## Task 5: Add `publish:retrieving` step
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts` — insert a new `try { step.do("publish:retrieving", ...) } catch { log(...) }` block between `phase-6:evaluate-license` and `phase-7:evaluate-rules`
 
 - [ ] **Step 1: Locate the insertion point**
@@ -722,6 +725,7 @@ git commit -m "feat(workflow): publish retrieving state to D1 before RAG phase"
 ## Task 6: Swap SCAN_PIPELINE order in `scan-stepper.tsx`
 
 **Files:**
+
 - Modify: `apps/web/src/components/scan-stepper.tsx` — change `SCAN_PIPELINE` array order
 - Modify: `apps/web/src/components/scan-stepper.test.tsx` — update the "renders exactly the six pipeline steps in the canonical order" assertion
 - Modify: `apps/web/src/components/scan-stepper.test.tsx` — update the `it.each` parameter list (cosmetic only — reorders for clarity, not required for correctness)
@@ -778,14 +782,14 @@ it("renders exactly the six pipeline steps in the canonical order", () => {
 Replace the inner `expect(SCAN_PIPELINE).toEqual([...])` array with the new order:
 
 ```ts
-  expect(SCAN_PIPELINE).toEqual([
-    "queued",
-    "fetching",
-    "extracting",
-    "evaluating",
-    "retrieving",
-    "reporting",
-  ]);
+expect(SCAN_PIPELINE).toEqual([
+  "queued",
+  "fetching",
+  "extracting",
+  "evaluating",
+  "retrieving",
+  "reporting",
+]);
 ```
 
 - [ ] **Step 3: Update the `it.each` parameter list (cosmetic)**
@@ -828,6 +832,7 @@ git commit -m "refactor(web): swap SCAN_PIPELINE order to match DB transitions"
 ## Task 7: Re-baseline snapshot test
 
 **Files:**
+
 - Modify: `apps/web/src/components/scan-stepper.snapshot.test.tsx` (or its snapshot file) — re-baseline the snapshot
 
 - [ ] **Step 1: Run the snapshot test to see the diff**
@@ -864,6 +869,7 @@ git commit -m "test(web): re-baseline scan-stepper snapshot for new pipeline ord
 ## Task 8: Update `check-step-graph.mjs`
 
 **Files:**
+
 - Modify: `apps/workers/scripts/check-step-graph.mjs` — update `EXPECTED_STEP_NAMES` if the script asserts on workflow order
 
 - [ ] **Step 1: Read the script**

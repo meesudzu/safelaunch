@@ -161,7 +161,7 @@ describe("ScanProgress", () => {
       />,
     );
     const heading = screen.getByRole("heading", { level: 1 });
-    expect(heading).toHaveTextContent("Scanning website — step 4 / 6");
+    expect(heading).toHaveTextContent("Scanning website — step 5 / 6");
   });
 
   it("renders the terminal headline instead of the scanning one when the scan completes", () => {

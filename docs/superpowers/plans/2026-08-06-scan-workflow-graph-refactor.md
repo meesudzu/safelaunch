@@ -26,14 +26,14 @@ The Cloudflare Workflow visualizer (currently in beta, see
 <https://developers.cloudflare.com/workflows/build/visualizer/>) parses the
 workflow's `run()` method as an AST and emits these node types:
 
-| Node         | Source                                                |
-| ------------ | ----------------------------------------------------- |
-| `StepDo`     | A literal `step.do("name", ...)` call site.           |
+| Node           | Source                                                                   |
+| -------------- | ------------------------------------------------------------------------ |
+| `StepDo`       | A literal `step.do("name", ...)` call site.                              |
 | `FunctionCall` | A call to a module-level/named helper (e.g. `runStepWithFallback(...)`). |
-| `TryNode`    | A `try { ... } catch { ... }` block.                  |
-| `IfNode`     | An `if/else` branch.                                   |
-| `IfBranch`   | `if` body.                                            |
-| `ElseBranch` | `else` body.                                          |
+| `TryNode`      | A `try { ... } catch { ... }` block.                                     |
+| `IfNode`       | An `if/else` branch.                                                     |
+| `IfBranch`     | `if` body.                                                               |
+| `ElseBranch`   | `else` body.                                                             |
 
 `runStepWithFallback` is exported from `scan-workflow.steps.ts` and called
 from `ScanWorkflowEntrypoint.run()`. The visualizer walks the AST, sees
@@ -51,6 +51,7 @@ inside `try/catch` blocks — the visualizer renders that as a `TryNode`
 containing a `StepDo` node with the actual name.
 
 Trade-off:
+
 - **Before**: 7 `runStepWithFallback(...)` calls → 7 `FunctionCall` nodes with
   generic labels.
 - **After**: 7 inline `try { await step.do(...) } catch (...)` blocks → 7
@@ -60,6 +61,7 @@ Trade-off:
 
 The module-level `runStepWithFallback` helper stays in
 `scan-workflow.steps.ts` because:
+
 - The unit tests in `scan-workflow.steps.test.ts` lock the contract of the
   helper (returns fallback on throw, logs warning, propagates config).
 - The entrypoint-level tests in `scan-workflow.entrypoint.test.ts` use it
@@ -92,6 +94,7 @@ calls `step.do(name, ...)` directly. Keep the same fallback values, the
 same config, and the same `scan.step_fallback` log shape.
 
 Affected steps:
+
 1. `discover:page-urls` — fallback `{}`, timeout 20s
 2. `publish:extracting` — fallback `undefined`
 3. `phase-2:extract-evidence` — fallback `{ evidence: [], pages: [] }`, 1 min
@@ -120,7 +123,10 @@ const EXPECTED_STEP_NAMES = [
   "parse-params",
   "fetch:homepage",
   "discover:page-urls",
-  "fetch:about", "fetch:privacy", "fetch:contact", "fetch:terms",
+  "fetch:about",
+  "fetch:privacy",
+  "fetch:contact",
+  "fetch:terms",
   "publish:extracting",
   "phase-2:extract-evidence",
   "phase-3:extract-signals",
