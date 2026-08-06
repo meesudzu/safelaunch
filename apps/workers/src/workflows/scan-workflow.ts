@@ -33,10 +33,7 @@ import {
   type EvidenceExtractionResult,
 } from "./scan-workflow.phases";
 import { LegalRepository } from "@safelaunch/db";
-import {
-  DEFAULT_SCAN_STEP_CONFIG,
-  EMPTY_DIGITAL_ASSET_COLLECTION,
-} from "./scan-workflow.steps";
+import { DEFAULT_SCAN_STEP_CONFIG, EMPTY_DIGITAL_ASSET_COLLECTION } from "./scan-workflow.steps";
 import { discoverPageUrls, type PageUrlMap } from "../services/page-url-discovery";
 import {
   runRules,
