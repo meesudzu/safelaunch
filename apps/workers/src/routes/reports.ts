@@ -102,6 +102,12 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
     if (key === "_reportToken") continue;
     publicPayload[key] = value;
   }
+  // The page reads `payload.expiresAt` to render "Báo cáo hết hạn vào <date>".
+  // The row's `expires_at` column is the single source of truth (also used
+  // for the 410 Gone check above), so we project it into the response so
+  // existing reports — whose persisted payload_json predates this field —
+  // still render the expiry footer correctly.
+  publicPayload.expiresAt = row.expires_at;
   // The token is reusable until the report's `expires_at`; we do NOT burn
   // `token_hash` on success. Earlier versions invalidated the row here for
   // single-use privacy, but that broke reloads on the owner-facing report
@@ -158,6 +164,12 @@ reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
     if (key === "_reportToken") continue;
     publicPayload[key] = value;
   }
+  // The page reads `payload.expiresAt` to render "Báo cáo hết hạn vào <date>".
+  // The row's `expires_at` column is the single source of truth (also used
+  // for the 410 Gone check above), so we project it into the response so
+  // existing reports — whose persisted payload_json predates this field —
+  // still render the expiry footer correctly.
+  publicPayload.expiresAt = row.expiresAt;
   // Reusable-until-expiry: do NOT burn `token_hash`. Owner-side reloads
   // must work; see file-level note.
   return new Response(JSON.stringify(publicPayload), {

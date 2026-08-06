@@ -154,14 +154,42 @@ describe("reports router", () => {
     const response = await runWithDb(
       db,
       new Request("http://local/v1/reports/rpt_abc?token=correct-token"),
-      { tokenHash: stored, payloadJson: payload },
+      {
+        tokenHash: stored,
+        payloadJson: payload,
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
     expect(response.headers.get("Content-Type")).toContain("application/json");
     const body = await response.json();
-    expect(body).toEqual({ scanId: "scan-1", status: "high_risk" });
+    expect(body).toEqual({
+      scanId: "scan-1",
+      status: "high_risk",
+      expiresAt: "2099-01-01T00:00:00.000Z",
+    });
+  });
+  it("includes the row's expiresAt on the public payload so the legacy scanId-keyed route matches", async () => {
+    // Same regression as the by-token route: the public payload must
+    // include the row's `expires_at` so the report page can render
+    // the expiry date. Both routes share the same payload shape.
+    const stored = await sha256("correct-token");
+    const payload = JSON.stringify({ scanId: "scan-1", status: "high_risk" });
+    const db = new FakeD1Database();
+    const response = await runWithDb(
+      db,
+      new Request("http://local/v1/reports/rpt_abc?token=correct-token"),
+      {
+        tokenHash: stored,
+        payloadJson: payload,
+        expiresAt: "2026-08-13T10:00:00.000Z",
+      },
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.expiresAt).toBe("2026-08-13T10:00:00.000Z");
   });
 
   it("returns 410 Gone when the report has expired", async () => {
@@ -258,7 +286,11 @@ describe("reports router — by-token lookup", () => {
     const response = await runWithDbByToken(
       db,
       new Request(`http://local/v1/reports/by-token/${encodeURIComponent(token)}`),
-      { tokenHash: stored, payloadJson: payload },
+      {
+        tokenHash: stored,
+        payloadJson: payload,
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
     );
     expect(response.status).toBe(200);
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
@@ -268,8 +300,37 @@ describe("reports router — by-token lookup", () => {
     expect(body).toEqual({
       scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
       status: "high_risk",
+      expiresAt: "2099-01-01T00:00:00.000Z",
     });
     expect(body).not.toHaveProperty("_reportToken");
+  });
+  it("includes the row's expiresAt on the public payload so the report page can show the expiry date", async () => {
+    // Regression: the /vi/report/<token> page reads `payload.expiresAt`
+    // to render "Báo cáo hết hạn vào <date>". Earlier versions only
+    // returned the stored `payload_json` (which never contained an
+    // `expiresAt` field) and never copied the row's `expires_at`
+    // column into the response, so the footer rendered just the label
+    // with no date. The route must surface the row's `expires_at` to
+    // every successful response.
+    const token = "rpt_expiry_abc";
+    const stored = await sha256(token);
+    const payload = JSON.stringify({
+      scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+      status: "needs_review",
+    });
+    const db = new FakeD1Database();
+    const response = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${encodeURIComponent(token)}`),
+      {
+        tokenHash: stored,
+        payloadJson: payload,
+        expiresAt: "2026-08-13T10:00:00.000Z",
+      },
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.expiresAt).toBe("2026-08-13T10:00:00.000Z");
   });
 
   it("returns 410 Gone when the matched report has expired", async () => {
@@ -304,7 +365,11 @@ describe("reports router — by-token lookup", () => {
     const first = await runWithDbByToken(
       db,
       new Request(`http://local/v1/reports/by-token/${token}`),
-      { tokenHash: stored, payloadJson: payload },
+      {
+        tokenHash: stored,
+        payloadJson: payload,
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
       { repeat: 2 },
     );
     expect(first.status).toBe(200);
@@ -312,6 +377,7 @@ describe("reports router — by-token lookup", () => {
     expect(firstBody).toEqual({
       scanId: "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
       status: "no_significant_risk",
+      expiresAt: "2099-01-01T00:00:00.000Z",
     });
     // Body must NOT contain the private _reportToken field.
     expect(firstBody).not.toHaveProperty("_reportToken");
