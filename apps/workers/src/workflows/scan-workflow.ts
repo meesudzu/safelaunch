@@ -11,10 +11,9 @@ import type { WorkflowStepConfig } from "cloudflare:workers";
 import { extractEvidence } from "../services/evidence";
 import {
   collectDigitalAssets,
-  collectAssetReferences,
+  pageHasAssetCandidates,
   type AssetFetcher,
   type AssetFinding,
-  type AssetReference,
 } from "../services/digital-assets";
 import { detectServiceSignals } from "../services/service-signals";
 import {
@@ -181,20 +180,6 @@ const buildCoverage = (
     skipped: dedupe(skipped),
     degradedPhases: Array.from(new Set(degradedPhases)),
   };
-};
-
-/**
- * Heuristic: returns true when the evidence pages contain at least one
- * asset reference candidate (font preload, @font-face url, etc.) so we
- * can distinguish "page really has no assets" from "the loop died
- * before producing any output". Used only to flag a degraded phase, not
- * to change compliance findings.
- */
-const pageHasAssetCandidates = (pages: ReadonlyArray<{ url: string; html: string }>): boolean => {
-  for (const page of pages) {
-    if (collectAssetReferences(page.url, page.html).length > 0) return true;
-  }
-  return false;
 };
 
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
@@ -627,18 +612,24 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
     // empty result so phases 6-10 still run. Operators can spot the
     // degraded scans via the `scan.step_fallback` log entries or the
     // new `coverage.degradedPhases` field on the persisted report.
-    const assetRefs = await runStepWithFallback({
+    const phase4 = await runStepWithFallback({
       step,
       name: "phase-4:scan-assets-references",
-      fallback: [] as AssetReference[],
+      fallback: { refs: [], degraded: false },
       config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
       log,
-      fn: () => collectAssetReferencesPhase(parsed.url, evidencePhase.pages, assetFetcher),
+      fn: async () => {
+        const refs = await collectAssetReferencesPhase(
+          parsed.url,
+          evidencePhase.pages,
+          assetFetcher,
+        );
+        const degraded = refs.length === 0 && pageHasAssetCandidates(evidencePhase.pages);
+        return { refs, degraded };
+      },
     });
-    if (assetRefs.length === 0 && pageHasAssetCandidates(evidencePhase.pages)) {
-      // Empty list could be correct OR could be a silent failure. Flag
-      // the phase as degraded only when the page had candidates the
-      // loop should have surfaced (heuristic below).
+    const assetRefs = phase4.refs;
+    if (phase4.degraded) {
       degradedPhases.push("phase-4:scan-assets-references");
     }
     const assetInventory = await runStepWithFallback({
