@@ -11,7 +11,7 @@ import type { WorkflowStepConfig } from "cloudflare:workers";
 import { extractEvidence } from "../services/evidence";
 import {
   collectDigitalAssets,
-  collectAssetReferences,
+  pageHasAssetCandidates,
   type AssetFetcher,
   type AssetFinding,
   type AssetReference,
@@ -181,20 +181,6 @@ const buildCoverage = (
     skipped: dedupe(skipped),
     degradedPhases: Array.from(new Set(degradedPhases)),
   };
-};
-
-/**
- * Heuristic: returns true when the evidence pages contain at least one
- * asset reference candidate (font preload, @font-face url, etc.) so we
- * can distinguish "page really has no assets" from "the loop died
- * before producing any output". Used only to flag a degraded phase, not
- * to change compliance findings.
- */
-const pageHasAssetCandidates = (pages: ReadonlyArray<{ url: string; html: string }>): boolean => {
-  for (const page of pages) {
-    if (collectAssetReferences(page.url, page.html).length > 0) return true;
-  }
-  return false;
 };
 
 export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise<ScanResult> => {
