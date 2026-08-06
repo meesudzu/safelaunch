@@ -280,6 +280,7 @@ export const runScan = async (rawParams: ScanParams, deps: ScanRunDeps): Promise
         findings: evaluation.findings,
         serviceSignals: evaluation.serviceSignals,
         licenseChecks: evaluation.licenseChecks,
+        fontInventory: evaluation.assetInventory?.fontInventory,
         assetInventory: evaluation.assetInventory
           ? { ...evaluation.assetInventory, fontInventory: evaluation.assetInventory.fontInventory }
           : undefined,
