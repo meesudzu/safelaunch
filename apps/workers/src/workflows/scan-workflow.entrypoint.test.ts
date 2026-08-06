@@ -457,7 +457,5 @@ describe("phase-4 fallback shape (graph-degraded refactor)", () => {
     // cannot reintroduce the heuristic-evaluated-in-the-workflow-body
     // pattern that was the source of the misleading graph node.
     expect(phase4.degraded).toBe(false);
-
   });
-
 });

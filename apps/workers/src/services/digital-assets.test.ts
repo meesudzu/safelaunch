@@ -6,7 +6,6 @@ import {
   type AssetFetcher,
 } from "./digital-assets";
 
-
 describe("digital asset collection (font-only scope)", () => {
   it("collects only font references — drops image/audio/video", () => {
     const html = `

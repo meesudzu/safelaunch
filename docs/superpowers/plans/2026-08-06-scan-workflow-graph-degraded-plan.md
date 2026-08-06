@@ -12,12 +12,12 @@
 
 ## File Structure
 
-| File | Responsibility |
-| --- | --- |
-| `apps/workers/src/services/digital-assets.ts` | `collectAssetReferences` parser + new `pageHasAssetCandidates(pages)` helper. |
-| `apps/workers/src/services/digital-assets.test.ts` | Existing tests + 2 new tests for `pageHasAssetCandidates`. |
-| `apps/workers/src/workflows/scan-workflow.ts` | Import `pageHasAssetCandidates` from services; remove local copy; replace phase-4 step result consumption from `AssetReference[]` to `{ refs, degraded }`. |
-| `apps/workers/src/workflows/scan-workflow.test.ts` | Existing tests + 4 new tests covering the phase-4 degraded-flag behavior. |
+| File                                               | Responsibility                                                                                                                                             |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apps/workers/src/services/digital-assets.ts`      | `collectAssetReferences` parser + new `pageHasAssetCandidates(pages)` helper.                                                                              |
+| `apps/workers/src/services/digital-assets.test.ts` | Existing tests + 2 new tests for `pageHasAssetCandidates`.                                                                                                 |
+| `apps/workers/src/workflows/scan-workflow.ts`      | Import `pageHasAssetCandidates` from services; remove local copy; replace phase-4 step result consumption from `AssetReference[]` to `{ refs, degraded }`. |
+| `apps/workers/src/workflows/scan-workflow.test.ts` | Existing tests + 4 new tests covering the phase-4 degraded-flag behavior.                                                                                  |
 
 No new file. No DB / schema change. No doc change required.
 
@@ -26,6 +26,7 @@ No new file. No DB / schema change. No doc change required.
 ## Task 1: Test `pageHasAssetCandidates` helper — RED
 
 **Files:**
+
 - Modify: `apps/workers/src/services/digital-assets.test.ts:1-3` (import line)
 - Modify: end of `apps/workers/src/services/digital-assets.test.ts` (new `describe` block)
 
@@ -86,6 +87,7 @@ Expected output: FAIL — `pageHasAssetCandidates is not a function` (or `not ex
 ## Task 2: Implement `pageHasAssetCandidates` — GREEN
 
 **Files:**
+
 - Modify: `apps/workers/src/services/digital-assets.ts:1-15` (imports / types)
 - Modify: end of `apps/workers/src/services/digital-assets.ts` (new exported function)
 
@@ -129,6 +131,7 @@ git commit -m "refactor(workers): move pageHasAssetCandidates helper to services
 ## Task 3: Remove local `pageHasAssetCandidates` from `scan-workflow.ts`
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts:10-30` (imports block)
 - Modify: `apps/workers/src/workflows/scan-workflow.ts:180-196` (delete local helper)
 
@@ -143,10 +146,7 @@ cd apps/workers && grep -n "collectAssetReferences" src/workflows/scan-workflow.
 Then add `pageHasAssetCandidates` to the same import statement so it becomes:
 
 ```ts
-import {
-  collectAssetReferences,
-  pageHasAssetCandidates,
-} from "../services/digital-assets";
+import { collectAssetReferences, pageHasAssetCandidates } from "../services/digital-assets";
 ```
 
 (Adjust the surrounding import-block formatting — `scan-workflow.ts` uses a multi-line `import { ... } from "..."` style; match whatever is already there.)
@@ -181,10 +181,11 @@ git commit -m "refactor(workers): import pageHasAssetCandidates from services an
 ## Task 4: Test phase-4 degraded-flag behavior — RED
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.test.ts:1-50` (imports + fixture helpers)
 - Modify: end of `apps/workers/src/workflows/scan-workflow.test.ts` (new `describe` block)
 
-This task writes tests against the *new* expected shape: the workflow should mark `phase-4:scan-assets-references` as degraded **only** when (a) `collectAssetReferencesPhase` returned an empty array, AND (b) the page actually contains font candidates. None of these tests can pass against the current code because the current code always evaluates the heuristic in the workflow body. After Task 5 they should pass.
+This task writes tests against the _new_ expected shape: the workflow should mark `phase-4:scan-assets-references` as degraded **only** when (a) `collectAssetReferencesPhase` returned an empty array, AND (b) the page actually contains font candidates. None of these tests can pass against the current code because the current code always evaluates the heuristic in the workflow body. After Task 5 they should pass.
 
 - [ ] **Step 1: Read the existing test file to find a stable seam for new tests**
 
@@ -269,50 +270,50 @@ This first test is intentionally the happy-path assertion (degraded flag NOT set
 The cleanest way to force `collectAssetReferencesPhase` to return `[]` while the page still has a font candidate is to make the asset fetcher reject every stylesheet request. Append:
 
 ```ts
-  it("flags phase-4 as degraded when the loop returned empty refs but the page has font candidates", async () => {
-    const HOME_FONT = "https://game.test/";
-    const ABOUT_FONT = "https://game.test/about";
-    const PRIVACY = "https://game.test/privacy";
-    const CONTACT = "https://game.test/contact";
-    const TERMS = "https://game.test/terms";
-    const pages: Record<string, { status: number; html?: string }> = {
-      [HOME_FONT]: { status: 200, html: fontHtml("Home") },
-      [ABOUT_FONT]: { status: 200, html: fontHtml("About") },
-      [PRIVACY]: { status: 200, html: fakeHtml("Privacy") },
-      [CONTACT]: { status: 200, html: fakeHtml("Contact") },
-      [TERMS]: { status: 200, html: fakeHtml("Terms") },
-    };
-    const fetcher = new FakeFetcher(pages);
+it("flags phase-4 as degraded when the loop returned empty refs but the page has font candidates", async () => {
+  const HOME_FONT = "https://game.test/";
+  const ABOUT_FONT = "https://game.test/about";
+  const PRIVACY = "https://game.test/privacy";
+  const CONTACT = "https://game.test/contact";
+  const TERMS = "https://game.test/terms";
+  const pages: Record<string, { status: number; html?: string }> = {
+    [HOME_FONT]: { status: 200, html: fontHtml("Home") },
+    [ABOUT_FONT]: { status: 200, html: fontHtml("About") },
+    [PRIVACY]: { status: 200, html: fakeHtml("Privacy") },
+    [CONTACT]: { status: 200, html: fakeHtml("Contact") },
+    [TERMS]: { status: 200, html: fakeHtml("Terms") },
+  };
+  const fetcher = new FakeFetcher(pages);
 
-    let capturedCoverage: ScanCoverage | undefined;
-    await runScan(
-      {
-        scanId: "scan_degraded_phase4_empty",
-        url: HOME_FONT,
-        jurisdiction: "VN",
-        category: "online_game",
-        analysisVersion: "test-1",
+  let capturedCoverage: ScanCoverage | undefined;
+  await runScan(
+    {
+      scanId: "scan_degraded_phase4_empty",
+      url: HOME_FONT,
+      jurisdiction: "VN",
+      category: "online_game",
+      analysisVersion: "test-1",
+    },
+    {
+      fetch: fetcher,
+      evaluate: async (input) => {
+        capturedCoverage = input.coverage;
+        return { status: "no_significant_risk", findings: [] };
       },
-      {
-        fetch: fetcher,
-        evaluate: async (input) => {
-          capturedCoverage = input.coverage;
-          return { status: "no_significant_risk", findings: [] };
-        },
-        persistReport: async () => null,
-        now: () => "2026-08-06T00:00:00.000Z",
-        log: () => {},
-      },
-    );
-    // With the default fake fetcher, the inline-page font references are
-    // collected synchronously (no stylesheet fetch needed). So the
-    // phase-4 result IS non-empty and degraded flag is NOT set. This test
-    // is a placeholder that asserts the happy path; the actual
-    // degraded-flag behavior is covered by the helper unit test in
-    // Task 1 plus the integration assertion in Task 5.
-    expect(capturedCoverage).toBeDefined();
-    expect(capturedCoverage!.degradedPhases).not.toContain("phase-4:scan-assets-references");
-  });
+      persistReport: async () => null,
+      now: () => "2026-08-06T00:00:00.000Z",
+      log: () => {},
+    },
+  );
+  // With the default fake fetcher, the inline-page font references are
+  // collected synchronously (no stylesheet fetch needed). So the
+  // phase-4 result IS non-empty and degraded flag is NOT set. This test
+  // is a placeholder that asserts the happy path; the actual
+  // degraded-flag behavior is covered by the helper unit test in
+  // Task 1 plus the integration assertion in Task 5.
+  expect(capturedCoverage).toBeDefined();
+  expect(capturedCoverage!.degradedPhases).not.toContain("phase-4:scan-assets-references");
+});
 ```
 
 **NOTE FOR IMPLEMENTER:** The cleanest deterministic test for the degraded flag is to mock the `collectAssetReferencesPhase` export from `scan-workflow.phases` via Vitest's `vi.mock`. If the existing test file already mocks other phase helpers, follow that pattern. If not, the easiest deterministic path is:
@@ -346,6 +347,7 @@ git commit -m "test(workers): add phase-4 degraded-flag detection coverage"
 ## Task 5: Fold degraded-detection into phase-4 — GREEN
 
 **Files:**
+
 - Modify: `apps/workers/src/workflows/scan-workflow.ts:630-645` (phase-4 step + degraded check)
 
 - [ ] **Step 1: Replace the phase-4 result consumption**

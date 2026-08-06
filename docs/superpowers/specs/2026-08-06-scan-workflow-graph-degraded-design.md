@@ -119,16 +119,16 @@ No new file. No docs change beyond updating the workflow-steps doc if the user l
 
 ## 5. Test plan
 
-| File                                               | New / Update | Case                                                                                       |
-| -------------------------------------------------- | ------------ | ------------------------------------------------------------------------------------------ |
-| `apps/workers/src/services/digital-assets.test.ts` | NEW          | `pageHasAssetCandidates` returns true when at least one page contains a font reference     |
-| same                                               | NEW          | `pageHasAssetCandidates` returns false when no page contains any font reference            |
-| `apps/workers/src/workflows/scan-workflow.test.ts` | NEW          | phase-4 result with empty refs + page with font candidates marks `degradedPhases`          |
-| same                                               | NEW          | phase-4 result with non-empty refs does NOT mark `degradedPhases`                           |
+| File                                               | New / Update | Case                                                                                                           |
+| -------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `apps/workers/src/services/digital-assets.test.ts` | NEW          | `pageHasAssetCandidates` returns true when at least one page contains a font reference                         |
+| same                                               | NEW          | `pageHasAssetCandidates` returns false when no page contains any font reference                                |
+| `apps/workers/src/workflows/scan-workflow.test.ts` | NEW          | phase-4 result with empty refs + page with font candidates marks `degradedPhases`                              |
+| same                                               | NEW          | phase-4 result with non-empty refs does NOT mark `degradedPhases`                                              |
 | same                                               | NEW          | phase-4 fallback path (step fails) does NOT mark `degradedPhases` (relies on `scan.step_fallback` log instead) |
-| same                                               | NEW          | phase-4 result with empty refs + page with NO font candidates does NOT mark `degradedPhases` |
-| `apps/workers/src/workflows/scan-workflow.test.ts` | existing     | unchanged — full happy-path scan still completes with `degradedPhases: []`                 |
-| `apps/workers/scripts/check-step-graph.mjs`        | existing     | unchanged — `phase-4:scan-assets-references` still in the expected-step list               |
+| same                                               | NEW          | phase-4 result with empty refs + page with NO font candidates does NOT mark `degradedPhases`                   |
+| `apps/workers/src/workflows/scan-workflow.test.ts` | existing     | unchanged — full happy-path scan still completes with `degradedPhases: []`                                     |
+| `apps/workers/scripts/check-step-graph.mjs`        | existing     | unchanged — `phase-4:scan-assets-references` still in the expected-step list                                   |
 
 ## 6. Compliance checklist (per safelaunch-compliance skill)
 
