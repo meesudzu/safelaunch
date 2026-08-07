@@ -554,7 +554,7 @@ resource scopes restricted.
   Worker → Settings → Variables and Secrets → Variable). The value is
   a non-sensitive boolean, so it no longer needs `wrangler secret put`
   or a code redeploy to toggle. Operators must `wrangler secret delete
-  ENABLE_DAILY_QUOTA` once on each environment to clear the legacy
+ENABLE_DAILY_QUOTA` once on each environment to clear the legacy
   secret (CF error `10053` otherwise).
 - `2026-07-30` — v1 setup & deploy guide. First release will follow
   this document step by step.
