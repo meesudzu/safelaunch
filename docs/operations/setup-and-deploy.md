@@ -549,6 +549,13 @@ resource scopes restricted.
 
 ## Change log
 
+- `2026-08-07` — `ENABLE_DAILY_QUOTA` moved from Worker secret to a
+  dashboard **Variable** (plaintext type, configured at
+  Worker → Settings → Variables and Secrets → Variable). The value is
+  a non-sensitive boolean, so it no longer needs `wrangler secret put`
+  or a code redeploy to toggle. Operators must `wrangler secret delete
+  ENABLE_DAILY_QUOTA` once on each environment to clear the legacy
+  secret (CF error `10053` otherwise).
 - `2026-07-30` — v1 setup & deploy guide. First release will follow
   this document step by step.
 
@@ -556,28 +563,45 @@ resource scopes restricted.
 
 ## Daily quota feature flag
 
-The `ENABLE_DAILY_QUOTA` Worker **secret** gates the daily-domain-quota
-feature (`docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`).
+The `ENABLE_DAILY_QUOTA` **Variable** (plaintext type) gates the
+daily-domain-quota feature
+(`docs/superpowers/specs/2026-08-03-daily-domain-quota-design.md`).
 
-- Default: secret unset (treated as `"false"`, so the existing
-  `POST /v1/scans` behavior is unchanged).
+- Default: unset → treated as `"false"` in code, so the existing
+  `POST /v1/scans` behavior is unchanged.
 - Flip to `"true"` only after a manual smoke run on staging.
 
-The flag lives as a **secret** (not a `vars` entry) because the binding
-name `ENABLE_DAILY_QUOTA` cannot coexist as both a var and a secret (CF
-returns error `10053`). This keeps the value out of the public
-`wrangler.jsonc`.
+The flag is configured in the Cloudflare dashboard (**Worker → Settings
+→ Variables and Secrets → Variable**), **not** in `wrangler.jsonc`. This
+lets ops flip the flag without a code redeploy and keeps the value out
+of source control. The flag is a non-sensitive boolean, so it must be
+added as type **Variable** (plaintext), **not** type **Secret** —
+Cloudflare rejects with error `10053` if the same binding name exists as
+both.
+
+### One-time migration (per environment)
+
+A previous version of this flag was set as a **Secret**. Because CF
+does not allow the same name as both a Variable and a Secret, the old
+secret must be removed once:
 
 ```bash
-# Enable (run from apps/workers):
-echo "true" | pnpm exec wrangler secret put ENABLE_DAILY_QUOTA
-
-# Disable (rollback):
-echo "false" | pnpm exec wrangler secret put ENABLE_DAILY_QUOTA
-
-# Verify (no value shown, just the key list):
-pnpm exec wrangler secret list
+# Run from apps/workers for each environment (e.g. staging, prod):
+pnpm exec wrangler secret delete ENABLE_DAILY_QUOTA
 ```
+
+### Toggle the flag
+
+1. Cloudflare dashboard → Workers & Pages → `safelaunch-api` →
+   **Settings** → **Variables and Secrets** → **Add variable**.
+2. Type: **Variable** (plaintext).
+3. Name: `ENABLE_DAILY_QUOTA`.
+4. Value: `true` to enable, `false` to disable. Save.
+
+No redeploy is required — the new value is picked up on the next Worker
+invocation. Verify with `pnpm exec wrangler secret list` (should NOT
+list `ENABLE_DAILY_QUOTA`) and the dashboard UI (should show the
+Variable under the **Variable** tab, not the **Secret** tab).
 
 The first request to `POST /v1/scans` after the flag flips to `true` will
 use the new code path. No migration is required for the new tables
