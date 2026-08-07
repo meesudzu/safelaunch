@@ -44,7 +44,7 @@ if (!retrievalDeps || !aiBinding) {
     rationale: `Bằng chứng chưa đủ để kết luận: ${rule.rationale}`,
     confidence: 0,
     evidenceIds: [...rule.evidenceIds],
-    citations: [],   // ← không có citation khi không có retrieval
+    citations: [], // ← không có citation khi không có retrieval
     recommendedAction: "Yêu cầu chuyên gia xem xét thủ công.",
     applicability: rule.applicability,
   });
@@ -58,9 +58,11 @@ if (!retrievalDeps || !aiBinding) {
 
 ```ts
 const eligible = await deps.legal.listRetrievable({
-  jurisdiction, category, on,
+  jurisdiction,
+  category,
+  on,
 });
-if (eligible.length === 0) return [];   // ← không có approved doc → trả rỗng
+if (eligible.length === 0) return []; // ← không có approved doc → trả rỗng
 ```
 
 D1 (`legal_documents` + `legal_provisions`) là nguồn sự thật; Vectorize chỉ là cache semantic ranking. Nếu D1 rỗng, retrieval trả `[]` **không bao giờ** chạm vào Vectorize.
@@ -71,11 +73,11 @@ D1 (`legal_documents` + `legal_provisions`) là nguồn sự thật; Vectorize c
 
 `packages/compliance-core/src/rules.ts:204-221` — `evaluateRule`:
 
-| Tình huống | Outcome | Severity | Nguồn dữ kiện |
-|---|---|---|---|
-| Tìm thấy evidence khớp `evidenceTypes` | `present` | `pass` | regex match trên HTML |
-| Tất cả `requiredPages` đã fetch, không có evidence | `absent` | `high` | chỉ cần coverage |
-| Tất cả required pages failed HOẶC mix failed/no-fetched | `unknown` | `review` | fallback |
+| Tình huống                                              | Outcome   | Severity | Nguồn dữ kiện         |
+| ------------------------------------------------------- | --------- | -------- | --------------------- |
+| Tìm thấy evidence khớp `evidenceTypes`                  | `present` | `pass`   | regex match trên HTML |
+| Tất cả `requiredPages` đã fetch, không có evidence      | `absent`  | `high`   | chỉ cần coverage      |
+| Tất cả required pages failed HOẶC mix failed/no-fetched | `unknown` | `review` | fallback              |
 
 `scoring.ts` đóng gói severity theo outcome:
 
@@ -137,14 +139,14 @@ Nếu bất kỳ bước nào fail, nhánh `try/catch` trong vòng lặp rule (`
 
 ## 4. Bảng "điều kiện → kết quả"
 
-| Trạng thái rule | `AI` binding | `LEGAL_INDEX` | Approved legal docs | Finding sinh ra |
-|---|---|---|---|---|
-| `present` | bất kỳ | bất kỳ | bất kỳ | `severity: pass`, citation tĩnh từ `rules.ts` |
-| `absent` | bất kỳ | bất kỳ | bất kỳ | `severity: high`, citation tĩnh từ `rules.ts` |
-| `unknown` | ✗ | ✗ | bất kỳ | `severity: review`, `confidence: 0`, `citations: []` |
-| `unknown` | ✓ | ✗ | bất kỳ | `severity: review`, `citations: []` (embedding fails) |
-| `unknown` | ✓ | ✓ | rỗng | `severity: review`, `citations: []` (eligibility guard) |
-| `unknown` | ✓ | ✓ | có | full RAG → `verifyFinding` ra severity thật |
+| Trạng thái rule | `AI` binding | `LEGAL_INDEX` | Approved legal docs | Finding sinh ra                                         |
+| --------------- | ------------ | ------------- | ------------------- | ------------------------------------------------------- |
+| `present`       | bất kỳ       | bất kỳ        | bất kỳ              | `severity: pass`, citation tĩnh từ `rules.ts`           |
+| `absent`        | bất kỳ       | bất kỳ        | bất kỳ              | `severity: high`, citation tĩnh từ `rules.ts`           |
+| `unknown`       | ✗            | ✗             | bất kỳ              | `severity: review`, `confidence: 0`, `citations: []`    |
+| `unknown`       | ✓            | ✗             | bất kỳ              | `severity: review`, `citations: []` (embedding fails)   |
+| `unknown`       | ✓            | ✓             | rỗng                | `severity: review`, `citations: []` (eligibility guard) |
+| `unknown`       | ✓            | ✓             | có                  | full RAG → `verifyFinding` ra severity thật             |
 
 Trong mọi tổ hợp, **scan vẫn ra được report** với `state ∈ {completed, partial, failed}` và `status ∈ {high_risk, needs_review, no_significant_risk}`. Trạng thái `needs_review` chính là "báo hiệu trung thực" rằng hệ thống chưa có đủ dữ kiện để tự quyết — đúng nguyên tắc **"Trust the human"** trong `safelaunch-overview`.
 
@@ -260,23 +262,23 @@ flowchart LR
 
 ## 7. File references
 
-| Vai trò | Đường dẫn |
-|---|---|
-| Workflow entrypoint | `apps/workers/src/workflows/scan-workflow.ts` |
-| Step config + fallback helper | `apps/workers/src/workflows/scan-workflow.steps.ts` |
-| Phase functions | `apps/workers/src/workflows/scan-workflow.phases.ts` |
-| Page fetcher + URL policy | `apps/workers/src/services/safe-fetch.ts`, `apps/workers/src/services/page-url-discovery.ts` |
-| Evidence regex | `apps/workers/src/services/evidence.ts` |
-| Asset scan + classify | `apps/workers/src/services/digital-assets.ts` |
-| Service signal regex | `apps/workers/src/services/service-signals.ts` |
-| Rule definitions (4 rules + citations) | `packages/compliance-core/src/rules.ts` |
-| Scoring + RUBRIC_VERSION | `packages/compliance-core/src/scoring.ts` |
-| Aggregation precedence | `packages/compliance-core/src/aggregate.ts` |
-| License registry | `packages/compliance-core/src/license-registry.ts`, `licensing.ts` |
-| Jurisdictions metadata | `packages/compliance-core/src/jurisdictions.ts` |
-| Retrieval (metadata guard + Vectorize) | `packages/ai/src/retrieval.ts` |
-| Embedding gateway | `packages/ai/src/gateway.ts` |
-| LLM evaluator | `packages/ai/src/evaluate.ts`, `packages/ai/src/provider.ts` |
-| D1 legal schema | `packages/db/src/legal-repository.ts` |
-| Worker bindings | `apps/workers/wrangler.jsonc` |
-| Workflow spec gốc | `docs/workflow-steps.vi.md`, `docs/workflow-steps.en.md` |
+| Vai trò                                | Đường dẫn                                                                                    |
+| -------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Workflow entrypoint                    | `apps/workers/src/workflows/scan-workflow.ts`                                                |
+| Step config + fallback helper          | `apps/workers/src/workflows/scan-workflow.steps.ts`                                          |
+| Phase functions                        | `apps/workers/src/workflows/scan-workflow.phases.ts`                                         |
+| Page fetcher + URL policy              | `apps/workers/src/services/safe-fetch.ts`, `apps/workers/src/services/page-url-discovery.ts` |
+| Evidence regex                         | `apps/workers/src/services/evidence.ts`                                                      |
+| Asset scan + classify                  | `apps/workers/src/services/digital-assets.ts`                                                |
+| Service signal regex                   | `apps/workers/src/services/service-signals.ts`                                               |
+| Rule definitions (4 rules + citations) | `packages/compliance-core/src/rules.ts`                                                      |
+| Scoring + RUBRIC_VERSION               | `packages/compliance-core/src/scoring.ts`                                                    |
+| Aggregation precedence                 | `packages/compliance-core/src/aggregate.ts`                                                  |
+| License registry                       | `packages/compliance-core/src/license-registry.ts`, `licensing.ts`                           |
+| Jurisdictions metadata                 | `packages/compliance-core/src/jurisdictions.ts`                                              |
+| Retrieval (metadata guard + Vectorize) | `packages/ai/src/retrieval.ts`                                                               |
+| Embedding gateway                      | `packages/ai/src/gateway.ts`                                                                 |
+| LLM evaluator                          | `packages/ai/src/evaluate.ts`, `packages/ai/src/provider.ts`                                 |
+| D1 legal schema                        | `packages/db/src/legal-repository.ts`                                                        |
+| Worker bindings                        | `apps/workers/wrangler.jsonc`                                                                |
+| Workflow spec gốc                      | `docs/workflow-steps.vi.md`, `docs/workflow-steps.en.md`                                     |
