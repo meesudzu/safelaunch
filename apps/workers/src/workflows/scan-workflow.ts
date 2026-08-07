@@ -936,6 +936,7 @@ export class ScanWorkflowEntrypoint extends WorkflowEntrypoint<
               findings: evaluation.findings,
               serviceSignals,
               licenseChecks,
+              fontInventory: assetInventory?.fontInventory,
               assetInventory,
               generatedAt: now(),
             },
