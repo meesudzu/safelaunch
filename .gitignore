@@ -30,3 +30,6 @@ apps/workers/wrangler.local.jsonc
 
 # Stray backup files
 *.orig
+
+# Per-agent isolated worktrees (created by using-git-worktrees skill)
+/.worktrees/
