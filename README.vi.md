@@ -762,7 +762,7 @@ Các nguồn **không được nhập vào nội dung tổng hợp** vì là k�
 
 - `docs/superpowers/`;
 - `docs/remaining.md`;
-- `docs/admin-remeaning.md`.
+- `docs/admin-roadmap.md`.
 
 Khi tài liệu tổng hợp và code/config mâu thuẫn, ưu tiên source of truth gần runtime nhất theo thứ tự: schema/contract và code đã test → Wrangler/config triển khai → tài liệu domain chuyên biệt → README tổng hợp. Riêng legal corpus và data inventory phải tuân theo quy trình review riêng trước khi thay đổi production behavior.
 
