@@ -29,7 +29,8 @@
 //   [CLOUDFLARE_AI_GATEWAY_ID=default] \
 //     node scripts/embed-legal-corpus.mjs --index safelaunch-legal-dev \
 //       [--config apps/workers/wrangler.local.jsonc] \
-//       [--skip-vector-id-update]
+//       [--skip-vector-id-update] \
+//       [--direct]  # skip AI Gateway routing (direct Workers AI call)
 
 import { readFile, writeFile, unlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -60,7 +61,7 @@ const skipVectorIdUpdate = hasFlag("--skip-vector-id-update");
 
 if (!indexName) {
   console.error(
-    "Usage: node scripts/embed-legal-corpus.mjs --index <vectorize-index-name> [--config <wrangler-config>] [--skip-vector-id-update]",
+    "Usage: node scripts/embed-legal-corpus.mjs --index <vectorize-index-name> [--config <wrangler-config>] [--skip-vector-id-update] [--direct]",
   );
   process.exit(1);
 }
@@ -72,13 +73,18 @@ if (!accountId || !apiToken) {
   process.exit(1);
 }
 
-const gatewayId = process.env.CLOUDFLARE_AI_GATEWAY_ID ?? "default";
-const embeddingUrl = buildEmbeddingUrl({ accountId, gatewayId });
+// --direct opts out of AI Gateway routing — useful as a fallback when the
+// account's default gateway is misconfigured. CLOUDFLARE_AI_GATEWAY_ID=""
+// (empty string) also opts out, so operators can pin the behaviour in CI.
+const directRequested = hasFlag("--direct");
+const envGatewayId = process.env.CLOUDFLARE_AI_GATEWAY_ID;
+const gatewayId = directRequested || envGatewayId === "" ? undefined : (envGatewayId ?? "default");
+const embeddingUrl = buildEmbeddingUrl({ accountId });
 
 const embedBatch = async (texts) => {
   const response = await fetch(embeddingUrl, {
     method: "POST",
-    headers: { authorization: `Bearer ${apiToken}`, "content-type": "application/json" },
+    headers: buildGatewayHeaders({ apiToken, gatewayId }),
     body: JSON.stringify(buildBatchRequest(texts)),
   });
   const body = await response.json();
@@ -96,7 +102,8 @@ const main = async () => {
   }
   console.log(`Parsed ${provisions.length} provisions from seed-legal-corpus.sql`);
 
-  console.log(`Embedding ${provisions.length} provisions via AI Gateway '${gatewayId}'...`);
+  const route = gatewayId ? `AI Gateway '${gatewayId}'` : "Workers AI (direct)";
+  console.log(`Embedding ${provisions.length} provisions via ${route}...`);
   const vectors = await embedBatch(provisions.map((p) => p.text));
   console.log(`ok (${vectors[0].length} dims × ${vectors.length})`);
 

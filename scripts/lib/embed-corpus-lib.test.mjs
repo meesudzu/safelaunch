@@ -9,6 +9,7 @@ import {
   PROVISION_PATTERN,
   buildBatchRequest,
   buildEmbeddingUrl,
+  buildGatewayHeaders,
   buildVectorIdUpdateSql,
   buildVectorizeRecords,
   parseBatchResponse,
@@ -174,20 +175,49 @@ describe("buildVectorIdUpdateSql", () => {
 });
 
 describe("buildEmbeddingUrl", () => {
-  it("builds the Cloudflare AI Gateway URL with the default gateway id", () => {
+  it("builds the standard Workers AI /ai/run URL for the given account", () => {
+    // AI Gateway routing happens via the cf-aig-gateway-id header, not the
+    // URL path — see buildGatewayHeaders.
     expect(buildEmbeddingUrl({ accountId: "acc-123" })).toBe(
-      "https://gateway.ai.cloudflare.com/v1/acc-123/default/workers-ai/@cf/baai/bge-base-en-v1.5",
-    );
-  });
-
-  it("honours a custom gateway id (for staging / per-feature gateways)", () => {
-    expect(buildEmbeddingUrl({ accountId: "acc-123", gatewayId: "safelaunch-embed" })).toBe(
-      "https://gateway.ai.cloudflare.com/v1/acc-123/safelaunch-embed/workers-ai/@cf/baai/bge-base-en-v1.5",
+      "https://api.cloudflare.com/client/v4/accounts/acc-123/ai/run/@cf/baai/bge-base-en-v1.5",
     );
   });
 
   it("uses the bge-base-en-v1.5 model by default — must match the Vectorize index dimensions", () => {
     const url = buildEmbeddingUrl({ accountId: "x" });
     expect(url).toContain("@cf/baai/bge-base-en-v1.5");
+  });
+
+  it("honours a custom model override (e.g. for the bge-large variant)", () => {
+    expect(buildEmbeddingUrl({ accountId: "acc-123", model: "@cf/baai/bge-large-en-v1.5" })).toBe(
+      "https://api.cloudflare.com/client/v4/accounts/acc-123/ai/run/@cf/baai/bge-large-en-v1.5",
+    );
+  });
+});
+
+describe("buildGatewayHeaders", () => {
+  it("attaches the Authorization + content-type headers always", () => {
+    expect(buildGatewayHeaders({ apiToken: "tok", gatewayId: "default" })).toEqual({
+      authorization: "Bearer tok",
+      "content-type": "application/json",
+      "cf-aig-gateway-id": "default",
+    });
+  });
+
+  it("attaches cf-aig-gateway-id only when gatewayId is set", () => {
+    const headers = buildGatewayHeaders({ apiToken: "tok", gatewayId: "safelaunch-embed" });
+    expect(headers["cf-aig-gateway-id"]).toBe("safelaunch-embed");
+  });
+
+  it("omits cf-aig-gateway-id when gatewayId is undefined (direct mode)", () => {
+    const headers = buildGatewayHeaders({ apiToken: "tok" });
+    expect(headers).not.toHaveProperty("cf-aig-gateway-id");
+    expect(headers.authorization).toBe("Bearer tok");
+    expect(headers["content-type"]).toBe("application/json");
+  });
+
+  it("omits cf-aig-gateway-id when gatewayId is null", () => {
+    const headers = buildGatewayHeaders({ apiToken: "tok", gatewayId: null });
+    expect(headers).not.toHaveProperty("cf-aig-gateway-id");
   });
 });

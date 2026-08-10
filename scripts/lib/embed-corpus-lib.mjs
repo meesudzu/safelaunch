@@ -113,19 +113,42 @@ export const buildVectorIdUpdateSql = (provisionIds) => {
 };
 
 /**
- * Build the Cloudflare AI Gateway URL for a Workers AI model run.
+ * Build the Workers AI run URL.
  *
- * The Gateway URL (`gateway.ai.cloudflare.com`) is what
- * `packages/ai/src/gateway.ts` uses internally when
- * `env.AI.run(model, body, { gateway: { id } })` is called — by hitting
- * the same URL directly we get the same Gateway observability (cache hits,
- * request logs, retries) without needing a Worker context.
+ * AI Gateway routing for Workers AI happens via the `cf-aig-gateway-id`
+ * request header (see {@link buildGatewayHeaders}), NOT via the URL path.
+ * The path is the standard `/ai/run/<model>` endpoint that the Cloudflare
+ * API exposes for every Workers AI model; with the header set, the request
+ * is logged + cached via the gateway, without it the same endpoint goes
+ * straight to Workers AI.
  *
- * `gatewayId` defaults to the Cloudflare-reserved "default" gateway,
- * matching the rest of the app (see docs/operations/setup-and-deploy.md).
+ * This is the same endpoint `packages/ai/src/gateway.ts` reaches under the
+ * hood — `env.AI.run(model, body, { gateway: { id } })` just attaches the
+ * header server-side. We hit it directly so a one-shot script doesn't
+ * need a Worker context.
+ *
+ * Reference: https://developers.cloudflare.com/ai-gateway/usage/rest-api/
  */
-export const buildEmbeddingUrl = ({
-  accountId,
-  gatewayId = "default",
-  model = "@cf/baai/bge-base-en-v1.5",
-}) => `https://gateway.ai.cloudflare.com/v1/${accountId}/${gatewayId}/workers-ai/${model}`;
+export const buildEmbeddingUrl = ({ accountId, model = "@cf/baai/bge-base-en-v1.5" }) =>
+  `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`;
+
+/**
+ * Build the request headers for a Workers AI inference call, optionally
+ * routed through an AI Gateway.
+ *
+ * - `cf-aig-gateway-id: <gatewayId>` opts the request into AI Gateway
+ *   logging/caching. Omit it (pass `gatewayId: undefined`) to make a direct
+ *   call — useful as a fallback when the gateway is unconfigured.
+ * - Authorization is the same Cloudflare API token used elsewhere; the
+ *   required scope is `Account.Workers AI: Read`.
+ */
+export const buildGatewayHeaders = ({ apiToken, gatewayId }) => {
+  const headers = {
+    authorization: `Bearer ${apiToken}`,
+    "content-type": "application/json",
+  };
+  if (gatewayId) {
+    headers["cf-aig-gateway-id"] = gatewayId;
+  }
+  return headers;
+};
