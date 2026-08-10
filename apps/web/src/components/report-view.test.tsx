@@ -668,3 +668,161 @@ describe("font inventory (V1)", () => {
     expect(screen.getByText(/Liên kết nguồn không khả dụng/i)).toBeInTheDocument();
   });
 });
+
+describe("font deduplication in findings tabs", () => {
+  const fontAssetIdA = "asset::font::fraunces-a";
+  const fontAssetIdB = "asset::font::fraunces-b";
+  const imageAssetId = "asset::image::hero";
+  const baseFontFinding = (id: string) => ({
+    ...buildFinding({ id, severity: "review", applicability: "current" }),
+    evidenceIds: [id === "font-1" ? fontAssetIdA : fontAssetIdB],
+  });
+  const baseImageFinding = {
+    ...buildFinding({ id: "image-1", severity: "review", applicability: "current" }),
+    evidenceIds: [imageAssetId],
+  };
+
+  const buildReport = (): ReportPayload => ({
+    ...baseReport,
+    assetInventory: {
+      summary: { total: 3, byKind: { font: 2, image: 1 }, flagged: 3 },
+      assets: [
+        {
+          id: fontAssetIdA,
+          kind: "font",
+          url: "https://cdn.example.com/font-a.woff2",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "font/woff2",
+          sha256: "a".repeat(64),
+          status: "fetched",
+          licenseEvidence: "copyright_notice_only",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+        {
+          id: fontAssetIdB,
+          kind: "font",
+          url: "https://cdn.example.com/font-b.woff2",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "font/woff2",
+          sha256: "b".repeat(64),
+          status: "fetched",
+          licenseEvidence: "copyright_notice_only",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+        {
+          id: imageAssetId,
+          kind: "image",
+          url: "https://cdn.example.com/hero.jpg",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "image/jpeg",
+          sha256: "c".repeat(64),
+          status: "fetched",
+          licenseEvidence: "no_license_evidence",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+      ],
+    },
+    findings: [
+      baseFontFinding("font-1"),
+      baseFontFinding("font-2"),
+      baseImageFinding,
+      buildFinding({ id: "high-1", severity: "high", applicability: "current" }),
+    ],
+  });
+
+  it("hides font-only findings from the Cần xem xét tab and lowers counts", () => {
+    const report = buildReport();
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // 2 font findings hidden; 1 image + 1 high kept → review=1, high=1, total=2
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-tab-high")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("2");
+    // Legend reflects the filtered counts.
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("1");
+  });
+
+  it("does not render font-only finding cards inside the review tab panel", async () => {
+    const user = userEvent.setup();
+    const report = buildReport();
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    await user.click(screen.getByTestId("findings-tab-review"));
+    const panel = screen.getByTestId("findings-tabpanel-review");
+    expect(panel.querySelector('[data-finding-id="font-1"]')).toBeNull();
+    expect(panel.querySelector('[data-finding-id="font-2"]')).toBeNull();
+    expect(panel.querySelector('[data-finding-id="image-1"]')).not.toBeNull();
+  });
+
+  it("keeps font asset rows in the asset-inventory section even when findings are hidden", () => {
+    const report = buildReport();
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("asset-inventory-section")).toBeInTheDocument();
+    expect(screen.getByText("https://cdn.example.com/font-a.woff2")).toBeVisible();
+    expect(screen.getByText("https://cdn.example.com/font-b.woff2")).toBeVisible();
+  });
+
+  it("still shows font findings when no assetInventory is provided (backwards compatible)", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r2", severity: "review", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("2");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("2");
+  });
+
+  it("keeps findings that mix font and non-font evidence (all-evidenceIds-must-be-font rule)", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      assetInventory: {
+        summary: { total: 2, byKind: { font: 1, image: 1 }, flagged: 2 },
+        assets: [
+          {
+            id: fontAssetIdA,
+            kind: "font",
+            url: "https://cdn.example.com/font-a.woff2",
+            host: "cdn.example.com",
+            sourceUrl: "https://example.com/",
+            contentType: "font/woff2",
+            sha256: "a".repeat(64),
+            status: "fetched",
+            licenseEvidence: "copyright_notice_only",
+            licenseExcerpt: null,
+            confidence: 0.4,
+          },
+          {
+            id: imageAssetId,
+            kind: "image",
+            url: "https://cdn.example.com/hero.jpg",
+            host: "cdn.example.com",
+            sourceUrl: "https://example.com/",
+            contentType: "image/jpeg",
+            sha256: "c".repeat(64),
+            status: "fetched",
+            licenseEvidence: "no_license_evidence",
+            licenseExcerpt: null,
+            confidence: 0.4,
+          },
+        ],
+      },
+      findings: [
+        {
+          ...buildFinding({ id: "mixed-1", severity: "review", applicability: "current" }),
+          evidenceIds: [fontAssetIdA, imageAssetId],
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // The mixed-evidence finding is kept (it carries non-font information).
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("1");
+  });
+});

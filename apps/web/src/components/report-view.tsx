@@ -322,11 +322,32 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
   const failedPages = report.coverage.failed;
   const isPartial = failedPages.length > 0;
 
+  // Asset IDs whose kind is "font". Findings that point exclusively at a font
+  // asset duplicate the data already shown in the KIỂM TRA FONT (font
+  // inventory) section, so we hide them from the findings tabs to avoid
+  // rendering the same compliance signal twice. The raw findings are still
+  // available in `report.findings` and the API response is unchanged — we
+  // only narrow the view-layer filter here. Mixed-evidence findings
+  // (font + non-font) are kept because the non-font evidence is not
+  // surfaced anywhere else.
+  const fontAssetIds = (() => {
+    const ids = new Set<string>();
+    for (const asset of report.assetInventory?.assets ?? []) {
+      if (asset.kind === "font") ids.add(asset.id);
+    }
+    return ids;
+  })();
+
+  const isFontOnlyFinding = (f: ReportFindingCard): boolean =>
+    f.evidenceIds.length > 0 && f.evidenceIds.every((id) => fontAssetIds.has(id));
+
+  const findingsExcludingFonts = report.findings.filter((f) => !isFontOnlyFinding(f));
+
   // Group findings by severity for the tab strip. Within a tab we keep the
   // current/upcoming order intact so the temporal signal is still visible
   // alongside the severity grouping.
   const sortedBySeverity = (sev: Severity): readonly ReportFindingCard[] => {
-    const sameSeverity = report.findings.filter((f) => f.severity === sev);
+    const sameSeverity = findingsExcludingFonts.filter((f) => f.severity === sev);
     return [
       ...sameSeverity.filter((f) => f.applicability === "current"),
       ...sameSeverity.filter((f) => f.applicability === "upcoming"),
@@ -344,7 +365,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
   const [activeTab, setActiveTab] = useState<Severity | null>(defaultTab);
 
-  const totalFindings = report.findings.length;
+  const totalFindings = findingsExcludingFonts.length;
 
   return (
     <section
