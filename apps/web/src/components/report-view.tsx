@@ -316,8 +316,9 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
 
   const findingsExcludingFonts = report.findings
     .filter((f) => !isFontOnlyFinding(f))
-    .filter((finding, index, findings) =>
-      findings.findIndex((candidate) => candidate.id === finding.id) === index,
+    .filter(
+      (finding, index, findings) =>
+        findings.findIndex((candidate) => candidate.id === finding.id) === index,
     );
 
   // Group findings by severity for the tab strip. Within a tab we keep the
@@ -352,8 +353,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
   const [activeTab, setActiveTab] = useState<Severity | null>(defaultTab);
 
   const totalFindings = findingsExcludingFonts.length;
-  const coverageTotal =
-    fetchedPages.length + failedPages.length + skippedPages.length;
+  const coverageTotal = fetchedPages.length + failedPages.length + skippedPages.length;
   const coveragePercent =
     coverageTotal > 0 ? Math.round((fetchedPages.length / coverageTotal) * 100) : 0;
 
@@ -371,15 +371,20 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
             aria-label={messages.brand}
             className="flex items-center gap-2 font-serif text-xl font-bold text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-8 fill-accent"><path d="M12 2 4 5v6c0 5.1 3.4 9.7 8 11 4.6-1.3 8-5.9 8-11V5l-8-3Zm0 3.2 5 1.9V11c0 3.5-2.1 6.8-5 8-2.9-1.2-5-4.5-5-8V7.1l5-1.9Zm-1 3.3v2H9v5h6v-5h-2v-2h-2Z" /></svg>
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-8 fill-accent">
+              <path d="M12 2 4 5v6c0 5.1 3.4 9.7 8 11 4.6-1.3 8-5.9 8-11V5l-8-3Zm0 3.2 5 1.9V11c0 3.5-2.1 6.8-5 8-2.9-1.2-5-4.5-5-8V7.1l5-1.9Zm-1 3.3v2H9v5h6v-5h-2v-2h-2Z" />
+            </svg>
             {messages.brand} AI
           </a>
-          <div className="flex items-center gap-3"><ThemeToggle locale={locale} /><a
-            href={localeHref ?? `/${locale === "vi" ? "en" : "vi"}`}
-            className="border border-rule px-3 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            {messages["locale.switch"]}
-          </a></div>
+          <div className="flex items-center gap-3">
+            <ThemeToggle locale={locale} />
+            <a
+              href={localeHref ?? `/${locale === "vi" ? "en" : "vi"}`}
+              className="border border-rule px-3 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {messages["locale.switch"]}
+            </a>
+          </div>
         </div>
       </header>
 
@@ -410,8 +415,12 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                 <circle cx="12" cy="17" r="1" fill="currentColor" />
               </svg>
               <div>
-                <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Tình trạng tổng" : "Overall status"}</p>
-                <p className="mt-0.5 text-lg font-extrabold uppercase tracking-tight">{statusLabel(messages, report.status)}</p>
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+                  {locale === "vi" ? "Tình trạng tổng" : "Overall status"}
+                </p>
+                <p className="mt-0.5 text-lg font-extrabold uppercase tracking-tight">
+                  {statusLabel(messages, report.status)}
+                </p>
               </div>
               <p className="hidden border-l border-rule pl-4 font-mono text-xs opacity-70 lg:block">
                 {formatDate(report.generatedAt, locale)} · {report.jurisdiction} ·{" "}
@@ -442,10 +451,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                 data-testid="risk-distribution-chart"
                 role="img"
                 aria-label={allTabs
-                  .map(
-                    (tab) =>
-                      `${severityLabel(messages, tab.severity)}: ${tab.findings.length}`,
-                  )
+                  .map((tab) => `${severityLabel(messages, tab.severity)}: ${tab.findings.length}`)
                   .join("; ")}
                 className="mt-6 flex h-2 overflow-hidden bg-rule"
               >
@@ -473,9 +479,13 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                       data-testid={`findings-summary-legend-${tab.severity}`}
                       className="flex items-center justify-between"
                     >
-                      <span className="flex items-center gap-3"><span className={`block size-2 ${dotBg}`} aria-hidden="true" /><span className="uppercase tracking-wide">
-                        {severityLabel(messages, tab.severity)}
-                      </span></span><strong className="tabular-nums">{tab.findings.length}</strong>
+                      <span className="flex items-center gap-3">
+                        <span className={`block size-2 ${dotBg}`} aria-hidden="true" />
+                        <span className="uppercase tracking-wide">
+                          {severityLabel(messages, tab.severity)}
+                        </span>
+                      </span>
+                      <strong className="tabular-nums">{tab.findings.length}</strong>
                     </li>
                   );
                 })}
@@ -500,10 +510,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
               aria-label={`${messages["coverage.fetched"]}: ${coveragePercent}%`}
               className="mt-4 h-1 overflow-hidden bg-rule"
             >
-              <span
-                className="block h-full bg-success"
-                style={{ width: `${coveragePercent}%` }}
-              />
+              <span className="block h-full bg-success" style={{ width: `${coveragePercent}%` }} />
             </div>
             <ul className="mt-5 flex max-h-72 flex-col gap-4 overflow-auto border-t border-rule pt-5 font-mono text-sm">
               {fetchedPages.map((page) => (
@@ -622,7 +629,9 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                             : "bg-ink/30"
                         }`}
                       />
-                      <span className="min-w-0 text-center leading-tight">{severityLabel(messages, tab.severity)}</span>
+                      <span className="min-w-0 text-center leading-tight">
+                        {severityLabel(messages, tab.severity)}
+                      </span>
                       <span
                         data-testid={`findings-tab-count-${tab.severity}`}
                         className="bg-ink px-2 py-0.5 font-mono text-xs text-bg"
@@ -703,9 +712,7 @@ interface FindingCardProps {
 
 const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
   const citation = finding.citations[0];
-  const schemaFailure = finding.rationale.match(
-    /\((Verifier schema violation):\s*([^)]+)\)/i,
-  );
+  const schemaFailure = finding.rationale.match(/\((Verifier schema violation):\s*([^)]+)\)/i);
   const readableRationale = finding.rationale
     .replace(/\s*\(Verifier schema violation:[^)]+\)/i, "")
     .trim();
@@ -726,94 +733,112 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
         <summary className="flex min-h-20 cursor-pointer list-none flex-col items-stretch gap-4 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
           <span className="flex min-w-0 flex-col gap-3">
             <span className="flex flex-wrap items-center gap-2">
-          <span
-            data-testid={`severity-badge-${finding.id}`}
+              <span
+                data-testid={`severity-badge-${finding.id}`}
                 className={`inline-flex items-center border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${severityBadgeClass(finding.severity)}`}
-          >
-            {severityLabel(messages, finding.severity)}
-          </span>
-          <span className="text-xs uppercase tracking-wider text-ink-soft">
-            {applicabilityLabel}
-          </span>
+              >
+                {severityLabel(messages, finding.severity)}
+              </span>
+              <span className="text-xs uppercase tracking-wider text-ink-soft">
+                {applicabilityLabel}
+              </span>
             </span>
-            <span className="max-w-4xl font-serif text-base font-bold leading-snug md:text-lg">{rationaleTitle || finding.rationale}</span>
+            <span className="max-w-4xl font-serif text-base font-bold leading-snug md:text-lg">
+              {rationaleTitle || finding.rationale}
+            </span>
             {schemaFailure ? (
               <span className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
-                <span className="border border-rule bg-surface px-2 py-1 text-gold">{schemaFailure[1]}</span>
+                <span className="border border-rule bg-surface px-2 py-1 text-gold">
+                  {schemaFailure[1]}
+                </span>
                 <span>{schemaFailure[2]}</span>
               </span>
             ) : null}
             {rationaleDetail ? (
-              <span className="max-w-4xl text-sm leading-relaxed text-ink-soft">{rationaleDetail}</span>
+              <span className="max-w-4xl text-sm leading-relaxed text-ink-soft">
+                {rationaleDetail}
+              </span>
             ) : null}
           </span>
           <span className="flex items-center justify-between gap-4 border-t border-rule pt-3 sm:justify-start sm:border-0 sm:pt-0">
             <span className="text-right">
-              <span className="block text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{messages["finding.confidence"]}</span>
-              <span data-testid={`confidence-${finding.id}`} className="mt-1 block font-mono text-sm text-error">{(finding.confidence * 100).toFixed(0)}%</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+                {messages["finding.confidence"]}
+              </span>
+              <span
+                data-testid={`confidence-${finding.id}`}
+                className="mt-1 block font-mono text-sm text-error"
+              >
+                {(finding.confidence * 100).toFixed(0)}%
+              </span>
             </span>
-            <span aria-hidden="true" className="text-xl transition-transform group-open/finding:rotate-45">+</span>
+            <span
+              aria-hidden="true"
+              className="text-xl transition-transform group-open/finding:rotate-45"
+            >
+              +
+            </span>
           </span>
         </summary>
 
         <div className="border-t border-rule p-5 md:p-6">
-      <dl className="text-base">
-        <div className="border border-rule bg-bg p-5">
-          <dt className="text-xs uppercase tracking-wider text-ink-soft">
-            {messages["finding.recommended_action"]}
-          </dt>
-          <dd className="mt-1 font-medium leading-relaxed">{finding.recommendedAction}</dd>
-        </div>
-      </dl>
-
-      <details
-        data-testid={`finding-evidence-${finding.id}`}
-        className="group mt-5 border border-rule text-base open:bg-surface"
-      >
-        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between px-5 font-semibold uppercase tracking-wider text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
-          <span>{locale === "vi" ? "Bằng chứng và căn cứ" : "Evidence and legal basis"}</span>
-          <span aria-hidden="true" className="text-lg leading-none group-open:rotate-45">
-            +
-          </span>
-        </summary>
-        <dl className="flex flex-col gap-4 border-t border-rule bg-bg p-5">
-          <div className="flex flex-col gap-1">
-            <dt className="text-xs uppercase tracking-wider text-ink-soft">
-              {messages["finding.evidence"]}
-            </dt>
-            <dd className="font-mono text-xs leading-relaxed text-ink">
-              {finding.evidenceExcerpt}
-            </dd>
-          </div>
-
-          {citation ? (
-            <div className="flex flex-col gap-1">
+          <dl className="text-base">
+            <div className="border border-rule bg-bg p-5">
               <dt className="text-xs uppercase tracking-wider text-ink-soft">
-                {messages["finding.legal_excerpt"]}
+                {messages["finding.recommended_action"]}
               </dt>
-              <dd className="italic text-ink">"{citation.excerpt}"</dd>
-              <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
-                {messages["finding.source"]}
-              </dt>
-              <dd className="text-sm">{citation.source}</dd>
-              <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
-                {messages["finding.retrieved_at"]}
-              </dt>
-              <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
-              {/* TODO: re-enable "Xem văn bản đầy đủ" link when vbpl.vn link 404 is fixed.
+              <dd className="mt-1 font-medium leading-relaxed">{finding.recommendedAction}</dd>
+            </div>
+          </dl>
+
+          <details
+            data-testid={`finding-evidence-${finding.id}`}
+            className="group mt-5 border border-rule text-base open:bg-surface"
+          >
+            <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between px-5 font-semibold uppercase tracking-wider text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+              <span>{locale === "vi" ? "Bằng chứng và căn cứ" : "Evidence and legal basis"}</span>
+              <span aria-hidden="true" className="text-lg leading-none group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <dl className="flex flex-col gap-4 border-t border-rule bg-bg p-5">
+              <div className="flex flex-col gap-1">
+                <dt className="text-xs uppercase tracking-wider text-ink-soft">
+                  {messages["finding.evidence"]}
+                </dt>
+                <dd className="font-mono text-xs leading-relaxed text-ink">
+                  {finding.evidenceExcerpt}
+                </dd>
+              </div>
+
+              {citation ? (
+                <div className="flex flex-col gap-1">
+                  <dt className="text-xs uppercase tracking-wider text-ink-soft">
+                    {messages["finding.legal_excerpt"]}
+                  </dt>
+                  <dd className="italic text-ink">"{citation.excerpt}"</dd>
+                  <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
+                    {messages["finding.source"]}
+                  </dt>
+                  <dd className="text-sm">{citation.source}</dd>
+                  <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
+                    {messages["finding.retrieved_at"]}
+                  </dt>
+                  <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
+                  {/* TODO: re-enable "Xem văn bản đầy đủ" link when vbpl.vn link 404 is fixed.
                 The current behavior intentionally hides outbound links and shows
                 a fallback label so users are never sent to a broken source.
                 Revert by restoring the `isApprovedCitationUrl(citation.url) ? <a> : <p>` block. */}
-              <p
-                data-testid={`provision-link-unavailable-${finding.id}`}
-                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
-              >
-                {messages["finding.source_link_unavailable"]}
-              </p>
-            </div>
-          ) : null}
-        </dl>
-      </details>
+                  <p
+                    data-testid={`provision-link-unavailable-${finding.id}`}
+                    className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
+                  >
+                    {messages["finding.source_link_unavailable"]}
+                  </p>
+                </div>
+              ) : null}
+            </dl>
+          </details>
         </div>
       </details>
     </article>
