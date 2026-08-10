@@ -273,24 +273,18 @@ describe("digital rights report sections", () => {
   };
 
   it("does not render the service-signals section even when serviceSignals data is present", () => {
-    render(
-      <ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />,
-    );
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("service-signals-section")).toBeNull();
     expect(screen.queryByText("Đăng bài")).toBeNull();
   });
 
   it("does not render the license-checks section even when licenseChecks data is present", () => {
-    render(
-      <ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />,
-    );
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("license-checks-section")).toBeNull();
   });
 
   it("does not render the asset-inventory section even when assetInventory data is present", () => {
-    render(
-      <ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />,
-    );
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("asset-inventory-section")).toBeNull();
     expect(screen.queryByText("https://cdn.example.com/hero.jpg")).toBeNull();
   });
@@ -634,7 +628,9 @@ describe("font inventory (V1)", () => {
     expect(screen.getByTestId("font-family-row")).toBeInTheDocument();
     expect(screen.getByTestId("font-license-badge")).toHaveTextContent(/verified|registry/i);
     // Variants are listed in the <details> block (closed by default per product).
-    const details = screen.getByText("https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2").closest("details");
+    const details = screen
+      .getByText("https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2")
+      .closest("details");
     expect(details).not.toBeNull();
     expect(details?.hasAttribute("open")).toBe(false);
   });
@@ -1019,4 +1015,3 @@ describe("font deduplication in findings tabs", () => {
     expect(details?.hasAttribute("open")).toBe(false);
   });
 });
-

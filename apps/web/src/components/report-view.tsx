@@ -324,9 +324,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
     report.fontInventory !== undefined && report.fontInventory.groups.length > 0;
 
   const visibleTabs = allTabs.filter(
-    (t) =>
-      t.findings.length > 0 ||
-      (t.severity === "review" && hasFontInventoryPanel),
+    (t) => t.findings.length > 0 || (t.severity === "review" && hasFontInventoryPanel),
   );
 
   const defaultTab: Severity | null =
@@ -826,8 +824,8 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
             </p>
             <p className="mt-1 text-ink-soft">
               {group.variants.length}{" "}
-              {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} ·{" "}
-              {group.host} · {(group.confidence * 100).toFixed(0)}%
+              {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} · {group.host}{" "}
+              · {(group.confidence * 100).toFixed(0)}%
             </p>
             {group.fontInfo?.familyName ? (
               <p className="mt-1 text-ink-soft">
@@ -881,9 +879,7 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
                     <p className="font-mono text-ink break-all">{variant.url}</p>
                     <p className="text-ink-soft">
                       {variant.postscriptName ??
-                        (locale === "vi"
-                          ? "Không rõ PostScript name"
-                          : "Unknown PostScript name")}
+                        (locale === "vi" ? "Không rõ PostScript name" : "Unknown PostScript name")}
                       {variant.subfamilyName ? <> · {variant.subfamilyName}</> : null}
                       {variant.version ? <> · {variant.version}</> : null}
                     </p>
