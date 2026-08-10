@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type PageFetcher, type ScanParams, runScan } from "./scan-workflow";
+
+import {
+  type PageFetcher,
+  type ScanParams,
+  runScan,
+  userFacingMessageForError,
+} from "./scan-workflow";
+import { CitationVerificationError, SchemaViolationError } from "@safelaunch/compliance-core";
 
 const fakeHtml = (title: string) =>
   `<!DOCTYPE html><html lang="vi"><head><title>${title}</title></head><body><p>OK</p></body></html>`;
@@ -267,5 +274,107 @@ describe("runScan progress publishing", () => {
     const { deps, progressStates } = makeDeps({ fetch });
     await runScan(baseParams, deps);
     expect(progressStates).toEqual([]);
+  });
+});
+
+describe("font-evidence report payload (regression)", () => {
+  it("places fontInventory at the top level of the persisted payload (so the report UI can render it)", async () => {
+    let captured: Record<string, unknown> | null = null;
+    const persistReport = async (input: {
+      scanId: string;
+      payload: Record<string, unknown>;
+    }): Promise<{ token: string; url: string }> => {
+      await Promise.resolve();
+      captured = input.payload;
+      return { token: `tok-${input.scanId}`, url: `https://reports.test/${input.scanId}` };
+    };
+    const evaluate = async (): Promise<{
+      status: "no_significant_risk";
+      findings: never[];
+      assetInventory: {
+        assets: never[];
+        findings: never[];
+        summary: { total: number; byKind: Record<string, number>; flagged: number };
+        fontInventory: {
+          groups: Array<{ id: string; family: string; kind: "font" }>;
+          totals: { families: number; files: number; flagged: number };
+        };
+      };
+    }> => {
+      await Promise.resolve();
+      return {
+        status: "no_significant_risk" as const,
+        findings: [],
+        assetInventory: {
+          assets: [],
+          findings: [],
+          summary: { total: 0, byKind: {}, flagged: 0 },
+          fontInventory: {
+            groups: [{ id: "font::roboto", family: "Roboto", kind: "font" }],
+            totals: { families: 1, files: 0, flagged: 0 },
+          },
+        },
+      };
+    };
+    const fetch = new FakeFetcher({ [HOME]: { status: 200, html: fakeHtml("Home") } });
+    const deps = {
+      fetch,
+      evaluate: evaluate as unknown as ScanRunDeps["evaluate"],
+      persistReport,
+      log: () => {},
+      persistTerminalState: async () => {
+        await Promise.resolve();
+      },
+      persistProgressState: async () => {
+        await Promise.resolve();
+      },
+      now: () => new Date("2026-08-06T00:00:00.000Z"),
+    } as unknown as Parameters<typeof runScan>[1];
+    await runScan(baseParams, deps);
+    expect(captured).not.toBeNull();
+    expect(captured).toHaveProperty("fontInventory");
+    // The bug we are guarding against: fontInventory was only nested under
+    // assetInventory. The report UI reads it from the top level.
+    expect(captured!.fontInventory).toEqual({
+      groups: [{ id: "font::roboto", family: "Roboto", kind: "font" }],
+      totals: { families: 1, files: 0, flagged: 0 },
+    });
+  });
+});
+
+// Regression tests for the 2026-08-10 catch-block sanitization fix:
+// the workflow catch must NOT leak technical error class names
+// ("Verifier schema violation", "Citation verification failed") to
+// the user-facing rationale. See
+// docs/superpowers/specs/2026-08-10-verify-schema-strictness.md.
+describe("userFacingMessageForError", () => {
+  it("maps SchemaViolationError to a clean Vietnamese message", () => {
+    const msg = userFacingMessageForError(
+      new SchemaViolationError("draft does not match EvaluationDraftSchema", []),
+    );
+    expect(msg).toBe("Không đủ bằng chứng để xác minh tự động.");
+    expect(msg).not.toContain("Verifier");
+    expect(msg).not.toContain("SchemaViolationError");
+    expect(msg).not.toContain("EvaluationDraftSchema");
+  });
+
+  it("maps CitationVerificationError to a clean Vietnamese message", () => {
+    const msg = userFacingMessageForError(
+      new CitationVerificationError("no legalQuote from draft matches provision prov-1 text"),
+    );
+    expect(msg).toBe("Trích dẫn pháp lý không khớp với văn bản được duyệt.");
+    expect(msg).not.toContain("Citation");
+    expect(msg).not.toContain("legalQuote");
+  });
+
+  it("maps an unknown error to a generic Vietnamese message", () => {
+    const msg = userFacingMessageForError(new Error("boom"));
+    expect(msg).toBe("Lỗi kỹ thuật khi xác minh tự động.");
+    expect(msg).not.toContain("boom");
+  });
+
+  it("maps a non-Error throw value to the generic message", () => {
+    expect(userFacingMessageForError("just a string")).toBe("Lỗi kỹ thuật khi xác minh tự động.");
+    expect(userFacingMessageForError(undefined)).toBe("Lỗi kỹ thuật khi xác minh tự động.");
   });
 });

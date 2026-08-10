@@ -14,7 +14,6 @@
   "expiry.label": "Report expires on",
   "steps.title": "Scan steps",
   "steps.subtitle": "Step {current} / {total}",
-  "coverage.title": "Scanned pages",
   "step.queued.label": "Queued",
   "step.queued.description": "Waiting in line to start the scan",
   "step.fetching.label": "Fetching pages",

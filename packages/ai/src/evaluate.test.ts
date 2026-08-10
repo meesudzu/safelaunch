@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { EvidenceItem } from "@safelaunch/contracts";
+import { EvaluationDraftSchema } from "@safelaunch/compliance-core";
 import {
   type EvaluationDraft,
   type EvaluationProvider,
@@ -150,5 +151,56 @@ describe("evaluateEvidenceProvisionPair", () => {
     // fake does not, but the public surface contract is enforced by the
     // signature check at compile time. This test confirms runtime behavior.
     expect(provider.calls).toHaveLength(1);
+  });
+
+  // Regression tests for the 2026-08-10 fallback fix:
+  //   - when the provider throws or returns a payload that does not match
+  //     the schema, the fallback must include the input evidence id so it
+  //     is evidence-grounded and round-trips through EvaluationDraftSchema
+  //     + verifyFinding.
+  //   - see docs/superpowers/specs/2026-08-10-verify-schema-strictness.md.
+
+  it("returns a schema-valid review fallback when the provider throws", async () => {
+    const throwingProvider: EvaluationProvider = {
+      evaluate: () => Promise.reject(new Error("model timeout")),
+    };
+    const result = await evaluateEvidenceProvisionPair({
+      evidence: baseEvidence,
+      retrieval: [baseRetrieval],
+      category: "online_game",
+      provider: throwingProvider,
+    });
+    expect(result.severity).toBe("review");
+    expect(result.evidenceIds).toEqual([baseEvidence.id]);
+    // The fallback must round-trip through EvaluationDraftSchema so the
+    // verifier never throws on it. With the 2026-08-10 schema relaxation,
+    // empty provisionIds/legalQuotes are legal for severity 'review'.
+    const parsed = EvaluationDraftSchema.safeParse(result);
+    expect(parsed.success).toBe(true);
+  });
+
+  it("returns a schema-valid review fallback when the provider returns an invalid payload", async () => {
+    const broken: EvaluationProvider = {
+      evaluate: () =>
+        Promise.resolve({
+          severity: "high",
+          rationale: "",
+          evidenceIds: [],
+          provisionIds: [],
+          legalQuotes: [],
+          confidence: 2,
+          recommendedAction: "",
+        } as unknown as EvaluationDraft),
+    };
+    const result = await evaluateEvidenceProvisionPair({
+      evidence: baseEvidence,
+      retrieval: [baseRetrieval],
+      category: "online_game",
+      provider: broken,
+    });
+    expect(result.severity).toBe("review");
+    expect(result.evidenceIds).toEqual([baseEvidence.id]);
+    const parsed = EvaluationDraftSchema.safeParse(result);
+    expect(parsed.success).toBe(true);
   });
 });

@@ -33,5 +33,17 @@
   "asset.inventory.summary": "Tài sản được site tham chiếu",
   "asset.inventory.flagged": "Cần kiểm tra license",
   "asset.inventory.scope": "Phạm vi: font (ảnh/video/audio nằm ngoài phạm vi quét)",
-  "finding.source_link_unavailable": "Liên kết nguồn không khả dụng"
+  "finding.source_link_unavailable": "Liên kết nguồn không khả dụng",
+  "font.license.verified_open": "Đã xác minh license (khớp registry)",
+  "font.license.declared_open": "License mở — khai báo trên trang",
+  "font.license.requires_license_proof": "Cần xác minh license trước khi phát hành",
+  "font.license.unknown": "Chưa tìm thấy bằng chứng license",
+  "font.license.conflicting": "Hash khác với registry",
+  "font.license.unavailable": "Không lấy được metadata font",
+  "font.family.files": "file",
+  "font.family.unknown": "Không xác định family",
+  "font.family.open_details": "Xem các biến thể",
+  "font.family.confidence": "Độ tin cậy",
+  "font.variant.see_source": "Xem nguồn",
+  "font.source_unavailable": "Liên kết nguồn không khả dụng"
 }

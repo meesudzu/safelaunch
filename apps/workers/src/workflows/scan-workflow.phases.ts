@@ -275,8 +275,15 @@ export const persistReportPhase = async (
   const tokenHash = await deterministicTokenHash(input.scanId);
   const now = new Date(deps.now());
   const expiresAt = new Date(now.getTime() + REPORT_TTL_SECONDS * 1000).toISOString();
+  // The persisted payload must include `expiresAt` so the public
+  // /vi/report/<token> page can render "Báo cáo hết hạn vào <date>".
+  // The route handler also projects the row's `expires_at` column
+  // into the response, but doing it here too means the payload JSON
+  // is self-contained — useful for any future consumer that reads it
+  // directly (audit logs, support tooling, side exports).
   const payloadJson = JSON.stringify({
     ...input.payload,
+    expiresAt,
     _reportToken: token,
   });
   await deps.db

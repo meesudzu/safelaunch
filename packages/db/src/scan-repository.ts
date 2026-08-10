@@ -70,14 +70,14 @@ export class ScanRepository {
     };
   }
 
-  async updateTerminal(input: {
+  async updateState(update: {
     id: string;
     state: string;
     coverage: Record<string, unknown>;
   }): Promise<void> {
     await this.db
       .prepare("UPDATE scans SET state = ?, coverage_json = ? WHERE id = ?")
-      .bind(input.state, JSON.stringify(input.coverage), input.id)
+      .bind(update.state, JSON.stringify(update.coverage), update.id)
       .run();
   }
 }
@@ -91,6 +91,12 @@ export interface PersistReportInput {
 
 export interface StoredReport {
   readonly scanId: string;
+  /**
+   * Token hash, or `null` once the row has been burned (see
+   * {@link ReportRepository.burnToken}). The D1 column itself is NOT NULL,
+   * so burnToken writes a sentinel string instead and we convert it back
+   * to null at the read boundary.
+   */
   readonly tokenHash: string | null;
   readonly payloadJson: string;
   readonly expiresAt: string;
@@ -98,14 +104,22 @@ export interface StoredReport {
 
 interface ReportRow {
   scan_id: string;
-  token_hash: string | null;
+  token_hash: string;
   payload_json: string;
   expires_at: string;
 }
 
+/**
+ * `reports.token_hash` is `NOT NULL` in the schema (it's also the column a
+ * real token hash is looked up by), so "burned" can't be represented as SQL
+ * NULL — it's this sentinel instead. A real SHA-256 hex digest is always 64
+ * lowercase hex characters, so it can never collide with the empty string.
+ */
+export const BURNED_TOKEN_HASH = "";
+
 const toReport = (row: ReportRow): StoredReport => ({
   scanId: row.scan_id,
-  tokenHash: row.token_hash,
+  tokenHash: row.token_hash === BURNED_TOKEN_HASH ? null : row.token_hash,
   payloadJson: row.payload_json,
   expiresAt: row.expires_at,
 });
@@ -134,9 +148,12 @@ export class ReportRepository {
 
   async getByTokenHash(tokenHash: string): Promise<StoredReport | null> {
     // Look up the report by its token hash. Used by the public report
-    // page whose URL contains the one-time token, not the scanId.
-    // Returns null after the token has been burned (token_hash IS NULL),
-    // which gives us the single-use guarantee for free.
+    // page whose URL contains the token, not the scanId. Returns null
+    // when no report row has ever been persisted against this hash.
+    // (Earlier versions also returned null after the first successful
+    // read because the route burned the token; that behaviour was
+    // removed to support owner-side reloads — see apps/workers/src/
+    // routes/reports.ts.)
     const row = await this.db
       .prepare(
         "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE token_hash = ?",
@@ -146,12 +163,17 @@ export class ReportRepository {
     return row ? toReport(row) : null;
   }
 
-  async burnToken(scanId: string, openedAt: string = new Date().toISOString()): Promise<void> {
+  async burnToken(scanId: string): Promise<void> {
+    // Vestigial: production routes no longer call this (the report URL
+    // is reusable until `expires_at`). Kept on the repository surface
+    // so the repositories.test.ts coverage and any external callers
+    // continue to compile and behave as before. New code should not
+    // call this; if you need single-use semantics again, resurrect the
+    // call from `apps/workers/src/routes/reports.ts` instead of doing
+    // it ad-hoc at a new call site.
     await this.db
-      .prepare(
-        "UPDATE reports SET token_hash = NULL, opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
-      )
-      .bind(openedAt, scanId)
+      .prepare("UPDATE reports SET token_hash = ? WHERE scan_id = ?")
+      .bind(BURNED_TOKEN_HASH, scanId)
       .run();
   }
 }

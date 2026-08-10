@@ -92,7 +92,7 @@ describe("D1 repositories", () => {
       analysisVersion: "v1",
     });
 
-    await scans.updateTerminal({
+    await scans.updateState({
       id: "scan-1",
       state: "failed",
       coverage: { fetched: [], failed: ["homepage"], skipped: [] },

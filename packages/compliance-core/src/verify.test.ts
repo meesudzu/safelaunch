@@ -175,4 +175,81 @@ describe("verifyFinding", () => {
     const result = verifyFinding(draft, ctx, "2026-01-01T00:00:00.000Z");
     expect(result.applicability).toBe("upcoming");
   });
+
+  // Regression tests for the 2026-08-10 schema-strictness fix:
+  //   - "review" and "pass" drafts with empty citation arrays are valid
+  //     (no citation-grounded finding to produce).
+  //   - "high" still requires at least one evidenceId, provisionId, and
+  //     legalQuote. See
+  //     docs/superpowers/specs/2026-08-10-verify-schema-strictness.md.
+
+  it("accepts a 'review' draft with empty citation arrays (no-ground finding)", () => {
+    const reviewEmpty: EvaluationDraft = {
+      severity: "review",
+      rationale: "Không tìm được trích dẫn phù hợp — cần chuyên gia xem xét.",
+      evidenceIds: [],
+      provisionIds: [],
+      legalQuotes: [],
+      confidence: 0,
+      recommendedAction: "Yêu cầu chuyên gia xem xét thủ công.",
+    };
+    const result = verifyFinding(reviewEmpty, baseContext);
+    expect(result.severity).toBe("review");
+    expect(result.citations).toEqual([]);
+    expect(result.evidenceIds).toEqual([]);
+  });
+
+  it("accepts a 'pass' draft with empty citation arrays", () => {
+    const passEmpty: EvaluationDraft = {
+      severity: "pass",
+      rationale: "Tuân thủ đầy đủ.",
+      evidenceIds: [],
+      provisionIds: [],
+      legalQuotes: [],
+      confidence: 1,
+      recommendedAction: "Không cần hành động.",
+    };
+    const result = verifyFinding(passEmpty, baseContext);
+    expect(result.severity).toBe("pass");
+    expect(result.citations).toEqual([]);
+  });
+
+  it("still rejects a 'high' draft with empty evidenceIds", () => {
+    const highNoEvidence: EvaluationDraft = {
+      severity: "high",
+      rationale: "...",
+      evidenceIds: [],
+      provisionIds: ["prov-1"],
+      legalQuotes: [fullText("prov-1")],
+      confidence: 0.95,
+      recommendedAction: "...",
+    };
+    expect(() => verifyFinding(highNoEvidence, baseContext)).toThrow(SchemaViolationError);
+  });
+
+  it("still rejects a 'high' draft with empty provisionIds", () => {
+    const highNoProvisions: EvaluationDraft = {
+      severity: "high",
+      rationale: "...",
+      evidenceIds: ["ev_priv"],
+      provisionIds: [],
+      legalQuotes: [fullText("prov-1")],
+      confidence: 0.95,
+      recommendedAction: "...",
+    };
+    expect(() => verifyFinding(highNoProvisions, baseContext)).toThrow(SchemaViolationError);
+  });
+
+  it("still rejects a 'high' draft with empty legalQuotes", () => {
+    const highNoQuotes: EvaluationDraft = {
+      severity: "high",
+      rationale: "...",
+      evidenceIds: ["ev_priv"],
+      provisionIds: ["prov-1"],
+      legalQuotes: [],
+      confidence: 0.95,
+      recommendedAction: "...",
+    };
+    expect(() => verifyFinding(highNoQuotes, baseContext)).toThrow(SchemaViolationError);
+  });
 });

@@ -18,15 +18,60 @@ export class CitationVerificationError extends Error {
   }
 }
 
-export const EvaluationDraftSchema = z.object({
-  severity: z.enum(["high", "review", "pass"]),
-  rationale: z.string().min(1),
-  evidenceIds: z.array(z.string().min(1)).min(1),
-  provisionIds: z.array(z.string().min(1)).min(1),
-  legalQuotes: z.array(z.string().min(1)).min(1),
-  confidence: z.number().min(0).max(1),
-  recommendedAction: z.string().min(1),
-});
+/**
+ * The schema that every evidence/provision evaluation draft must satisfy.
+ *
+ * Severity semantics:
+ *  - `high`   → citation-grounded finding (MUST have >=1 evidenceId,
+ *               >=1 provisionId, >=1 legalQuote).
+ *  - `review` → no citation-grounded finding available (expert review
+ *               needed). Empty arrays are legal here — this is precisely
+ *               the "we could not produce a citation-grounded high" case.
+ *  - `pass`   → no finding to report (the website is compliant). Empty
+ *               arrays are legal here too.
+ *
+ * History:
+ *  - Prior to 2026-08-10 the schema enforced `min(1)` on every array.
+ *    That made the no-ground `review` case impossible to represent, so
+ *    `verifyFinding` threw `SchemaViolationError` and the workflow
+ *    catch block leaked the technical error message to the user.
+ *    See `docs/superpowers/specs/2026-08-10-verify-schema-strictness.md`.
+ */
+export const EvaluationDraftSchema = z
+  .object({
+    severity: z.enum(["high", "review", "pass"]),
+    rationale: z.string().min(1),
+    evidenceIds: z.array(z.string().min(1)),
+    provisionIds: z.array(z.string().min(1)),
+    legalQuotes: z.array(z.string().min(1)),
+    confidence: z.number().min(0).max(1),
+    recommendedAction: z.string().min(1),
+  })
+  .superRefine((draft, ctx) => {
+    if (draft.severity === "high") {
+      if (draft.evidenceIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "high severity requires at least one evidenceId",
+          path: ["evidenceIds"],
+        });
+      }
+      if (draft.provisionIds.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "high severity requires at least one provisionId",
+          path: ["provisionIds"],
+        });
+      }
+      if (draft.legalQuotes.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "high severity requires at least one legalQuote",
+          path: ["legalQuotes"],
+        });
+      }
+    }
+  });
 
 export type EvaluationDraft = z.infer<typeof EvaluationDraftSchema>;
 

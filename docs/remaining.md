@@ -16,12 +16,29 @@ This document is the handoff to the team. Items are grouped by **Tier**
   Implementation at `docs/superpowers/plans/2026-08-03-daily-domain-quota-plan.md`.
   Gated by `ENABLE_DAILY_QUOTA` (default `false`). Enable on staging first,
   then production, after a manual smoke run.
+- **Vectorize `safelaunch-legal` population script + legal_provisions.vector_id
+  back-fill (PR #25, 2026-08-10).** Script at
+  `scripts/embed-legal-corpus.mjs` (pure logic in `scripts/lib/embed-corpus-lib.mjs`,
+  unit-tested in `scripts/lib/embed-corpus-lib.test.mjs`). Embeds all 12
+  seed provisions in a single batched Workers AI call routed through the
+  Cloudflare AI Gateway (`gateway.ai.cloudflare.com`), upserts to the
+  Vectorize index, then runs a single `UPDATE legal_provisions SET
+vector_id = id WHERE id IN (...)` so D1 has the back-reference the
+  production ingest pipeline relies on. Unit-tested with vitest at the
+  repo root. To populate staging / production:
+  ```bash
+  CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... \
+    node scripts/embed-legal-corpus.mjs --index safelaunch-legal
+  ```
+  Override the AI Gateway id with `CLOUDFLARE_AI_GATEWAY_ID=...` if not
+  using the Cloudflare-reserved `default` gateway. Pass
+  `--skip-vector-id-update` for a dry run that only touches Vectorize.
 
 ---
 
 ## Tier 1 — Must do before any release announcement
 
-### 1.2 Populate Vectorize `safelaunch-legal` with real embeddings
+### 1.2 Populate Vectorize `safelaunch-legal` with real embeddings ✅ (shipped 2026-08-10, see "Recently shipped")
 
 - **Why:** The seed in `scripts/seed-legal-corpus.sql` inserts 12
   provisions but `vector_id` is NULL on every row. The retrieval step
@@ -51,6 +68,12 @@ upsert`).
   ```
 - **Deliverable:** updated `vector_id` column in `legal_provisions` for
   all 12 rows + matching vectors in the index.
+
+- **Still needed for the REAL production release:** re-run the same script against the account once its Vectorize index exists:
+  ```bash
+  CLOUDFLARE_ACCOUNT_ID=<account-id> CLOUDFLARE_API_TOKEN=<token> \
+    node scripts/embed-legal-corpus.mjs --index safelaunch-legal
+  ```
 
 ---
 
@@ -85,7 +108,7 @@ upsert`).
   `p95LatencyMs<60_000`).
 - **How:**
   1. Configure a Workers AI model binding on staging
-     (`@cf/meta/llama-3.1-8b-instruct` per `packages/ai/src/provider.ts`).
+     (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` per `packages/ai/src/provider.ts`).
   2. Replace `stubSystem` in `packages/ai/src/eval-runner.test.ts` with a
      real provider.
   3. Run `pnpm -C packages/ai test -- eval-runner`.

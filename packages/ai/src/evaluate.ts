@@ -46,7 +46,7 @@ export const evaluateEvidenceProvisionPair = async (
     // does not surface this conditional as an extra top-level branch on the
     // scan-workflow instance.
     const reason = cause instanceof Error ? cause.message : "unknown provider error";
-    return fallbackReviewDraft(reason);
+    return fallbackReviewDraft(input.evidence, reason);
   }
   // Schema validation as a defensive belt-and-suspenders check. The
   // "success → use data / failure → use fallback" branch is expressed as a
@@ -55,7 +55,10 @@ export const evaluateEvidenceProvisionPair = async (
   const parsed = EvaluationDraftSchema.safeParse(raw);
   const draft: EvaluationDraft = parsed.success
     ? parsed.data
-    : fallbackReviewDraft(parsed.error.issues.map((issue) => issue.message).join("; "));
+    : fallbackReviewDraft(
+        input.evidence,
+        parsed.error.issues.map((issue) => issue.message).join("; "),
+      );
   // Belt-and-suspenders: high-severity claims must have at least one legal
   // quote. If the provider slipped one through, downgrade here so the
   // verifier never sees an unsupported high-risk claim. Pure expression;
@@ -72,10 +75,14 @@ const downgradeHighWithoutQuotes = (data: EvaluationDraft): EvaluationDraft =>
     ? { ...data, severity: "review" }
     : data;
 
-const fallbackReviewDraft = (reason: string): EvaluationDraft => ({
+const fallbackReviewDraft = (evidence: EvidenceItem, reason: string): EvaluationDraft => ({
   severity: "review",
   rationale: `${FALLBACK_REVIEW_RATIONALE} (Lý do: ${reason})`,
-  evidenceIds: [],
+  // Anchor the fallback on the evidence id we received so the verifier's
+  // evidenceIds check (and the report payload) remain grounded.
+  // Empty provisionIds/legalQuotes are legal for severity 'review' under
+  // the relaxed EvaluationDraftSchema (2026-08-10).
+  evidenceIds: [evidence.id],
   provisionIds: [],
   legalQuotes: [],
   confidence: 0,

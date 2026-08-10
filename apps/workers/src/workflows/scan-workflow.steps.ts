@@ -17,6 +17,7 @@ export const EMPTY_DIGITAL_ASSET_COLLECTION: DigitalAssetCollection = {
   assets: [] as DigitalAssetCollection["assets"],
   findings: [] as DigitalAssetCollection["findings"],
   summary: { total: 0, byKind: {}, flagged: 0 },
+  fontInventory: { groups: [], totals: { families: 0, files: 0, flagged: 0 } },
 };
 
 /**

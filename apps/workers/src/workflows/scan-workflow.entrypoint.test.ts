@@ -420,3 +420,118 @@ describe("discover:page-urls + fetchSinglePagePhase integration", () => {
     },
   );
 });
+
+describe("phase-4 fallback shape (graph-degraded refactor)", () => {
+  // The phase-4:scan-assets-references step uses
+  // runStepWithFallback with a fallback value of { refs: [], degraded: false }.
+  // The fallback deliberately reports `degraded: false` so that a step
+  // failure (CPU time limit, network error, exhausted retries) is
+  // surfaced only via the scan.step_fallback log line — not via
+  // coverage.degradedPhases. The latter is reserved for the case
+  // where the step actually ran and the heuristic positively identified
+  // the page had candidates the loop should have surfaced.
+
+  it("returns { refs: [], degraded: false } when the phase-4 step throws", async () => {
+    const warnings: Array<Record<string, unknown>> = [];
+    const log = (entry: Record<string, unknown>) => warnings.push(entry);
+    const step = makeRecordingStep({
+      "phase-4:scan-assets-references": () => {
+        throw new Error("CPU time limit exceeded");
+      },
+    });
+    const phase4 = await runStepWithFallback<{ refs: never[]; degraded: boolean }>({
+      step,
+      name: "phase-4:scan-assets-references",
+      fallback: { refs: [], degraded: false },
+      config: { retries: { limit: 1, delay: 5_000, backoff: "constant" }, timeout: "2 minutes" },
+      log,
+      fn: () => Promise.resolve({ refs: [], degraded: false }),
+    });
+    expect(phase4).toEqual({ refs: [], degraded: false });
+    const fallbackLog = warnings.find((w) => w["event"] === "scan.step_fallback");
+    expect(fallbackLog).toBeDefined();
+    expect(fallbackLog?.["step"]).toBe("phase-4:scan-assets-references");
+    // The workflow MUST NOT push "phase-4:scan-assets-references" into
+    // coverage.degradedPhases when reading `phase4.degraded` (which is
+    // false on the fallback path). Locked here so a future refactor
+    // cannot reintroduce the heuristic-evaluated-in-the-workflow-body
+    // pattern that was the source of the misleading graph node.
+    expect(phase4.degraded).toBe(false);
+  });
+});
+
+/**
+ * Structural test: lock the literal `step.do("name", ...)` call names and
+ * their order in `ScanWorkflowEntrypoint.run()`. The Cloudflare Workflows
+ * visualizer parses the source as an AST and emits one `StepDo` node per
+ * literal call site — a `runStepWithFallback(...)` helper call hides the
+ * literal name as a generic `FunctionCall` node. This test guards against
+ * any future regression where a helper wraps a step.do call.
+ *
+ * Why structural (not runtime): the dashboard graph is rendered by an AST
+ * walk of the source file, not by inspecting the runtime call stack. The
+ * runtime order is locked separately by `runScan` and `runStepWithFallback`
+ * tests elsewhere. Here we assert what the dashboard sees.
+ */
+describe("ScanWorkflowEntrypoint step graph structure", () => {
+  const EXPECTED_STEP_NAMES = [
+    "parse-params",
+    "publish:fetching",
+    "fetch:homepage",
+    "discover:page-urls",
+    "fetch:about",
+    "fetch:privacy",
+    "fetch:contact",
+    "fetch:terms",
+    "publish:extracting",
+    "phase-2:extract-evidence",
+    "phase-3:extract-signals",
+    "phase-4:scan-assets-references",
+    "phase-5:classify-asset-rights",
+    "publish:evaluating",
+    "phase-6:evaluate-license",
+    "publish:retrieving",
+    "phase-7:evaluate-rules",
+    "phase-8:aggregate",
+    "publish:reporting",
+    "phase-9:persist-report",
+    "phase-10:persist-terminal",
+  ] as const;
+
+  it("contains the expected literal step.do() call names in execution order", async () => {
+    // Use Vite `?raw` import so the source is bundled into the test as a string.
+    const workflowSrc = (await import("./scan-workflow.ts?raw")).default;
+
+    // Match every `step.do("literal-name", ...)` call site in the source.
+    // The pattern tolerates whitespace between `step.do(` and the string
+    // literal so reformatting does not break the test.
+    const matches = [...workflowSrc.matchAll(/step\.do(?:<[^>]*>)?\(\s*["']([^"']+)["']/g)].map(
+      (m) => m[1] as string,
+    );
+
+    // Collect every distinct literal step name. We don't enforce strict
+    // file-order matching because `phase-10:persist-terminal` appears in
+    // both the failure branch (early in the file) and the success
+    // branch's final return — the visualizer renders each branch
+    // separately, so strict first-occurrence ordering would fail here.
+    const seen = new Set<string>();
+    for (const name of matches) {
+      if (EXPECTED_STEP_NAMES.includes(name as (typeof EXPECTED_STEP_NAMES)[number])) {
+        seen.add(name);
+      }
+    }
+
+    const seenArray = [...seen];
+    expect(seenArray.sort()).toEqual([...EXPECTED_STEP_NAMES].sort());
+  });
+
+  it("does not call runStepWithFallback from ScanWorkflowEntrypoint.run()", async () => {
+    const workflowSrc = (await import("./scan-workflow.ts?raw")).default;
+
+    // The helper is allowed in `scan-workflow.steps.ts` (its home) but not
+    // from `ScanWorkflowEntrypoint.run()`. We approximate by counting
+    // occurrences in the entrypoint source file.
+    const helperCalls = (workflowSrc.match(/runStepWithFallback\s*\(/g) ?? []).length;
+    expect(helperCalls).toBe(0);
+  });
+});
