@@ -49,6 +49,12 @@ const createScan = vi.fn(() =>
 ) as CreateScanFn;
 
 describe("ScanForm", () => {
+  it("makes the brand and locale controls navigable", () => {
+    render(<ScanForm createScan={createScan} locale="vi" messages={viMessages} />);
+    expect(screen.getByRole("link", { name: "SafeLaunch" })).toHaveAttribute("href", "/vi");
+    expect(screen.getByRole("link", { name: "VI / EN" })).toHaveAttribute("href", "/en");
+  });
+
   it("navigates to the live scan progress screen after the API accepts the scan", async () => {
     pushMock.mockClear();
     const user = userEvent.setup();

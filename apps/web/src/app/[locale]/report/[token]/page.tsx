@@ -58,7 +58,12 @@ export default async function ReportPage({
     const report = toReportPayload(dto);
     return (
       <main>
-        <ReportView locale={locale} messages={messagesFor(locale)} report={report} />
+        <ReportView
+          locale={locale}
+          localeHref={`/${locale === "vi" ? "en" : "vi"}/report/${encodeURIComponent(token)}`}
+          messages={messagesFor(locale)}
+          report={report}
+        />
       </main>
     );
   } catch (cause) {
