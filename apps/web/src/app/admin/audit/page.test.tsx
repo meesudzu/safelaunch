@@ -50,6 +50,11 @@ describe("admin audit page", () => {
       "href",
       expect.stringContaining("from=2026-07-29T10%3A00%3A00.000Z"),
     );
+    // The `decision` and `actor` filters from the form must survive the
+    // cursor navigation so admins can paginate without losing scope.
+    const nextHref = screen.getByRole("link", { name: "Trang tiếp theo" }).getAttribute("href") ?? "";
+    expect(nextHref).toMatch(/[?&]decision=approved(?:&|$)/);
+    expect(nextHref).toMatch(/actor=reviewer%40safelaunch\.test/);
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("decision=approved"),
       expect.objectContaining({ credentials: "include" }),

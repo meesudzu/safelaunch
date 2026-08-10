@@ -37,9 +37,9 @@ written to logs.
 | `evidence_items.*`                             | Typed facts extracted from the page                        | D1 `evidence_items`              | 7 days                               | Same                                                | `DELETE FROM evidence_items WHERE scan_id IN (...)`            |
 | `findings.*`                                   | AI-proposed verdicts                                       | D1 `findings`                    | 7 days                               | Same                                                | `DELETE FROM findings WHERE scan_id IN (...)`                  |
 | `finding_citations.*`                          | Provision links per finding                                | D1 `finding_citations`           | 7 days                               | Same                                                | `DELETE FROM finding_citations WHERE finding_id IN (...)`      |
-| `reports.payload_json`                         | Bilingual report payload                                   | D1 `reports`                     | 7 days                               | Only with the **private** one-time token            | `DELETE FROM reports WHERE expires_at < ?`                     |
+| `reports.payload_json`                         | Bilingual report payload                                   | D1 `reports`                     | 7 days                               | Only with the **private** report URL token (reusable until `expires_at`) | `DELETE FROM reports WHERE expires_at < ?`                     |
 | `reports.token_hash`                           | SHA-256 of the private report token                        | D1 `reports`                     | 7 days                               | n/a (one-way)                                       | `purgeExpired`                                                 |
-| `reports.opened_at`                            | Timestamp of first successful single-use report open       | D1 `reports`                     | 7 days                               | Admin aggregate queries only                        | `purgeExpired`                                                 |
+| `reports.opened_at`                            | Timestamp of first successful report open (reusable URL)   | D1 `reports`                     | 7 days                               | Admin aggregate queries only                        | `purgeExpired`                                                 |
 | R2 objects under `scans/<scanId>/<page>.html`  | Page snapshots used during the scan                        | R2 `ARTIFACTS`                   | 7 days                               | None externally                                     | `purgeExpired` deletes the prefix once the scan is expired     |
 | `legal_documents.*`, `legal_provisions.*`      | The legal corpus (vbpl.vn derived)                         | D1 `legal_*`                     | Indefinite (corpus is public source) | Cloudflare Access-gated admin console               | Manual re-ingest replaces; never deleted from inside the cron  |
 | Aggregated metrics (counters, P50/P95 latency) | Capacity + UX                                              | D1 (proposed) / Worker Analytics | Indefinite                           | Operator dashboard                                  | n/a — never includes PII                                       |
@@ -69,9 +69,11 @@ written to logs.
 - **R2 page snapshots** — 7 days. Deleted in the same pass; objects whose
   `uploaded` timestamp is older than the cutoff are removed, with
   conservative include for objects that lack an `uploaded` metadata.
-- **Reports** — 7 days. The private one-time token is replaced with a
-  null hash on first GET, so the URL is single-use even within the
-  7-day window. After 7 days the row is deleted.
+- **Reports** — 7 days. The private report URL is **reusable until
+  `expires_at`** so the owner can reload or copy the link. `opened_at`
+  records the FIRST successful open (COALESCE-guarded so repeat reads
+  do not move it forward) for the admin usage-metrics dashboard. After
+  7 days the row is deleted.
 - **Legal corpus** — indefinite. The corpus is derived from vbpl.vn, a
   public source. Removing it would break report generation. Admin
   actions are logged to `legal_review_events` for audit.

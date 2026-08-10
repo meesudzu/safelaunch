@@ -136,6 +136,26 @@ export class ReportRepository {
       .run();
   }
 
+  /**
+   * Record the first successful open of a report so the admin usage-metrics
+   * endpoint can count unique reports opened inside a time window.
+   *
+   * Uses COALESCE so repeat reads (the report URL is reusable until
+   * `expires_at` — see apps/workers/src/routes/reports.ts for the
+   * regression note) never overwrite the original timestamp.
+   *
+   * The caller MUST pass a row-scoped `scanId`; for the by-token route
+   * that is the `scan_id` returned from `getByTokenHash`.
+   */
+  async markOpened(scanId: string, openedAt: string): Promise<void> {
+    await this.db
+      .prepare(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      )
+      .bind(openedAt, scanId)
+      .run();
+  }
+
   async get(scanId: string): Promise<StoredReport | null> {
     const row = await this.db
       .prepare(
