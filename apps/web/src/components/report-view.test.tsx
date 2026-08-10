@@ -145,6 +145,22 @@ const buildFinding = ({ id, severity, applicability }: FindingSeed) => ({
 });
 
 describe("ReportView", () => {
+  it("makes the brand and locale controls navigable", () => {
+    render(
+      <ReportView
+        report={baseReport}
+        locale="vi"
+        localeHref="/en/report/report-token"
+        messages={viMessages}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "SafeLaunch" })).toHaveAttribute("href", "/vi");
+    expect(screen.getByRole("link", { name: "VI / EN" })).toHaveAttribute(
+      "href",
+      "/en/report/report-token",
+    );
+  });
+
   it("shows failed coverage and never displays a compliance approval", () => {
     const partialReport: ReportPayload = {
       ...baseReport,
@@ -172,7 +188,7 @@ describe("ReportView", () => {
     expect(highBanner).toHaveAttribute("data-status", "high_risk");
     expect(highBanner).toHaveClass("border-error");
     expect(highContainer.querySelector('[data-testid="report-status-banner"]')).toHaveClass(
-      "bg-error/10",
+      "text-error",
     );
 
     const clearReport: ReportPayload = { ...baseReport, status: "no_significant_risk" };
@@ -182,7 +198,7 @@ describe("ReportView", () => {
     const clearBanner = clearContainer.querySelector('[data-testid="report-status-banner"]');
     expect(clearBanner).toHaveAttribute("data-status", "no_significant_risk");
     expect(clearBanner).toHaveClass("border-success");
-    expect(clearBanner).toHaveClass("bg-success/10");
+    expect(clearBanner).toHaveClass("text-success");
   });
 
   it("displays the non-advice disclosure on the report view", () => {
@@ -385,11 +401,30 @@ describe("citation link hardening", () => {
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     expect(screen.queryByTestId("provision-link-f-bad")).toBeNull();
-    expect(screen.getByTestId("provision-link-unavailable-f-bad")).toBeVisible();
+    expect(screen.getByTestId("provision-link-unavailable-f-bad")).toBeInTheDocument();
   });
 });
 
 describe("severity tabs", () => {
+  it("shows a repeated rule-level error only once", () => {
+    const duplicate = {
+      ...buildFinding({
+        id: "privacy-notice::error",
+        severity: "review",
+        applicability: "current",
+      }),
+      evidenceIds: [],
+    };
+    render(
+      <ReportView
+        report={{ ...baseReport, findings: [duplicate, duplicate, duplicate] }}
+        locale="vi"
+        messages={viMessages}
+      />,
+    );
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("1");
+  });
+
   it("renders a tab strip with severity counts", () => {
     const report: ReportPayload = {
       ...baseReport,
@@ -519,7 +554,7 @@ describe("severity tabs", () => {
     expect(ids).toEqual(["h-cur", "h-up"]);
   });
 
-  it("renders a findings summary with a total count and severity legend", () => {
+  it("renders a compact findings summary with direct severity counts", () => {
     const report: ReportPayload = {
       ...baseReport,
       findings: [
@@ -535,11 +570,23 @@ describe("severity tabs", () => {
     expect(screen.getByTestId("findings-summary")).toBeInTheDocument();
     expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("6");
     expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("2");
-    expect(screen.getByTestId("findings-summary-legend-high")).toHaveTextContent("33%");
     expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("3");
-    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("50%");
     expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("1");
-    expect(screen.getByTestId("findings-summary-legend-pass")).toHaveTextContent("17%");
+    expect(screen.getByTestId("risk-distribution-chart")).toHaveAttribute(
+      "aria-label",
+      expect.stringMatching(/2.*3.*1/),
+    );
+    expect(screen.getByTestId("coverage-chart")).toBeInTheDocument();
+  });
+
+  it("keeps scan URLs and finding evidence collapsed by default", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [buildFinding({ id: "h1", severity: "high", applicability: "current" })],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("coverage-details")).not.toHaveAttribute("open");
+    expect(screen.getByTestId("finding-evidence-h1")).not.toHaveAttribute("open");
   });
 
   it("hides the findings summary when there are no findings", () => {

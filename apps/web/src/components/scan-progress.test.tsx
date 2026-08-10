@@ -6,8 +6,9 @@ const { pushMock, replaceMock } = vi.hoisted(() => ({
   pushMock: vi.fn(),
   replaceMock: vi.fn(),
 }));
+const routerMock = { push: pushMock, replace: replaceMock };
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: pushMock, replace: replaceMock }),
+  useRouter: () => routerMock,
 }));
 
 const messages: ScanProgressMessages = {
@@ -23,6 +24,7 @@ const messages: ScanProgressMessages = {
   "state.partial": "Partial",
   "state.failed": "Failed",
   "view.report": "View report",
+  "redirect.countdown": "Opening report in {seconds}s",
   "expiry.label": "Expires",
   "steps.title": "Scan steps",
   "steps.subtitle": "Step {current} / {total}",
@@ -107,6 +109,22 @@ describe("ScanProgress", () => {
     const link = screen.getByTestId("view-report-link");
     expect(link.tagName).toBe("A");
     expect(link).toHaveAttribute("data-cf-no-prefetch");
+  });
+
+  it("keeps production report URLs on the current web origin", () => {
+    const terminal = progress("completed", "https://safelaunch.runany.dev/vi/report/report-token");
+    render(
+      <ScanProgress
+        locale="vi"
+        messages={messages}
+        initialState={terminal}
+        poll={vi.fn().mockResolvedValue(terminal)}
+      />,
+    );
+    expect(screen.getByTestId("view-report-link")).toHaveAttribute(
+      "href",
+      "/vi/report/report-token",
+    );
   });
 
   it("updates the aria-live announcement and the stepper when the state advances", async () => {
@@ -209,43 +227,37 @@ describe("ScanProgress", () => {
   });
 
   describe("auto-redirect after terminal state", () => {
-    it("redirects to the report URL ~1.5s after reaching a terminal state with a reportUrl", async () => {
+    it("counts down from 3 before redirecting to the report", async () => {
       vi.useFakeTimers();
       const reportUrl = "/vi/report/auto-redirect-token";
-      // First poll @t≈1000 -> fetching. Second poll @t≈2000 -> completed
-      // (terminal with reportUrl). The auto-redirect useEffect schedules
-      // router.push at terminal_time + 1500ms.
-      const poll = vi
-        .fn<(scanId: string) => Promise<ScanProgressState>>()
-        .mockResolvedValueOnce(progress("fetching"))
-        .mockResolvedValueOnce(progress("completed", reportUrl));
+      const terminal = progress("completed", reportUrl);
 
       render(
         <ScanProgress
           locale="vi"
           messages={messages}
-          initialState={progress("queued")}
-          poll={poll}
+          initialState={terminal}
+          poll={vi.fn().mockResolvedValue(terminal)}
         />,
       );
 
-      // Land in terminal state. With fake timers the queued->fetching
-      // poll resolves at t≈1000, the fetching->completed poll at t≈2000.
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(2000);
-      });
-      // Right after terminal: redirect window (1.5s) not yet elapsed.
+      expect(screen.getByTestId("redirect-countdown")).toHaveTextContent("3s");
       expect(pushMock).not.toHaveBeenCalled();
 
-      // Advance 1.4s -- still inside the 1.5s window. Nothing should fire.
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(1400);
+        await vi.advanceTimersByTimeAsync(1000);
       });
+      expect(screen.getByTestId("redirect-countdown")).toHaveTextContent("2s");
       expect(pushMock).not.toHaveBeenCalled();
 
-      // Cross the 1.5s threshold (now t ≈ 3400, past the t=3500 window).
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(700);
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(screen.getByTestId("redirect-countdown")).toHaveTextContent("1s");
+      expect(pushMock).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
       });
       expect(pushMock).toHaveBeenCalledTimes(1);
       expect(pushMock).toHaveBeenCalledWith(reportUrl);

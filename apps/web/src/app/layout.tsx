@@ -17,6 +17,14 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{document.documentElement.dataset.theme=localStorage.getItem('theme')||((matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark')}catch{}",
+          }}
+        />
+      </head>
       <body className="bg-bg text-ink antialiased">{children}</body>
     </html>
   );

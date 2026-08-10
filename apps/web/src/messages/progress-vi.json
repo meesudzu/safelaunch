@@ -1,6 +1,6 @@
 {
   "headline": "Đang quét website…",
-  "headline.scanning": "Đang quét website — bước {current} / {total}",
+  "headline.scanning": "Đang quét website — bước {current} / {total}",
   "state.queued": "Đang chờ…",
   "state.fetching": "Đang tải trang…",
   "state.extracting": "Đang trích xuất nội dung…",
@@ -11,6 +11,7 @@
   "state.partial": "Hoàn tất một phần — cần chuyên gia xem xét",
   "state.failed": "Quét thất bại — vui lòng thử lại",
   "view.report": "Xem báo cáo",
+  "redirect.countdown": "Sẽ điều hướng sang màn báo cáo sau {seconds} giây",
   "expiry.label": "Báo cáo hết hạn vào",
   "steps.title": "Các bước quét",
   "steps.subtitle": "Bước {current} / {total}",

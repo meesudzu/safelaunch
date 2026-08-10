@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { isApprovedFontSourceUrl } from "../lib/citation-hosts";
+import { ThemeToggle } from "./theme-toggle";
 
 import type {
   AssetRightsSummary,
@@ -210,6 +211,17 @@ const severityAccentClass = (severity: Severity): string => {
   }
 };
 
+const severityActiveTabClass = (severity: Severity): string => {
+  switch (severity) {
+    case "high":
+      return "border-error bg-surface text-error";
+    case "review":
+      return "border-gold bg-surface text-gold";
+    case "pass":
+      return "border-success bg-surface text-success";
+  }
+};
+
 const fontLicenseBadgeClass = (status: ReportFontLicenseStatusView): string => {
   switch (status) {
     case "verified_open":
@@ -252,11 +264,11 @@ const fontLicenseReasonCodes = (codes: readonly string[]): string => codes.join(
 const statusBannerClass = (status: OverallReportStatus): string => {
   switch (status) {
     case "high_risk":
-      return "border-error bg-error/10";
+      return "border-error bg-bg text-error";
     case "needs_review":
-      return "border-gold bg-gold/10";
+      return "border-gold bg-bg text-gold";
     case "no_significant_risk":
-      return "border-success bg-success/10";
+      return "border-success bg-bg text-success";
   }
 };
 
@@ -272,11 +284,12 @@ const formatDate = (iso: string, locale: "vi" | "en"): string => {
 
 export interface ReportViewProps {
   readonly locale: "vi" | "en";
+  readonly localeHref?: string;
   readonly messages: ReportMessages;
   readonly report: ReportPayload;
 }
 
-export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
+export const ReportView = ({ locale, localeHref, messages, report }: ReportViewProps) => {
   const failedPages = report.coverage.failed;
   const isPartial = failedPages.length > 0;
 
@@ -299,7 +312,11 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
   const isFontOnlyFinding = (f: ReportFindingCard): boolean =>
     f.evidenceIds.length > 0 && f.evidenceIds.every((id) => fontAssetIds.has(id));
 
-  const findingsExcludingFonts = report.findings.filter((f) => !isFontOnlyFinding(f));
+  const findingsExcludingFonts = report.findings
+    .filter((f) => !isFontOnlyFinding(f))
+    .filter((finding, index, findings) =>
+      findings.findIndex((candidate) => candidate.id === finding.id) === index,
+    );
 
   // Group findings by severity for the tab strip. Within a tab we keep the
   // current/upcoming order intact so the temporal signal is still visible
@@ -333,97 +350,198 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
   const [activeTab, setActiveTab] = useState<Severity | null>(defaultTab);
 
   const totalFindings = findingsExcludingFonts.length;
+  const coverageTotal =
+    report.coverage.fetched.length + failedPages.length + report.coverage.skipped.length;
+  const coveragePercent =
+    coverageTotal > 0 ? Math.round((report.coverage.fetched.length / coverageTotal) * 100) : 0;
 
   return (
     <section
       aria-labelledby="report-title"
       data-locale={locale}
       data-coverage={isPartial ? "partial" : "complete"}
-      className="bg-bg text-ink font-sans antialiased"
+      className="technical-grid min-h-screen bg-bg text-ink font-sans antialiased"
     >
-      <header className="flex items-center justify-between border-b border-rule px-6 py-5">
-        <span className="font-serif text-xl font-semibold">{messages.brand}</span>
-        <span className="text-xs uppercase tracking-wider text-ink-soft">
-          {messages["locale.switch"]}
-        </span>
+      <header className="sticky top-0 z-50 border-b border-rule bg-bg/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[1480px] items-center justify-between px-5 py-4 md:px-8">
+          <a
+            href={`/${locale}`}
+            aria-label={messages.brand}
+            className="flex items-center gap-2 font-serif text-xl font-bold text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" className="size-8 fill-accent"><path d="M12 2 4 5v6c0 5.1 3.4 9.7 8 11 4.6-1.3 8-5.9 8-11V5l-8-3Zm0 3.2 5 1.9V11c0 3.5-2.1 6.8-5 8-2.9-1.2-5-4.5-5-8V7.1l5-1.9Zm-1 3.3v2H9v5h6v-5h-2v-2h-2Z" /></svg>
+            {messages.brand} AI
+          </a>
+          <div className="flex items-center gap-3"><ThemeToggle locale={locale} /><a
+            href={localeHref ?? `/${locale === "vi" ? "en" : "vi"}`}
+            className="border border-rule px-3 py-2 font-mono text-xs font-semibold uppercase tracking-widest text-ink-soft transition-colors hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {messages["locale.switch"]}
+          </a></div>
+        </div>
       </header>
 
-      <div className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-12 md:py-16">
-        <div className="flex flex-col gap-3">
+      <div className="mx-auto grid max-w-[1480px] grid-cols-1 gap-8 px-5 py-12 md:px-8 lg:grid-cols-12 lg:py-16">
+        <div className="flex flex-col gap-3 lg:col-span-12">
           <p
             data-testid="report-ai-badge"
-            className="inline-flex w-fit items-center gap-2 rounded-sm border border-gold px-2 py-1 text-xs uppercase tracking-wider text-ink-soft"
+            className="inline-flex w-fit items-center gap-2 border border-rule bg-surface px-2 py-1 font-mono text-[10px] font-semibold uppercase tracking-wider text-accent"
           >
             <span aria-hidden="true">AI</span>
             <span>{messages["ai.badge"]}</span>
           </p>
-          <h1
-            id="report-title"
-            className="font-serif text-3xl font-semibold leading-tight md:text-4xl"
-          >
-            {messages.title}
-          </h1>
-          <div
-            data-testid="report-status-banner"
-            data-status={report.status}
-            className={`rounded-md border p-5 ${statusBannerClass(report.status)}`}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
-              {locale === "vi" ? "Tình trạng tổng" : "Overall status"}
-            </p>
-            <p className="mt-2 text-base font-semibold">{statusLabel(messages, report.status)}</p>
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <h1
+              id="report-title"
+              className="shrink-0 font-serif text-4xl font-extrabold leading-tight tracking-tight md:text-5xl"
+            >
+              {messages.title}
+            </h1>
+            <div
+              data-testid="report-status-banner"
+              data-status={report.status}
+              className={`flex items-center gap-4 border-l-4 px-5 py-2 md:ml-auto ${statusBannerClass(report.status)}`}
+            >
+              <span aria-hidden="true" className="text-2xl">△</span>
+              <div>
+                <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Tình trạng tổng" : "Overall status"}</p>
+                <p className="mt-0.5 text-lg font-extrabold uppercase tracking-tight">{statusLabel(messages, report.status)}</p>
+              </div>
+              <p className="hidden border-l border-rule pl-4 font-mono text-xs opacity-70 lg:block">
+                {formatDate(report.generatedAt, locale)} · {report.jurisdiction} ·{" "}
+                {report.rubricVersion}
+              </p>
+            </div>
           </div>
         </div>
 
-        <section
+        <aside
           aria-labelledby="coverage-heading"
-          className="rounded-md border border-rule bg-surface p-5"
+          className="order-1 flex self-start flex-col gap-6 lg:col-span-4 lg:col-start-1 lg:row-start-2 lg:sticky lg:top-24"
         >
-          <h2
-            id="coverage-heading"
-            className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
-          >
-            {messages["coverage.label"]}
-          </h2>
-          <ul className="mt-3 flex flex-col gap-2 text-sm">
-            {report.coverage.fetched.map((page) => (
-              <li key={`fetched-${page}`} className="flex gap-2">
-                <span aria-hidden="true" className="text-success">
-                  ✓
+          {totalFindings > 0 ? (
+            <div data-testid="findings-summary" className="border border-rule bg-bg p-7">
+              <div className="flex items-end justify-between border-b border-rule pb-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                  {locale === "vi" ? "Tổng phát hiện" : "Total findings"}
+                </p>
+                <span
+                  data-testid="findings-summary-total"
+                  className="font-serif text-6xl font-bold leading-none text-accent tabular-nums"
+                >
+                  {totalFindings}
                 </span>
-                <span>
-                  {messages["coverage.fetched"]}: {page}
-                </span>
-              </li>
-            ))}
-            {failedPages.map((page) => (
-              <li
-                key={`failed-${page}`}
-                data-testid={`coverage-failed-${page}`}
-                className="flex gap-2 text-error"
+              </div>
+              <div
+                data-testid="risk-distribution-chart"
+                role="img"
+                aria-label={allTabs
+                  .map(
+                    (tab) =>
+                      `${severityLabel(messages, tab.severity)}: ${tab.findings.length}`,
+                  )
+                  .join("; ")}
+                className="mt-6 flex h-2 overflow-hidden bg-rule"
               >
-                <span aria-hidden="true">!</span>
-                <span>
-                  {messages["coverage.failed"]}: {page}
-                </span>
-              </li>
-            ))}
-            {report.coverage.skipped.map((page) => (
-              <li key={`skipped-${page}`} className="flex gap-2 text-ink-soft">
-                <span aria-hidden="true">·</span>
-                <span>
-                  {messages["coverage.skipped"]}: {page}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+                {allTabs.map((tab) => (
+                  <span
+                    key={tab.severity}
+                    className={
+                      severityAccentClass(tab.severity)
+                        .split(" ")
+                        .find((className) => className.startsWith("bg-")) ?? "bg-rule"
+                    }
+                    style={{ width: `${(tab.findings.length / totalFindings) * 100}%` }}
+                  />
+                ))}
+              </div>
+              <ul className="mt-5 flex flex-col gap-4 font-mono text-sm">
+                {allTabs.map((tab) => {
+                  const dotBg =
+                    severityAccentClass(tab.severity)
+                      .split(" ")
+                      .find((className) => className.startsWith("bg-")) ?? "bg-ink-soft";
+                  return (
+                    <li
+                      key={tab.severity}
+                      data-testid={`findings-summary-legend-${tab.severity}`}
+                      className="flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-3"><span className={`block size-2 ${dotBg}`} aria-hidden="true" /><span className="uppercase tracking-wide">
+                        {severityLabel(messages, tab.severity)}
+                      </span></span><strong className="tabular-nums">{tab.findings.length}</strong>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
+          <details
+            data-testid="coverage-details"
+            className="group border border-rule bg-bg p-7"
+            open={isPartial}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+              <span id="coverage-heading">{messages["coverage.label"]}</span>
+              <span className="font-mono text-xs font-normal text-ink-soft">
+                {report.coverage.fetched.length}/{coverageTotal}
+              </span>
+            </summary>
+            <div
+              data-testid="coverage-chart"
+              role="img"
+              aria-label={`${messages["coverage.fetched"]}: ${coveragePercent}%`}
+              className="mt-4 h-1 overflow-hidden bg-rule"
+            >
+              <span
+                className="block h-full bg-success"
+                style={{ width: `${coveragePercent}%` }}
+              />
+            </div>
+            <ul className="mt-5 flex max-h-72 flex-col gap-4 overflow-auto border-t border-rule pt-5 font-mono text-sm">
+              {report.coverage.fetched.map((page) => (
+                <li key={`fetched-${page}`} className="flex gap-2">
+                  <span aria-hidden="true" className="text-success">
+                    ✓
+                  </span>
+                  <span>
+                    {messages["coverage.fetched"]}: {page}
+                  </span>
+                </li>
+              ))}
+              {failedPages.map((page) => (
+                <li
+                  key={`failed-${page}`}
+                  data-testid={`coverage-failed-${page}`}
+                  className="flex gap-2 text-error"
+                >
+                  <span aria-hidden="true">!</span>
+                  <span>
+                    {messages["coverage.failed"]}: {page}
+                  </span>
+                </li>
+              ))}
+              {report.coverage.skipped.map((page) => (
+                <li key={`skipped-${page}`} className="flex gap-2 text-ink-soft">
+                  <span aria-hidden="true">·</span>
+                  <span>
+                    {messages["coverage.skipped"]}: {page}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </details>
+          <p className="border border-rule bg-bg p-4 text-xs text-ink-soft">
+            {messages["expiry.label"]} {formatDate(report.expiresAt, locale)}
+          </p>
+        </aside>
 
         {report.findings.some((f) => f.applicability === "upcoming") ? (
           <section
             aria-labelledby="upcoming-heading"
             data-testid="upcoming-banner"
-            className="rounded-md border border-gold bg-gold/10 p-5"
+            className="order-2 border border-gold bg-gold/10 p-5 lg:col-span-8 lg:col-start-5 lg:row-start-2"
           >
             <h2
               id="upcoming-heading"
@@ -445,10 +563,13 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           </section>
         ) : null}
 
-        <section aria-labelledby="findings-heading" className="flex flex-col gap-4">
+        <section
+          aria-labelledby="findings-heading"
+          className="order-3 flex flex-col gap-4 lg:col-span-8 lg:col-start-5"
+        >
           <h2
             id="findings-heading"
-            className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+            className="font-mono text-sm font-semibold uppercase tracking-widest text-accent"
           >
             {totalFindings > 0
               ? locale === "vi"
@@ -459,53 +580,14 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 : "No significant findings"}
           </h2>
 
-          {totalFindings > 0 && visibleTabs.length > 0 ? (
-            <div
-              data-testid="findings-summary"
-              className="flex flex-col gap-4 rounded-md border border-rule bg-surface p-5 sm:flex-row sm:items-center sm:gap-6"
-            >
-              <FindingsDonut
-                total={totalFindings}
-                segments={visibleTabs.map((tab) => ({
-                  severity: tab.severity,
-                  count: tab.findings.length,
-                  accentClass: severityAccentClass(tab.severity),
-                }))}
-              />
-              <ul className="flex flex-col gap-2 text-sm">
-                {visibleTabs.map((tab) => {
-                  const pct = Math.round((tab.findings.length / totalFindings) * 100);
-                  const dotBg =
-                    severityAccentClass(tab.severity)
-                      .split(" ")
-                      .find((c) => c.startsWith("bg-")) ?? "bg-ink-soft";
-                  return (
-                    <li
-                      key={tab.severity}
-                      data-testid={`findings-summary-legend-${tab.severity}`}
-                      className="flex items-center gap-2"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`inline-block h-2 w-2 rounded-full ${dotBg}`}
-                      />
-                      <span className="text-ink">{severityLabel(messages, tab.severity)}</span>
-                      <span className="font-mono text-ink-soft">{tab.findings.length}</span>
-                      <span className="font-mono text-ink-soft">({pct}%)</span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : null}
-
           {visibleTabs.length > 0 && activeTab ? (
             <>
               <div
                 role="tablist"
                 aria-label={locale === "vi" ? "Phát hiện theo mức độ" : "Findings by severity"}
                 data-testid="findings-tabs"
-                className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b border-rule"
+                className="grid w-full border-b border-rule bg-surface"
+                style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}
               >
                 {visibleTabs.map((tab) => {
                   const isActive = tab.severity === activeTab;
@@ -520,24 +602,24 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                       aria-controls={`tabpanel-${tab.severity}`}
                       data-testid={`findings-tab-${tab.severity}`}
                       onClick={() => setActiveTab(tab.severity)}
-                      className={`inline-flex items-center gap-2 border-b-2 pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                      className={`inline-flex min-h-16 min-w-0 items-center justify-center gap-1 border-b-2 px-2 py-3 text-xs font-bold uppercase tracking-wide transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:min-h-20 sm:gap-3 sm:px-7 sm:py-5 sm:text-sm sm:tracking-wider ${
                         isActive
-                          ? `${accent}`
-                          : "border-transparent text-ink-soft hover:text-ink hover:border-ink/20"
+                          ? severityActiveTabClass(tab.severity)
+                          : "border-transparent bg-transparent text-ink-soft hover:text-ink"
                       }`}
                     >
                       <span
                         aria-hidden="true"
-                        className={`inline-block h-2 w-2 rounded-full ${
+                        className={`hidden h-2 w-2 shrink-0 rounded-full sm:inline-block ${
                           isActive
                             ? (accent.split(" ").find((c) => c.startsWith("bg-")) ?? "")
                             : "bg-ink/30"
                         }`}
                       />
-                      <span>{severityLabel(messages, tab.severity)}</span>
+                      <span className="min-w-0 text-center leading-tight">{severityLabel(messages, tab.severity)}</span>
                       <span
                         data-testid={`findings-tab-count-${tab.severity}`}
-                        className="rounded-full bg-surface px-2 py-0.5 font-mono text-xs"
+                        className="bg-ink px-2 py-0.5 font-mono text-xs text-bg"
                       >
                         {tab.findings.length}
                       </span>
@@ -556,7 +638,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                     id={`tabpanel-${tab.severity}`}
                     aria-labelledby={`tab-${tab.severity}`}
                     data-testid={`findings-tabpanel-${tab.severity}`}
-                    className="flex flex-col gap-4"
+                    className="flex flex-col gap-6"
                   >
                     {report.fontInventory && report.fontInventory.groups.length > 0 ? (
                       <FontInventoryPanel
@@ -591,86 +673,17 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
 
         <p
           data-testid="report-disclaimer"
-          className="border-l-2 border-gold pl-3 text-xs italic text-ink-soft"
+          className="order-4 border-l-2 border-gold pl-3 text-sm italic text-ink-soft lg:col-span-8 lg:col-start-5"
         >
           {messages.disclaimer}
         </p>
-
-        <p className="text-xs text-ink-soft">
-          {messages["expiry.label"]} {formatDate(report.expiresAt, locale)}
-        </p>
       </div>
 
-      <footer className="mx-auto flex max-w-4xl flex-col gap-1 border-t border-rule px-6 py-6 text-xs text-ink-soft md:flex-row md:items-center md:justify-between">
+      <footer className="mx-auto flex max-w-[1480px] flex-col gap-1 border-t border-rule px-5 py-8 text-sm text-ink-soft md:flex-row md:items-center md:justify-between md:px-8">
         <span>{messages["footer.disclosure"]}</span>
         <span>{messages["footer.version"]}</span>
       </footer>
     </section>
-  );
-};
-
-interface FindingsDonutProps {
-  readonly total: number;
-  readonly segments: readonly {
-    readonly severity: Severity;
-    readonly count: number;
-    readonly accentClass: string;
-  }[];
-}
-
-/**
- * Inline SVG donut. Decorative (the legend below conveys the same data in
- * text), so marked aria-hidden. Each visible severity is one stroke-dasharray
- * segment on a single circle; segments are rotated to abut each other.
- */
-const FindingsDonut = ({ total, segments }: FindingsDonutProps) => {
-  const RADIUS = 40;
-  const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-  let consumed = 0;
-  const arcs = segments.map((segment) => {
-    const length = total > 0 ? (segment.count / total) * CIRCUMFERENCE : 0;
-    const strokeClass =
-      segment.accentClass
-        .split(" ")
-        .find((c) => c.startsWith("bg-"))
-        ?.replace(/^bg-/, "stroke-") ?? "stroke-rule";
-    const arc = {
-      key: segment.severity,
-      strokeClass,
-      length,
-      gap: CIRCUMFERENCE - length,
-      dashOffset: -consumed,
-    };
-    consumed += length;
-    return arc;
-  });
-  return (
-    <div className="relative h-24 w-24 shrink-0">
-      <svg viewBox="0 0 100 100" className="h-full w-full" aria-hidden="true">
-        <circle cx="50" cy="50" r={RADIUS} fill="none" strokeWidth="12" className="stroke-rule" />
-        {arcs.map((arc) => (
-          <circle
-            key={arc.key}
-            cx="50"
-            cy="50"
-            r={RADIUS}
-            fill="none"
-            strokeWidth="12"
-            strokeDasharray={`${arc.length} ${arc.gap}`}
-            strokeDashoffset={arc.dashOffset}
-            transform="rotate(-90 50 50)"
-            className={arc.strokeClass}
-          />
-        ))}
-      </svg>
-      <span
-        data-testid="findings-summary-total"
-        aria-hidden="true"
-        className="absolute inset-0 flex items-center justify-center font-serif text-2xl font-semibold tabular-nums"
-      >
-        {total}
-      </span>
-    </div>
   );
 };
 
@@ -682,6 +695,14 @@ interface FindingCardProps {
 
 const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
   const citation = finding.citations[0];
+  const schemaFailure = finding.rationale.match(
+    /\((Verifier schema violation):\s*([^)]+)\)/i,
+  );
+  const readableRationale = finding.rationale
+    .replace(/\s*\(Verifier schema violation:[^)]+\)/i, "")
+    .trim();
+  const [rationaleTitle, ...rationaleDetailParts] = readableRationale.split(". ");
+  const rationaleDetail = rationaleDetailParts.join(". ");
   const applicabilityLabel =
     finding.applicability === "current"
       ? messages["finding.applicability.current"]
@@ -691,76 +712,102 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
       data-finding-id={finding.id}
       data-severity={finding.severity}
       data-applicability={finding.applicability}
-      className={`rounded-md border border-rule border-l-4 bg-surface p-5 ${severityCardClass(finding.severity)}`}
+      className={`border border-rule border-l-4 bg-bg transition-colors hover:bg-surface ${severityCardClass(finding.severity)}`}
     >
-      <header className="flex flex-col gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <details className="group/finding">
+        <summary className="flex min-h-20 cursor-pointer list-none flex-col items-stretch gap-4 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:p-5">
+          <span className="flex min-w-0 flex-col gap-3">
+            <span className="flex flex-wrap items-center gap-2">
           <span
             data-testid={`severity-badge-${finding.id}`}
-            className={`inline-flex items-center rounded-sm border px-2 py-0.5 text-xs font-semibold uppercase tracking-wider ${severityBadgeClass(finding.severity)}`}
+                className={`inline-flex items-center border px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${severityBadgeClass(finding.severity)}`}
           >
             {severityLabel(messages, finding.severity)}
           </span>
           <span className="text-xs uppercase tracking-wider text-ink-soft">
             {applicabilityLabel}
           </span>
-        </div>
-        <p className="font-serif text-lg font-semibold leading-snug">{finding.rationale}</p>
-      </header>
-
-      <dl className="mt-4 flex flex-col gap-3 text-sm">
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs uppercase tracking-wider text-ink-soft">
-            {messages["finding.confidence"]}
-          </dt>
-          <dd>
-            <span data-testid={`confidence-${finding.id}`} className="font-mono text-sm">
-              {(finding.confidence * 100).toFixed(0)}%
             </span>
-          </dd>
-        </div>
+            <span className="max-w-4xl font-serif text-base font-bold leading-snug md:text-lg">{rationaleTitle || finding.rationale}</span>
+            {schemaFailure ? (
+              <span className="flex flex-wrap items-center gap-2 font-mono text-[10px] uppercase tracking-wide text-ink-soft">
+                <span className="border border-rule bg-surface px-2 py-1 text-gold">{schemaFailure[1]}</span>
+                <span>{schemaFailure[2]}</span>
+              </span>
+            ) : null}
+            {rationaleDetail ? (
+              <span className="max-w-4xl text-sm leading-relaxed text-ink-soft">{rationaleDetail}</span>
+            ) : null}
+          </span>
+          <span className="flex items-center justify-between gap-4 border-t border-rule pt-3 sm:justify-start sm:border-0 sm:pt-0">
+            <span className="text-right">
+              <span className="block text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{messages["finding.confidence"]}</span>
+              <span data-testid={`confidence-${finding.id}`} className="mt-1 block font-mono text-sm text-error">{(finding.confidence * 100).toFixed(0)}%</span>
+            </span>
+            <span aria-hidden="true" className="text-xl transition-transform group-open/finding:rotate-45">+</span>
+          </span>
+        </summary>
 
-        <div className="flex flex-col gap-1">
-          <dt className="text-xs uppercase tracking-wider text-ink-soft">
-            {messages["finding.evidence"]}
-          </dt>
-          <dd className="font-mono text-xs text-ink">{finding.evidenceExcerpt}</dd>
-        </div>
-
-        {citation ? (
-          <div className="flex flex-col gap-1">
-            <dt className="text-xs uppercase tracking-wider text-ink-soft">
-              {messages["finding.legal_excerpt"]}
-            </dt>
-            <dd className="italic text-ink">"{citation.excerpt}"</dd>
-            <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
-              {messages["finding.source"]}
-            </dt>
-            <dd className="text-sm">{citation.source}</dd>
-            <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
-              {messages["finding.retrieved_at"]}
-            </dt>
-            <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
-            {/* TODO: re-enable "Xem văn bản đầy đủ" link when vbpl.vn link 404 is fixed.
-                The current behavior intentionally hides outbound links and shows
-                a fallback label so users are never sent to a broken source.
-                Revert by restoring the `isApprovedCitationUrl(citation.url) ? <a> : <p>` block. */}
-            <p
-              data-testid={`provision-link-unavailable-${finding.id}`}
-              className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
-            >
-              {messages["finding.source_link_unavailable"]}
-            </p>
-          </div>
-        ) : null}
-
-        <div className="flex flex-col gap-1">
+        <div className="border-t border-rule p-5 md:p-6">
+      <dl className="text-base">
+        <div className="border border-rule bg-bg p-5">
           <dt className="text-xs uppercase tracking-wider text-ink-soft">
             {messages["finding.recommended_action"]}
           </dt>
-          <dd className="text-sm">{finding.recommendedAction}</dd>
+          <dd className="mt-1 font-medium leading-relaxed">{finding.recommendedAction}</dd>
         </div>
       </dl>
+
+      <details
+        data-testid={`finding-evidence-${finding.id}`}
+        className="group mt-5 border border-rule text-base open:bg-surface"
+      >
+        <summary className="flex min-h-16 cursor-pointer list-none items-center justify-between px-5 font-semibold uppercase tracking-wider text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+          <span>{locale === "vi" ? "Bằng chứng và căn cứ" : "Evidence and legal basis"}</span>
+          <span aria-hidden="true" className="text-lg leading-none group-open:rotate-45">
+            +
+          </span>
+        </summary>
+        <dl className="flex flex-col gap-4 border-t border-rule bg-bg p-5">
+          <div className="flex flex-col gap-1">
+            <dt className="text-xs uppercase tracking-wider text-ink-soft">
+              {messages["finding.evidence"]}
+            </dt>
+            <dd className="font-mono text-xs leading-relaxed text-ink">
+              {finding.evidenceExcerpt}
+            </dd>
+          </div>
+
+          {citation ? (
+            <div className="flex flex-col gap-1">
+              <dt className="text-xs uppercase tracking-wider text-ink-soft">
+                {messages["finding.legal_excerpt"]}
+              </dt>
+              <dd className="italic text-ink">"{citation.excerpt}"</dd>
+              <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
+                {messages["finding.source"]}
+              </dt>
+              <dd className="text-sm">{citation.source}</dd>
+              <dt className="mt-2 text-xs uppercase tracking-wider text-ink-soft">
+                {messages["finding.retrieved_at"]}
+              </dt>
+              <dd className="text-sm">{formatDate(citation.retrievedAt, locale)}</dd>
+              {/* TODO: re-enable "Xem văn bản đầy đủ" link when vbpl.vn link 404 is fixed.
+                The current behavior intentionally hides outbound links and shows
+                a fallback label so users are never sent to a broken source.
+                Revert by restoring the `isApprovedCitationUrl(citation.url) ? <a> : <p>` block. */}
+              <p
+                data-testid={`provision-link-unavailable-${finding.id}`}
+                className="mt-3 inline-flex w-fit rounded-sm border border-rule px-3 py-1 text-xs italic text-ink-soft"
+              >
+                {messages["finding.source_link_unavailable"]}
+              </p>
+            </div>
+          ) : null}
+        </dl>
+      </details>
+        </div>
+      </details>
     </article>
   );
 };

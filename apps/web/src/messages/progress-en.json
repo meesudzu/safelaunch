@@ -11,6 +11,7 @@
   "state.partial": "Partially completed — needs expert review",
   "state.failed": "Scan failed — please try again",
   "view.report": "View report",
+  "redirect.countdown": "Opening the report in {seconds} seconds",
   "expiry.label": "Report expires on",
   "steps.title": "Scan steps",
   "steps.subtitle": "Step {current} / {total}",

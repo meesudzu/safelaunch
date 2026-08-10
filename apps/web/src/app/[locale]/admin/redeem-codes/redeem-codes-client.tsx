@@ -101,7 +101,7 @@ export const RedeemCodesClient = (props: RedeemCodesClientProps) => {
         <section
           role="alert"
           data-testid="latest-code"
-          className="rounded-sm border border-amber-300 bg-amber-50 p-4"
+          className="rounded-sm border border-gold/50 bg-gold/10 p-4"
         >
           <p className="text-sm font-semibold">Save this code — it will not be shown again.</p>
           <code

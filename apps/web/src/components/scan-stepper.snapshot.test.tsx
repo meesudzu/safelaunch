@@ -36,7 +36,7 @@ describe("ScanStepper — anti-slop snapshot guard", () => {
     expect(html).not.toMatch(/🚀|⚡|🎯|✨|✅|❌/);
   });
 
-  it("uses the serif (Source Serif 4) font for numerals and the sans body for labels", () => {
+  it("uses technical mono numerals and the sans body for labels", () => {
     const { container } = render(
       <ScanStepper locale="vi" messages={messages} currentState="evaluating" />,
     );
@@ -46,7 +46,7 @@ describe("ScanStepper — anti-slop snapshot guard", () => {
     const activeItem = container.querySelector("[aria-current='step']");
     const marker = activeItem?.querySelector("span.rounded-full");
     expect(marker).not.toBeNull();
-    expect(marker?.className ?? "").toContain("font-serif");
+    expect(marker?.className ?? "").toContain("font-mono");
     // The label/description block is the <div> sibling of the marker.
     const label = activeItem?.querySelector("div");
     expect(label?.className ?? "").not.toContain("font-serif");

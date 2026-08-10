@@ -10,7 +10,7 @@ export const CachedBanner = ({ message, ctaHref, ctaLabel }: CachedBannerProps):
   <div
     role="status"
     data-testid="cached-banner"
-    className="rounded-sm border border-amber-300 bg-amber-50 p-3 text-sm text-ink"
+    className="rounded-sm border border-gold/50 bg-gold/10 p-3 text-sm text-ink"
   >
     <p>{message}</p>
     {ctaHref ? (

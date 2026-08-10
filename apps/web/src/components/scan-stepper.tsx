@@ -109,17 +109,17 @@ export const ScanStepper = ({ locale, messages, currentState }: ScanStepperProps
 
   return (
     <section aria-labelledby="scan-stepper-heading" data-locale={locale} className="font-sans">
-      <header className="flex flex-col gap-1 pb-4">
+      <header className="flex flex-col gap-1 border-b border-rule pb-4">
         <h2
           id="scan-stepper-heading"
-          className="font-serif text-lg font-semibold leading-snug text-ink"
+          className="font-serif text-lg font-bold leading-snug text-ink"
         >
           {messages["steps.title"]}
         </h2>
         <p className="text-xs uppercase tracking-[0.18em] text-ink-soft">{subtitle}</p>
       </header>
 
-      <ol aria-label={messages["steps.title"]} role="list" className="flex flex-col">
+      <ol aria-label={messages["steps.title"]} role="list" className="mt-5 flex flex-col">
         {rows.map((row, position) => {
           const isLast = position === rows.length - 1;
           const labelKey = `step.${row.step}.label` as const;
@@ -184,7 +184,7 @@ const StepMarker = ({ index, variant }: MarkerProps) => {
   // Numbered markers (serif numerals) for all states; filled color +
   // inner glyph varies by variant. Pulse only on the active row.
   const baseClasses =
-    "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-sm font-serif tabular-nums";
+    "relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border font-mono text-xs tabular-nums";
 
   if (variant === "completed") {
     return (
