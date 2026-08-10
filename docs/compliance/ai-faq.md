@@ -34,23 +34,23 @@ Mọi quyết định cuối cùng đều được rule-based rubric quyết tr�
 
 ### 1.2 Các thành phần tích hợp
 
-| Thành phần                  | Vai trò                                                                  | File chính                              |
-| --------------------------- | ------------------------------------------------------------------------ | --------------------------------------- |
-| **Cloudflare Workflows**    | Orchestrator của mỗi lần scan (`scan-workflow`)                         | `apps/workers/src/workflows/`           |
-| **Workers AI**              | Chạy mô hình embedding và evaluation                                    | binding `AI` trong `wrangler.jsonc`      |
-| **Vectorize**               | Index vector cho `legal_provisions`                                      | binding `LEGAL_INDEX` trong `wrangler.jsonc` |
-| **AI Gateway**              | Cache, retry, log tập trung mọi call đến Workers AI                      | `packages/ai/src/gateway.ts`            |
-| **R2 (ARTIFACTS)**          | Lưu DOCX/HTML gốc phục vụ audit                                         | `apps/workers/wrangler.jsonc`           |
-| **D1 / Postgres**           | Lưu metadata legal_documents, legal_provisions, audit trail              | `packages/db/`                          |
-| **Rubric rule-based**       | Quyết định phần lớn check trước khi AI được gọi                         | `packages/compliance-core/`             |
-| **Verifier**                | Chặn output AI không đạt chuẩn citation / quote                          | `packages/compliance-core/src/verify.ts` |
+| Thành phần               | Vai trò                                                     | File chính                                   |
+| ------------------------ | ----------------------------------------------------------- | -------------------------------------------- |
+| **Cloudflare Workflows** | Orchestrator của mỗi lần scan (`scan-workflow`)             | `apps/workers/src/workflows/`                |
+| **Workers AI**           | Chạy mô hình embedding và evaluation                        | binding `AI` trong `wrangler.jsonc`          |
+| **Vectorize**            | Index vector cho `legal_provisions`                         | binding `LEGAL_INDEX` trong `wrangler.jsonc` |
+| **AI Gateway**           | Cache, retry, log tập trung mọi call đến Workers AI         | `packages/ai/src/gateway.ts`                 |
+| **R2 (ARTIFACTS)**       | Lưu DOCX/HTML gốc phục vụ audit                             | `apps/workers/wrangler.jsonc`                |
+| **D1 / Postgres**        | Lưu metadata legal_documents, legal_provisions, audit trail | `packages/db/`                               |
+| **Rubric rule-based**    | Quyết định phần lớn check trước khi AI được gọi             | `packages/compliance-core/`                  |
+| **Verifier**             | Chặn output AI không đạt chuẩn citation / quote             | `packages/compliance-core/src/verify.ts`     |
 
 ### 1.3 Hai mô hình AI đang chạy
 
-| Mô hình                                  | Vai trò                            | Cấu hình                                  |
-| ---------------------------------------- | ---------------------------------- | ----------------------------------------- |
-| `@cf/baai/bge-base-en-v1.5` (768 chiều)  | Embed điều luật + evidence excerpt | `packages/ai/src/gateway.ts`              |
-| `@cf/meta/llama-3.3-70b-instruct-fp8-fast`| Đánh giá evidence × provisions     | `packages/ai/src/provider.ts`             |
+| Mô hình                                    | Vai trò                            | Cấu hình                      |
+| ------------------------------------------ | ---------------------------------- | ----------------------------- |
+| `@cf/baai/bge-base-en-v1.5` (768 chiều)    | Embed điều luật + evidence excerpt | `packages/ai/src/gateway.ts`  |
+| `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | Đánh giá evidence × provisions     | `packages/ai/src/provider.ts` |
 
 Lý do dùng 70B chứ không phải 8B: eval baseline yêu cầu
 `highRiskPrecision ≥ 0.9` và `citationValidity = 1.0`. Mô hình 8B trượt cả
@@ -63,7 +63,7 @@ Rubric trong `packages/compliance-core` chạy **trước**. Với mỗi rule:
 
 - `outcome: present` → phát hiện được evidence hợp lệ → sinh citation thẳng
   từ rule, **không gọi AI**.
-- `outcome: absent`  → thiếu evidence → citation thẳng từ rule, **không gọi AI**.
+- `outcome: absent` → thiếu evidence → citation thẳng từ rule, **không gọi AI**.
 - `outcome: unknown` → rule không chắc → **đây là lúc duy nhất AI được mời**.
 
 Quy tắc này có hai hệ quả quan trọng:
@@ -191,20 +191,23 @@ chủ đích:
 ```ts
 // Bước 1 — Metadata guard
 const eligible = await deps.legal.listRetrievable({
-  jurisdiction, category, on,    // 'on' là ngày scan
+  jurisdiction,
+  category,
+  on, // 'on' là ngày scan
 });
-const allowed = new Set(eligible.map(p => p.id));
+const allowed = new Set(eligible.map((p) => p.id));
 
 // Bước 2 — Vector ranking
 const vector = await deps.embed(query.text);
 const response = await deps.vector.query(vector, {
-  topK: 12, returnMetadata: "all",
+  topK: 12,
+  returnMetadata: "all",
 });
 
 // Bước 3 — Filter + cap
 for (const match of response.matches) {
-  if (!allowed.has(match.id)) continue;   // loại nếu không eligible
-  if (filtered.length >= 6) break;        // cap cứng
+  if (!allowed.has(match.id)) continue; // loại nếu không eligible
+  if (filtered.length >= 6) break; // cap cứng
 }
 ```
 
@@ -302,11 +305,11 @@ người ký → case không được thêm vào baseline. Xem `docs/compliance/
 
 Eval runner xuất `RELEASE_GATES`:
 
-| Gate                  | Threshold | Ý nghĩa                                                       |
-| --------------------- | --------- | ------------------------------------------------------------- |
+| Gate                  | Threshold | Ý nghĩa                                                          |
+| --------------------- | --------- | ---------------------------------------------------------------- |
 | `citationValidity`    | 1.0       | Citation phải trỏ tới provision hợp lệ VÀ quote đúng nguyên văn. |
-| `highRiskPrecision`   | ≥ 0.9     | Precision của class `high`.                                   |
-| `unsupportedHighRisk` | 0         | Không được phép có `high` prediction nào không cite được.     |
+| `highRiskPrecision`   | ≥ 0.9     | Precision của class `high`.                                      |
+| `unsupportedHighRisk` | 0         | Không được phép có `high` prediction nào không cite được.        |
 
 `evaluateReleaseGates(metrics).pass === true` là điều kiện release. CI fail
 nếu bất kỳ gate nào trượt.
@@ -335,18 +338,18 @@ liệu để tái dựng quyết định.
 
 ### 3.4 Bảng tổng hợp: rủi ro → lớp bảo vệ
 
-| Rủi ro                                              | Lớp bảo vệ                                       |
-| --------------------------------------------------- | ------------------------------------------------- |
-| Model trả output sai schema                         | Lớp 1 (Zod)                                      |
-| Model bịa citation                                  | Lớp 5 (downgrade) + Lớp 6 (verifier) + Lớp 8     |
-| Model nghe lệnh từ website (prompt injection)       | Lớp 2 (system rules) + Lớp 3 (tag)               |
-| Model dùng điều luật hết hiệu lực                   | Metadata guard (§2.4) + Lớp 6                    |
-| Model dùng điều luật sai jurisdiction / category    | Metadata guard (§2.4)                            |
-| Context window bloat                                | `limit = 6` (§2.4)                               |
-| AI output không grounded vào report                 | Lớp 6 (verifier chặn)                            |
-| Regression sau khi đổi model / prompt / rubric      | Lớp 7 (benchmark) + Lớp 8 (gates) + Lớp 9 (drift)|
-| Reviewer thiếu ký duyệt case                        | Lớp 7 (Zod schema bắt buộc `reviewer`+`reviewDate`)|
-| PII trong URL lọt vào vector                        | Redaction pass trước khi embed (xem `safelaunch-compliance`) |
+| Rủi ro                                           | Lớp bảo vệ                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| Model trả output sai schema                      | Lớp 1 (Zod)                                                  |
+| Model bịa citation                               | Lớp 5 (downgrade) + Lớp 6 (verifier) + Lớp 8                 |
+| Model nghe lệnh từ website (prompt injection)    | Lớp 2 (system rules) + Lớp 3 (tag)                           |
+| Model dùng điều luật hết hiệu lực                | Metadata guard (§2.4) + Lớp 6                                |
+| Model dùng điều luật sai jurisdiction / category | Metadata guard (§2.4)                                        |
+| Context window bloat                             | `limit = 6` (§2.4)                                           |
+| AI output không grounded vào report              | Lớp 6 (verifier chặn)                                        |
+| Regression sau khi đổi model / prompt / rubric   | Lớp 7 (benchmark) + Lớp 8 (gates) + Lớp 9 (drift)            |
+| Reviewer thiếu ký duyệt case                     | Lớp 7 (Zod schema bắt buộc `reviewer`+`reviewDate`)          |
+| PII trong URL lọt vào vector                     | Redaction pass trước khi embed (xem `safelaunch-compliance`) |
 
 ### 3.5 Cách chạy gate locally
 
@@ -364,18 +367,18 @@ Gate `pass === true` là điều kiện để merge vào main.
 
 ## Phụ lục — Trả lời nhanh khi bị hỏi gọn
 
-| Câu hỏi                                        | Trả lời 30 giây                                                                              |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| "Dùng LLM gì?"                                 | Llama 3.3 70B qua Cloudflare Workers AI; embed bge-base-en-v1.5 (768d). Cả hai qua AI Gateway. |
-| "Vectorize là gì?"                             | Cloudflare Vectorize, index `safelaunch-legal`, 768 chiều, cosine.                            |
-| "Embed cái gì?"                                | Từng Điều trong văn bản pháp luật, kèm metadata, sau khi admin duyệt.                       |
-| "Có gọi AI cho mọi rule không?"                | Không. Chỉ những rule có `outcome = unknown`.                                                |
-| "AI có bị prompt injection không?"             | Có, có bọc untrusted content + system rule cấm tuân lệnh trong tag đó.                       |
-| "Citation có kiểm chứng được không?"            | Có. Verifier kiểm tra provisionId tồn tại, quote đúng nguyên văn, còn hiệu lực.            |
-| "Release gate là gì?"                          | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0`.              |
-| "Đổi model có cần đổi index không?"             | Có. Số chiều thay → phải rebuild Vectorize.                                                   |
-| "Bao lâu thì refresh corpus?"                  | Theo lịch crawler định kỳ, xem `apps/workers/src/queues/`. Mỗi lần refresh cập nhật `retrievedAt`. |
-| "Có audit trail không?"                        | Có. `analysis_runs`, `legal_review_events`, mọi decision đều có timestamp.                  |
+| Câu hỏi                              | Trả lời 30 giây                                                                                    |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| "Dùng LLM gì?"                       | Llama 3.3 70B qua Cloudflare Workers AI; embed bge-base-en-v1.5 (768d). Cả hai qua AI Gateway.     |
+| "Vectorize là gì?"                   | Cloudflare Vectorize, index `safelaunch-legal`, 768 chiều, cosine.                                 |
+| "Embed cái gì?"                      | Từng Điều trong văn bản pháp luật, kèm metadata, sau khi admin duyệt.                              |
+| "Có gọi AI cho mọi rule không?"      | Không. Chỉ những rule có `outcome = unknown`.                                                      |
+| "AI có bị prompt injection không?"   | Có, có bọc untrusted content + system rule cấm tuân lệnh trong tag đó.                             |
+| "Citation có kiểm chứng được không?" | Có. Verifier kiểm tra provisionId tồn tại, quote đúng nguyên văn, còn hiệu lực.                    |
+| "Release gate là gì?"                | `citationValidity = 1.0`, `highRiskPrecision ≥ 0.9`, `unsupportedHighRisk = 0`.                    |
+| "Đổi model có cần đổi index không?"  | Có. Số chiều thay → phải rebuild Vectorize.                                                        |
+| "Bao lâu thì refresh corpus?"        | Theo lịch crawler định kỳ, xem `apps/workers/src/queues/`. Mỗi lần refresh cập nhật `retrievedAt`. |
+| "Có audit trail không?"              | Có. `analysis_runs`, `legal_review_events`, mọi decision đều có timestamp.                         |
 
 ---
 
@@ -410,4 +413,3 @@ Gate `pass === true` là điều kiện để merge vào main.
   queue `LEGAL_INGESTION_QUEUE`
 - `packages/ai/src/provider.ts` — `DEFAULT_EVALUATION_MODEL`
 - `packages/ai/src/gateway.ts` — `DEFAULT_EMBEDDING_MODEL`
-
