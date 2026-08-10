@@ -15,6 +15,7 @@ be here.
 - [`workflow-steps.en.md`](./workflow-steps.en.md) — scan-workflow step reference (English)
 - [`workflow-steps.vi.md`](./workflow-steps.vi.md) — scan-workflow step reference (Tiếng Việt)
 - [`compliance/eval-baseline.md`](./compliance/eval-baseline.md) — eval gate
+- [`compliance/ai-faq.md`](./compliance/ai-faq.md) — AI tích hợp, vectorize, đảm bảo AI hoạt động đúng (FAQ nội bộ)
 - [`design/homepage.md`](./design/homepage.md) — homepage design direction
 - [`operations/setup-and-deploy.md`](./operations/setup-and-deploy.md) — deploy rituals
 - [`privacy/data-inventory.md`](./privacy/data-inventory.md) — PII inventory
