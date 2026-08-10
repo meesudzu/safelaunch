@@ -260,48 +260,6 @@ const statusBannerClass = (status: OverallReportStatus): string => {
   }
 };
 
-const serviceSignalLabel = (locale: "vi" | "en", kind: ServiceSignal["kind"]): string => {
-  const labels =
-    locale === "vi"
-      ? {
-          login: "Đăng nhập/đăng ký",
-          ugc: "Nội dung người dùng",
-          public_profile: "Hồ sơ công khai",
-          content_feed: "Feed nội dung",
-          follow_or_friend: "Theo dõi/kết bạn",
-          comment: "Bình luận",
-          share: "Chia sẻ",
-          editorial_publishing: "Xuất bản biên tập",
-        }
-      : {
-          login: "Login/registration",
-          ugc: "User-generated content",
-          public_profile: "Public profile",
-          content_feed: "Content feed",
-          follow_or_friend: "Follow/friend",
-          comment: "Comments",
-          share: "Sharing",
-          editorial_publishing: "Editorial publishing",
-        };
-  return labels[kind];
-};
-
-const licenseTypeLabel = (locale: "vi" | "en", value: string): string => {
-  const labels =
-    locale === "vi"
-      ? {
-          online_game: "Trò chơi điện tử",
-          electronic_press: "Báo chí điện tử",
-          social_network: "Mạng xã hội",
-        }
-      : {
-          online_game: "Online game",
-          electronic_press: "Electronic press",
-          social_network: "Social network",
-        };
-  return labels[value as keyof typeof labels] ?? value;
-};
-
 const formatDate = (iso: string, locale: "vi" | "en"): string => {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -358,7 +316,18 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
     severity: sev,
     findings: sortedBySeverity(sev),
   }));
-  const visibleTabs = allTabs.filter((t) => t.findings.length > 0);
+
+  // Review tab stays visible when there are no non-font findings left in it
+  // but the report still has a font inventory panel to show — otherwise the
+  // moved-into-tab font inventory would silently disappear.
+  const hasFontInventoryPanel =
+    report.fontInventory !== undefined && report.fontInventory.groups.length > 0;
+
+  const visibleTabs = allTabs.filter(
+    (t) =>
+      t.findings.length > 0 ||
+      (t.severity === "review" && hasFontInventoryPanel),
+  );
 
   const defaultTab: Severity | null =
     visibleTabs.find((t) => t.severity === "high")?.severity ?? visibleTabs[0]?.severity ?? null;
@@ -478,224 +447,6 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
           </section>
         ) : null}
 
-        {report.serviceSignals && report.serviceSignals.length > 0 ? (
-          <section
-            aria-labelledby="service-signals-heading"
-            data-testid="service-signals-section"
-            className="rounded-md border border-rule bg-surface p-5"
-          >
-            <h2
-              id="service-signals-heading"
-              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
-            >
-              {messages["service.signals.title"] ?? "Đặc tính dịch vụ đã phát hiện"}
-            </h2>
-            <ul className="mt-3 flex flex-col gap-3 text-sm">
-              {report.serviceSignals.map((signal) => (
-                <li key={signal.id} className="border-l-2 border-rule pl-3">
-                  <p className="font-semibold">{serviceSignalLabel(locale, signal.kind)}</p>
-                  <p className="text-ink-soft">{signal.excerpt}</p>
-                  <p className="mt-1 font-mono text-xs text-ink-soft">
-                    {signal.sourceUrl} · {(signal.confidence * 100).toFixed(0)}%
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {report.licenseChecks && report.licenseChecks.length > 0 ? (
-          <section
-            aria-labelledby="license-checks-heading"
-            data-testid="license-checks-section"
-            className="rounded-md border border-rule bg-surface p-5"
-          >
-            <h2
-              id="license-checks-heading"
-              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
-            >
-              {messages["license.checks.title"] ?? "Kiểm tra giấy phép"}
-            </h2>
-            <ul className="mt-3 flex flex-col gap-3 text-sm">
-              {report.licenseChecks.map((check) => (
-                <li key={check.id} className="border-l-2 border-gold pl-3">
-                  <p className="font-semibold">
-                    {licenseTypeLabel(locale, check.licenseType)} ·{" "}
-                    {severityLabel(messages, check.severity)}
-                  </p>
-                  <p className="text-ink-soft">{check.rationale}</p>
-                  <p className="mt-1 text-xs text-ink-soft">
-                    {messages["finding.recommended_action"] ?? "Hành động đề xuất"}:{" "}
-                    {check.recommendedAction}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {report.fontInventory && report.fontInventory.groups.length > 0 ? (
-          <section
-            aria-labelledby="font-inventory-heading"
-            data-testid="font-inventory-section"
-            className="rounded-md border border-rule bg-surface p-5"
-          >
-            <h2
-              id="font-inventory-heading"
-              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
-            >
-              {locale === "vi" ? "Kiểm tra font" : "Font audit"}
-            </h2>
-            <p className="mt-2 text-sm text-ink-soft">
-              {report.fontInventory.totals.families} {locale === "vi" ? "family" : "families"} ·{" "}
-              {report.fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
-              {report.fontInventory.totals.flagged}{" "}
-              {locale === "vi" ? "cần xem xét" : "need review"}
-            </p>
-            <ul className="mt-3 flex flex-col gap-3 text-xs">
-              {report.fontInventory.groups.map((group) => (
-                <li
-                  key={group.id}
-                  className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
-                  data-testid="font-family-row"
-                >
-                  <p className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold uppercase tracking-wider">{group.family}</span>
-                    {group.fontLicense ? (
-                      <span
-                        data-testid="font-license-badge"
-                        className={
-                          "inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider " +
-                          fontLicenseBadgeClass(group.fontLicense.status)
-                        }
-                        title={fontLicenseReasonCodes(group.fontLicense.reasonCodes)}
-                      >
-                        {fontLicenseLabel(messages, group.fontLicense.status)}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center rounded-sm border border-ink-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
-                        {messages["font.family.unknown"] ??
-                          (locale === "vi" ? "Không xác định" : "Unknown")}
-                      </span>
-                    )}
-                  </p>
-                  <p className="mt-1 text-ink-soft">
-                    {group.variants.length}{" "}
-                    {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} ·{" "}
-                    {group.host} · {(group.confidence * 100).toFixed(0)}%
-                  </p>
-                  {group.fontInfo?.familyName ? (
-                    <p className="mt-1 text-ink-soft">
-                      {locale === "vi" ? "Tên trong file" : "File name"}:{" "}
-                      {group.fontInfo.familyName}
-                      {group.fontInfo.subfamilyName ? <> {group.fontInfo.subfamilyName}</> : null}
-                      {group.fontInfo.version ? <> · {group.fontInfo.version}</> : null}
-                    </p>
-                  ) : null}
-                  {group.fontLicense?.registryVersion ? (
-                    <p className="mt-1 text-ink-soft">
-                      {locale === "vi" ? "Registry" : "Registry"}:{" "}
-                      {group.fontLicense.registryVersion}
-                    </p>
-                  ) : null}
-                  {group.fontLicense?.evidenceSources.length ? (
-                    <p className="mt-1 break-all text-ink-soft">
-                      {group.fontLicense.evidenceSources.map((citation) => {
-                        const approved = isApprovedFontSourceUrl(citation.url);
-                        if (!approved) {
-                          return (
-                            <span key={citation.url} className="mr-2">
-                              {messages["font.source_unavailable"] ??
-                                (locale === "vi"
-                                  ? "Liên kết nguồn không khả dụng"
-                                  : "Source link unavailable")}
-                            </span>
-                          );
-                        }
-                        return (
-                          <a
-                            key={citation.url}
-                            href={citation.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="mr-2 underline text-info"
-                          >
-                            {citation.source}
-                          </a>
-                        );
-                      })}
-                    </p>
-                  ) : null}
-                  <details className="mt-2" open>
-                    <summary className="cursor-pointer text-ink-soft">
-                      {messages["font.family.open_details"] ??
-                        (locale === "vi" ? "Xem các biến thể" : "Show variants")}{" "}
-                      ({group.variants.length})
-                    </summary>
-                    <ul className="mt-2 flex flex-col gap-2">
-                      {group.variants.map((variant) => (
-                        <li key={variant.assetId} className="border-l-2 border-rule pl-2">
-                          <p className="font-mono text-ink break-all">{variant.url}</p>
-                          <p className="text-ink-soft">
-                            {variant.postscriptName ??
-                              (locale === "vi"
-                                ? "Không rõ PostScript name"
-                                : "Unknown PostScript name")}
-                            {variant.subfamilyName ? <> · {variant.subfamilyName}</> : null}
-                            {variant.version ? <> · {variant.version}</> : null}
-                          </p>
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        {report.assetInventory && report.assetInventory.assets.length > 0 ? (
-          <section
-            aria-labelledby="asset-inventory-heading"
-            data-testid="asset-inventory-section"
-            className="rounded-md border border-rule bg-surface p-5"
-          >
-            <h2
-              id="asset-inventory-heading"
-              className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
-            >
-              {messages["asset.inventory.title"] ?? "Inventory tài sản số"}
-            </h2>
-            <p className="mt-2 text-sm text-ink-soft">
-              {messages["asset.inventory.summary"] ?? "Tài sản được site tham chiếu"}:{" "}
-              {report.assetInventory.summary.total} ·{" "}
-              {messages["asset.inventory.flagged"] ?? "Cần kiểm tra license"}:{" "}
-              {report.assetInventory.summary.flagged}
-            </p>
-            {messages["asset.inventory.scope"] ? (
-              <p className="mt-1 text-xs italic text-ink-soft">
-                {messages["asset.inventory.scope"]}
-              </p>
-            ) : null}
-            <ul className="mt-3 flex flex-col gap-3 text-xs">
-              {report.assetInventory.assets.slice(0, 25).map((asset) => (
-                <li
-                  key={asset.id}
-                  className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
-                >
-                  <p className="font-semibold uppercase tracking-wider">
-                    {asset.kind} · {asset.licenseEvidence}
-                  </p>
-                  <p className="mt-1 break-all font-mono text-ink">{asset.url}</p>
-                  <p className="mt-1 text-ink-soft">
-                    {asset.sourceUrl} · {(asset.confidence * 100).toFixed(0)}%
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
         <section aria-labelledby="findings-heading" className="flex flex-col gap-4">
           <h2
             id="findings-heading"
@@ -809,13 +560,21 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                     data-testid={`findings-tabpanel-${tab.severity}`}
                     className="flex flex-col gap-4"
                   >
-                    {tab.findings.length === 0 ? (
+                    {report.fontInventory && report.fontInventory.groups.length > 0 ? (
+                      <FontInventoryPanel
+                        fontInventory={report.fontInventory}
+                        messages={messages}
+                        locale={locale}
+                      />
+                    ) : null}
+                    {tab.findings.length === 0 &&
+                    !(tab.severity === "review" && hasFontInventoryPanel) ? (
                       <p className="text-sm italic text-ink-soft">
                         {locale === "vi"
                           ? "Không có phát hiện ở mức này."
                           : "No findings at this level."}
                       </p>
-                    ) : (
+                    ) : tab.findings.length > 0 ? (
                       tab.findings.map((finding) => (
                         <FindingCard
                           key={finding.id}
@@ -824,7 +583,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                           locale={locale}
                         />
                       ))
-                    )}
+                    ) : null}
                   </div>
                 );
               })}
@@ -1005,5 +764,136 @@ const FindingCard = ({ finding, messages, locale }: FindingCardProps) => {
         </div>
       </dl>
     </article>
+  );
+};
+
+interface FontInventoryPanelProps {
+  readonly fontInventory: ReportFontInventoryView;
+  readonly messages: ReportMessages;
+  readonly locale: "vi" | "en";
+}
+
+/**
+ * Renders the font audit as a standalone panel. Used inside the Cần xem xét
+ * tab of the findings strip — the standalone "Kiểm tra font" section that
+ * previously lived outside the tabs has been removed; the data still flows
+ * from `report.fontInventory` and is unchanged.
+ */
+const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPanelProps) => {
+  return (
+    <section
+      aria-labelledby="font-inventory-heading"
+      data-testid="font-inventory-section"
+      className="rounded-md border border-rule bg-surface p-5"
+    >
+      <h2
+        id="font-inventory-heading"
+        className="text-sm font-semibold uppercase tracking-wider text-ink-soft"
+      >
+        {locale === "vi" ? "Kiểm tra font" : "Font audit"}
+      </h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        {fontInventory.totals.families} {locale === "vi" ? "family" : "families"} ·{" "}
+        {fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
+        {fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
+      </p>
+      <ul className="mt-3 flex flex-col gap-3 text-xs">
+        {fontInventory.groups.map((group) => (
+          <li
+            key={group.id}
+            className="border-t border-rule pt-3 first:border-t-0 first:pt-0"
+            data-testid="font-family-row"
+          >
+            <p className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold uppercase tracking-wider">{group.family}</span>
+              {group.fontLicense ? (
+                <span
+                  data-testid="font-license-badge"
+                  className={
+                    "inline-flex items-center rounded-sm border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider " +
+                    fontLicenseBadgeClass(group.fontLicense.status)
+                  }
+                  title={fontLicenseReasonCodes(group.fontLicense.reasonCodes)}
+                >
+                  {fontLicenseLabel(messages, group.fontLicense.status)}
+                </span>
+              ) : (
+                <span className="inline-flex items-center rounded-sm border border-ink-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-soft">
+                  {messages["font.family.unknown"] ??
+                    (locale === "vi" ? "Không xác định" : "Unknown")}
+                </span>
+              )}
+            </p>
+            <p className="mt-1 text-ink-soft">
+              {group.variants.length}{" "}
+              {messages["font.family.files"] ?? (locale === "vi" ? "file" : "files")} ·{" "}
+              {group.host} · {(group.confidence * 100).toFixed(0)}%
+            </p>
+            {group.fontInfo?.familyName ? (
+              <p className="mt-1 text-ink-soft">
+                {locale === "vi" ? "Tên trong file" : "File name"}: {group.fontInfo.familyName}
+                {group.fontInfo.subfamilyName ? <> {group.fontInfo.subfamilyName}</> : null}
+                {group.fontInfo.version ? <> · {group.fontInfo.version}</> : null}
+              </p>
+            ) : null}
+            {group.fontLicense?.registryVersion ? (
+              <p className="mt-1 text-ink-soft">
+                {locale === "vi" ? "Registry" : "Registry"}: {group.fontLicense.registryVersion}
+              </p>
+            ) : null}
+            {group.fontLicense?.evidenceSources.length ? (
+              <p className="mt-1 break-all text-ink-soft">
+                {group.fontLicense.evidenceSources.map((citation) => {
+                  const approved = isApprovedFontSourceUrl(citation.url);
+                  if (!approved) {
+                    return (
+                      <span key={citation.url} className="mr-2">
+                        {messages["font.source_unavailable"] ??
+                          (locale === "vi"
+                            ? "Liên kết nguồn không khả dụng"
+                            : "Source link unavailable")}
+                      </span>
+                    );
+                  }
+                  return (
+                    <a
+                      key={citation.url}
+                      href={citation.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mr-2 underline text-info"
+                    >
+                      {citation.source}
+                    </a>
+                  );
+                })}
+              </p>
+            ) : null}
+            <details className="mt-2">
+              <summary className="cursor-pointer text-ink-soft">
+                {messages["font.family.open_details"] ??
+                  (locale === "vi" ? "Xem các biến thể" : "Show variants")}{" "}
+                ({group.variants.length})
+              </summary>
+              <ul className="mt-2 flex flex-col gap-2">
+                {group.variants.map((variant) => (
+                  <li key={variant.assetId} className="border-l-2 border-rule pl-2">
+                    <p className="font-mono text-ink break-all">{variant.url}</p>
+                    <p className="text-ink-soft">
+                      {variant.postscriptName ??
+                        (locale === "vi"
+                          ? "Không rõ PostScript name"
+                          : "Unknown PostScript name")}
+                      {variant.subfamilyName ? <> · {variant.subfamilyName}</> : null}
+                      {variant.version ? <> · {variant.version}</> : null}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 };
