@@ -228,7 +228,6 @@ export const ScanProgress = ({
             {messages["view.report"]}
           </a>
         ) : null}
-
       </div>
     </section>
   );
