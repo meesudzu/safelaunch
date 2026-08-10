@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SCAN_PIPELINE, ScanStepper, type ScanStepperMessages } from "./scan-stepper";
 import { ThemeToggle } from "./theme-toggle";
+import { createApiClient } from "../lib/api-client";
 
 export type ScanTerminalState = "completed" | "partial" | "failed";
 
@@ -12,9 +13,9 @@ export interface ScanProgressState {
   readonly state: string;
   readonly status?: string;
   readonly coverage: {
-    fetched: readonly string[];
-    failed: readonly string[];
-    skipped: readonly string[];
+    fetched?: readonly string[];
+    failed?: readonly string[];
+    skipped?: readonly string[];
   };
   readonly expiresAt?: string;
   readonly reportUrl?: string;
@@ -41,8 +42,11 @@ export interface ScanProgressProps {
   readonly locale: "vi" | "en";
   readonly messages: ScanProgressMessages;
   readonly initialState: ScanProgressState;
-  readonly poll: (scanId: string) => Promise<ScanProgressState>;
+  readonly poll?: (scanId: string) => Promise<ScanProgressState>;
 }
+
+const defaultPoll = (scanId: string): Promise<ScanProgressState> =>
+  createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).getScan(scanId);
 
 const TERMINAL_STATES = new Set<string>(["completed", "partial", "failed"]);
 
@@ -102,7 +106,12 @@ const stateLabel = (messages: ScanProgressMessages, state: string): string => {
   return typeof value === "string" ? value : state;
 };
 
-export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
+export const ScanProgress = ({
+  locale,
+  messages,
+  initialState,
+  poll = defaultPoll,
+}: ScanProgressProps) => {
   const [state, setState] = useState<ScanProgressState>(initialState);
   const [redirectSeconds, setRedirectSeconds] = useState(AUTO_REDIRECT_SECONDS);
   const attempt = useRef(0);
@@ -267,8 +276,8 @@ export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgr
           <dl className="grid grid-cols-2 gap-px bg-rule">
             <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">Scan ID</dt><dd className="mt-2 truncate font-mono text-xs text-accent" title={state.scanId}>{state.scanId}</dd></div>
             <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Giai đoạn" : "Stage"}</dt><dd className="mt-2 text-sm font-bold uppercase">{announcement}</dd></div>
-            <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Đã tải" : "Fetched"}</dt><dd className="mt-2 font-serif text-3xl font-bold text-accent">{state.coverage.fetched.length}</dd></div>
-            <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Lỗi" : "Failed"}</dt><dd className="mt-2 font-serif text-3xl font-bold text-error">{state.coverage.failed.length}</dd></div>
+            <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Đã tải" : "Fetched"}</dt><dd className="mt-2 font-serif text-3xl font-bold text-accent">{state.coverage.fetched?.length ?? 0}</dd></div>
+            <div className="bg-bg p-4"><dt className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Lỗi" : "Failed"}</dt><dd className="mt-2 font-serif text-3xl font-bold text-error">{state.coverage.failed?.length ?? 0}</dd></div>
           </dl>
           <div className="p-5">
             <div className="h-1 bg-rule"><div className="h-full bg-accent transition-[width] duration-500" style={{ width: `${progressPercent}%` }} /></div>

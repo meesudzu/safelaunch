@@ -167,7 +167,7 @@ Components (one-line summary):
 
 - **Frontend:** Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui.
 - **Backend:** Cloudflare Workers + Hono + TypeScript strict (`noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`).
-- **AI:** Cloudflare Workers AI (`@cf/baai/bge-base-en-v1.5` for embeddings, `@cf/meta/llama-3.1-8b-instruct` for evaluation).
+- **AI:** Cloudflare Workers AI (`@cf/baai/bge-base-en-v1.5` for embeddings, `@cf/meta/llama-3.3-70b-instruct-fp8-fast` for evaluation).
 - **Storage:** D1 (relational), R2 (snapshots), Vectorize (semantic search), Queues (async ingest).
 - **Edge compute:** Cloudflare Workflows (orchestration) + Durable Objects (rate-limit counters).
 - **Auth:** Cloudflare Access (Zero Trust) — One-time PIN for admin reviewers.

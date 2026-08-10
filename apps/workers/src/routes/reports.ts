@@ -71,6 +71,7 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
   if (!scanId) {
     return context.json({ code: "INVALID_REQUEST" }, 400);
   }
+  const repo = new ReportRepository(context.env.DB);
   const row = await context.env.DB.prepare(
     "SELECT token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
   )
@@ -112,6 +113,11 @@ reportsRouter.get("/v1/reports/:scanId", async (context) => {
   // `token_hash` on success. Earlier versions invalidated the row here for
   // single-use privacy, but that broke reloads on the owner-facing report
   // page. See routes/reports.test.ts for the regression coverage.
+  // Record the first open so /v1/admin/metrics/usage can count reports
+  // opened in a window. Uses COALESCE so repeat reads never overwrite
+  // the original timestamp.
+  await repo.markOpened(scanId, now.toISOString());
+
   return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,
@@ -172,6 +178,11 @@ reportsRouter.get("/v1/reports/by-token/:token", async (context) => {
   publicPayload.expiresAt = row.expiresAt;
   // Reusable-until-expiry: do NOT burn `token_hash`. Owner-side reloads
   // must work; see file-level note.
+  // Record the first open so /v1/admin/metrics/usage can count reports
+  // opened in a window. Uses COALESCE so repeat reads never overwrite
+  // the original timestamp.
+  await repo.markOpened(row.scanId, now.toISOString());
+
   return new Response(JSON.stringify(publicPayload), {
     status: 200,
     headers: noCacheHeaders,

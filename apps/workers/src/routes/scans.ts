@@ -5,7 +5,12 @@ import {
   ScanCoverage,
   ScanCachedResponse,
 } from "@safelaunch/contracts";
-import { ScanRepository, ReportRepository, RedeemRepository } from "@safelaunch/db";
+import {
+  ScanRepository,
+  ReportRepository,
+  RedeemRepository,
+  BURNED_TOKEN_HASH,
+} from "@safelaunch/db";
 import { domainKey } from "@safelaunch/compliance-core";
 import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
 import {
@@ -26,6 +31,7 @@ export interface RoutesEnv {
   SCAN_WORKFLOW?: Workflow;
   ABUSE_RATE_LIMITER?: DurableObjectNamespace;
   ENABLE_DAILY_QUOTA?: string;
+  METRICS_HASH_SALT?: string;
 }
 
 interface StoredScanRow {
@@ -85,6 +91,19 @@ const normalizeCoverage = (raw: Record<string, unknown> | null | undefined): Sca
 
 const buildReportUrl = (origin: string, token: string, locale: string = "vi"): string =>
   `${origin.replace(/\/$/, "")}/${locale}/report/${token}`;
+
+const metricsUrlHash = async (url: string, salt: string | undefined): Promise<string | null> => {
+  if (!salt) return null;
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(salt),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const digest = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(domainKey(url)));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+};
 
 export interface CreateScanResponse {
   scanId: string;
@@ -267,6 +286,7 @@ scansRouter.post("/v1/scans", async (context) => {
     analysisVersion: ANALYSIS_VERSION,
     now: nowIso,
     expiresAt: expiresAt.toISOString(),
+    urlHash: await metricsUrlHash(input.url, context.env.METRICS_HASH_SALT),
   });
 
   console.log(
@@ -328,9 +348,14 @@ scansRouter.get("/v1/scans/:id", async (context) => {
   if (isTerminal(stored.state)) {
     const status = ScanState.parse(stored.state);
     progress.status = status;
+    // Read the persisted report. tokenHash === BURNED_TOKEN_HASH means the
+    // token has already been burned by a prior GET of /v1/reports/:token.
+    // We never generate or rotate tokens here — the workflow issued exactly
+    // one at persistReport time, and we surface that plaintext token (stored
+    // inside payload_json) only while the hash is still valid.
     const reportRepo = new ReportRepository(context.env.DB);
     const storedReport = await reportRepo.get(scanId);
-    if (storedReport && storedReport.tokenHash !== null) {
+    if (storedReport && storedReport.tokenHash !== BURNED_TOKEN_HASH) {
       try {
         const payload = JSON.parse(storedReport.payloadJson) as Record<string, unknown>;
         const token = typeof payload._reportToken === "string" ? payload._reportToken : null;

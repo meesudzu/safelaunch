@@ -67,12 +67,10 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
   const limits = { ...DEFAULT_FETCH_LIMITS, ...(request.limits ?? {}) };
   const fetchImpl = request.fetchImpl ?? fetch;
   const validated = await validateOrThrow(request.url, request.resolve);
-  const initialAddress = validated.addresses[0];
-  if (!initialAddress) {
+  if (validated.addresses.length === 0) {
     throw new UnsafeUrlError(request.url, "no addresses available");
   }
   let currentUrl = validated.url.toString();
-  let currentAddress = initialAddress;
   for (let redirect = 0; redirect <= limits.redirects; redirect += 1) {
     const signal = mergeAbort(limits.durationMs);
     const start = Date.now();
@@ -96,7 +94,6 @@ export const fetchBoundedHtml = async (request: FetchRequest): Promise<FetchResu
       }
       const next = new URL(location, currentUrl);
       const nextValidated = await validateOrThrow(next.toString(), request.resolve);
-      currentAddress = nextValidated.addresses[0] ?? currentAddress;
       currentUrl = nextValidated.url.toString();
       continue;
     }

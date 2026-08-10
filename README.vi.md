@@ -335,7 +335,7 @@ Vectorize index `safelaunch-legal` dùng 768 dimensions và cosine metric.
 Model completion mặc định:
 
 ```text
-@cf/meta/llama-3.1-8b-instruct
+@cf/meta/llama-3.3-70b-instruct-fp8-fast
 ```
 
 Provider yêu cầu model trả JSON theo `EvaluationDraftSchema`, bao gồm severity, rationale, evidence IDs, provision IDs, legal quotes, confidence và recommended action. Nội dung website được bọc trong `<untrusted_website_content>` để model coi đó là dữ liệu không đáng tin, không phải instruction.
@@ -762,7 +762,7 @@ Các nguồn **không được nhập vào nội dung tổng hợp** vì là k�
 
 - `docs/superpowers/`;
 - `docs/remaining.md`;
-- `docs/admin-remeaning.md`.
+- `docs/admin-roadmap.md`.
 
 Khi tài liệu tổng hợp và code/config mâu thuẫn, ưu tiên source of truth gần runtime nhất theo thứ tự: schema/contract và code đã test → Wrangler/config triển khai → tài liệu domain chuyên biệt → README tổng hợp. Riêng legal corpus và data inventory phải tuân theo quy trình review riêng trước khi thay đổi production behavior.
 

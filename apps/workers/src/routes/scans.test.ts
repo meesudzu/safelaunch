@@ -264,8 +264,9 @@ describe("scans router", () => {
   });
 
   it("returns no reportUrl once the token_hash has been burned (single-use)", async () => {
-    // After /v1/reports/:scanId?token=X is opened once, the route nulls
-    // token_hash. Subsequent polls of /v1/scans/:id must NOT return a URL.
+    // After /v1/reports/:token is opened once, the route sets token_hash to
+    // BURNED_TOKEN_HASH (''). Subsequent polls of /v1/scans/:id must NOT
+    // return a URL.
     const db = new FakeD1Database();
     const stored = {
       id: "scan_c",
@@ -283,7 +284,7 @@ describe("scans router", () => {
       sql: "SELECT scan_id, token_hash, payload_json, expires_at FROM reports WHERE scan_id = ?",
       firstReturn: {
         scan_id: "scan_c",
-        token_hash: null, // already burned
+        token_hash: "", // already burned (BURNED_TOKEN_HASH)
         payload_json: "{}",
         expires_at: "2026-08-05T00:00:00.000Z",
       },

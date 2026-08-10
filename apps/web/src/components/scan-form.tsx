@@ -71,9 +71,10 @@ export interface ScanFormProps {
   readonly locale: "vi" | "en";
   readonly messages: ScanFormMessages;
   readonly createScan?: ApiClient["createScan"];
+  readonly onScanCreated?: (scanId: string) => void;
 }
 
-export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
+export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFormProps) => {
   const router = useRouter();
   const [url, setUrl] = useState("");
   const [category, setCategory] = useState<CategoryValue | "">("");
@@ -109,8 +110,11 @@ export const ScanForm = ({ locale, messages, createScan }: ScanFormProps) => {
         category: parsed.data.category,
       };
       if (parsed.data.redeemCode) input.redeemCode = parsed.data.redeemCode;
-      const submit = createScan ?? createApiClient().createScan;
+      const submit =
+        createScan ??
+        createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).createScan;
       const response = await submit(input);
+      onScanCreated?.(response.scanId);
       // A cached response (200) means the daily-domain-quota returned an
       // existing scan for this domain. Render the cached banner instead of
       // navigating to the progress page.

@@ -290,7 +290,9 @@ export interface ReportViewProps {
 }
 
 export const ReportView = ({ locale, localeHref, messages, report }: ReportViewProps) => {
-  const failedPages = report.coverage.failed;
+  const fetchedPages = report.coverage.fetched ?? [];
+  const failedPages = report.coverage.failed ?? [];
+  const skippedPages = report.coverage.skipped ?? [];
   const isPartial = failedPages.length > 0;
 
   // Asset IDs whose kind is "font". Findings that point exclusively at a font
@@ -351,9 +353,9 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
 
   const totalFindings = findingsExcludingFonts.length;
   const coverageTotal =
-    report.coverage.fetched.length + failedPages.length + report.coverage.skipped.length;
+    fetchedPages.length + failedPages.length + skippedPages.length;
   const coveragePercent =
-    coverageTotal > 0 ? Math.round((report.coverage.fetched.length / coverageTotal) * 100) : 0;
+    coverageTotal > 0 ? Math.round((fetchedPages.length / coverageTotal) * 100) : 0;
 
   return (
     <section
@@ -485,7 +487,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
             <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
               <span id="coverage-heading">{messages["coverage.label"]}</span>
               <span className="font-mono text-xs font-normal text-ink-soft">
-                {report.coverage.fetched.length}/{coverageTotal}
+                {fetchedPages.length}/{coverageTotal}
               </span>
             </summary>
             <div
@@ -500,7 +502,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
               />
             </div>
             <ul className="mt-5 flex max-h-72 flex-col gap-4 overflow-auto border-t border-rule pt-5 font-mono text-sm">
-              {report.coverage.fetched.map((page) => (
+              {fetchedPages.map((page) => (
                 <li key={`fetched-${page}`} className="flex gap-2">
                   <span aria-hidden="true" className="text-success">
                     ✓
@@ -522,7 +524,7 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                   </span>
                 </li>
               ))}
-              {report.coverage.skipped.map((page) => (
+              {skippedPages.map((page) => (
                 <li key={`skipped-${page}`} className="flex gap-2 text-ink-soft">
                   <span aria-hidden="true">·</span>
                   <span>
@@ -640,7 +642,9 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
                     data-testid={`findings-tabpanel-${tab.severity}`}
                     className="flex flex-col gap-6"
                   >
-                    {report.fontInventory && report.fontInventory.groups.length > 0 ? (
+                    {tab.severity === "review" &&
+                    report.fontInventory &&
+                    report.fontInventory.groups.length > 0 ? (
                       <FontInventoryPanel
                         fontInventory={report.fontInventory}
                         messages={messages}
@@ -824,7 +828,13 @@ interface FontInventoryPanelProps {
  * previously lived outside the tabs has been removed; the data still flows
  * from `report.fontInventory` and is unchanged.
  */
+const FONT_IP_LAW_PROVISION_ID = "vn-ip-law-2022";
+
 const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPanelProps) => {
+  const ipLawCitation = fontInventory.groups
+    .flatMap((group) => group.fontLicense?.evidenceSources ?? [])
+    .find((citation) => citation.provisionId === FONT_IP_LAW_PROVISION_ID);
+
   return (
     <section
       aria-labelledby="font-inventory-heading"
@@ -842,6 +852,23 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
         {fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
         {fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
       </p>
+      {ipLawCitation ? (
+        <div data-testid="font-ip-law-citation" className="mt-3 border-l-2 border-rule pl-3">
+          <p className="text-xs uppercase tracking-wider text-ink-soft">
+            {messages["finding.legal_excerpt"]}
+          </p>
+          <blockquote className="mt-1 text-sm italic text-ink">
+            &ldquo;{ipLawCitation.excerpt}&rdquo;
+          </blockquote>
+          <p className="mt-1 text-xs text-ink-soft">
+            <a href={ipLawCitation.url} target="_blank" rel="noreferrer" className="underline">
+              {ipLawCitation.source}
+            </a>
+            {" · "}
+            {messages["finding.retrieved_at"]}: {formatDate(ipLawCitation.retrievedAt, locale)}
+          </p>
+        </div>
+      ) : null}
       <ul className="mt-3 flex flex-col gap-3 text-xs">
         {fontInventory.groups.map((group) => (
           <li

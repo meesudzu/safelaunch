@@ -7,7 +7,7 @@ be here.
 ## Doc map
 
 - [`remaining.md`](./remaining.md) — handoff to the team (Tier 1/2/3/4)
-- [`admin-remeaning.md`](./admin-remeaning.md) — admin console roadmap (metrics, scan status, logs, future features)
+- [`admin-roadmap.md`](./admin-roadmap.md) — admin console roadmap (metrics, scan status, logs, future features)
 - [`workflow.md`](./workflow.md) — 4-phase AI-assisted dev workflow
 - [`skills.md`](./skills.md) — skill catalog (must-invoke per change type)
 - [`compliance/rubrics/v1.md`](./compliance/rubrics/v1.md) — rule rubric
@@ -15,6 +15,7 @@ be here.
 - [`workflow-steps.en.md`](./workflow-steps.en.md) — scan-workflow step reference (English)
 - [`workflow-steps.vi.md`](./workflow-steps.vi.md) — scan-workflow step reference (Tiếng Việt)
 - [`compliance/eval-baseline.md`](./compliance/eval-baseline.md) — eval gate
+- [`compliance/ai-faq.md`](./compliance/ai-faq.md) — AI tích hợp, vectorize, đảm bảo AI hoạt động đúng (FAQ nội bộ)
 - [`design/homepage.md`](./design/homepage.md) — homepage design direction
 - [`operations/setup-and-deploy.md`](./operations/setup-and-deploy.md) — deploy rituals
 - [`privacy/data-inventory.md`](./privacy/data-inventory.md) — PII inventory
