@@ -404,7 +404,11 @@ export const ReportView = ({ locale, localeHref, messages, report }: ReportViewP
               data-status={report.status}
               className={`flex items-center gap-4 border-l-4 px-5 py-2 md:ml-auto ${statusBannerClass(report.status)}`}
             >
-              <span aria-hidden="true" className="text-2xl">△</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6 shrink-0" fill="none">
+                <path d="M12 3 2.5 20h19L12 3Z" stroke="currentColor" strokeWidth="1.5" />
+                <path d="M12 9v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                <circle cx="12" cy="17" r="1" fill="currentColor" />
+              </svg>
               <div>
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-soft">{locale === "vi" ? "Tình trạng tổng" : "Overall status"}</p>
                 <p className="mt-0.5 text-lg font-extrabold uppercase tracking-tight">{statusLabel(messages, report.status)}</p>
