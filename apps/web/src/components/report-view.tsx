@@ -558,7 +558,9 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                     data-testid={`findings-tabpanel-${tab.severity}`}
                     className="flex flex-col gap-4"
                   >
-                    {report.fontInventory && report.fontInventory.groups.length > 0 ? (
+                    {tab.severity === "review" &&
+                    report.fontInventory &&
+                    report.fontInventory.groups.length > 0 ? (
                       <FontInventoryPanel
                         fontInventory={report.fontInventory}
                         messages={messages}
@@ -777,7 +779,17 @@ interface FontInventoryPanelProps {
  * previously lived outside the tabs has been removed; the data still flows
  * from `report.fontInventory` and is unchanged.
  */
+const FONT_IP_LAW_PROVISION_ID = "vn-ip-law-2022";
+
 const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPanelProps) => {
+  // Section-level legal basis. The IP-Law citation is constant across fonts
+  // (added by every assessment — see apps/workers/src/services/font-inspector.ts
+  // IP_LAW_CITATION), so we surface it once at the panel header instead of
+  // repeating per font. Citation rules: see safelaunch-compliance.
+  const ipLawCitation = fontInventory.groups
+    .flatMap((g) => g.fontLicense?.evidenceSources ?? [])
+    .find((c) => c.provisionId === FONT_IP_LAW_PROVISION_ID);
+
   return (
     <section
       aria-labelledby="font-inventory-heading"
@@ -795,6 +807,23 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
         {fontInventory.totals.files} {locale === "vi" ? "file" : "files"} ·{" "}
         {fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
       </p>
+      {ipLawCitation ? (
+        <div data-testid="font-ip-law-citation" className="mt-3 border-l-2 border-rule pl-3">
+          <p className="text-xs uppercase tracking-wider text-ink-soft">
+            {messages["finding.legal_excerpt"]}
+          </p>
+          <blockquote className="mt-1 text-sm italic text-ink">
+            &ldquo;{ipLawCitation.excerpt}&rdquo;
+          </blockquote>
+          <p className="mt-1 text-xs text-ink-soft">
+            <a href={ipLawCitation.url} target="_blank" rel="noreferrer" className="underline">
+              {ipLawCitation.source}
+            </a>
+            {" · "}
+            {messages["finding.retrieved_at"]}: {formatDate(ipLawCitation.retrievedAt, locale)}
+          </p>
+        </div>
+      ) : null}
       <ul className="mt-3 flex flex-col gap-3 text-xs">
         {fontInventory.groups.map((group) => (
           <li

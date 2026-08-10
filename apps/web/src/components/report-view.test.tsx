@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { ReportView, type ReportPayload, type ReportMessages } from "./report-view";
 
@@ -635,6 +635,120 @@ describe("font inventory (V1)", () => {
     expect(details?.hasAttribute("open")).toBe(false);
   });
 
+  it("renders the IP law citation excerpt from evidenceSources at the panel header", () => {
+    // Section-level legal basis block. The excerpt, source, URL, and retrievedAt
+    // all come from the same evidenceSource already attached to every font's
+    // fontLicense.evidenceSources array (provisionId "vn-ip-law-2022" — see
+    // apps/workers/src/services/font-inspector.ts).
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::lora",
+            family: "Lora",
+            kind: "font",
+            host: "fonts.example",
+            hosts: ["fonts.example"],
+            variants: [
+              {
+                assetId: "asset::font::lora-1",
+                url: "https://fonts.example.com/lora.woff2",
+                format: "woff2",
+                postscriptName: "Lora-Regular",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "no_license_evidence",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: {
+              status: "requires_license_proof",
+              reasonCodes: ["commercial_catalog_name_hint"],
+              confidence: 0.4,
+              evidenceSources: [
+                {
+                  provisionId: "vn-ip-law-2022",
+                  source: "Luật Sở hữu trí tuệ 2022",
+                  url: "https://vbpl.vn/tim-kiem?SearchIn=all&q=Lu%E1%BA%ADt%20S%E1%BB%9F%20h%E1%BB%AFu%20tr%C3%AD%20tu%E1%BB%87%202022",
+                  retrievedAt: "2026-08-06T00:00:00.000Z",
+                  excerpt:
+                    "Tổ chức, cá nhân sử dụng tác phẩm, bản ghi âm, hình ảnh, chương trình phát sóng phải có sự đồng ý của chủ sở hữu hoặc theo giấy phép tương ứng.",
+                },
+              ],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: null,
+            },
+            confidence: 0.4,
+            flagged: true,
+            citationCount: 1,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 1 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    const fontSection = screen.getByTestId("font-inventory-section");
+    // The IP law excerpt must be rendered inside the font inventory panel.
+    expect(within(fontSection).getByText(/sự đồng ý của chủ sở hữu/i)).toBeInTheDocument();
+    // The source label (used as the link text) must point at vbpl.vn.
+    const sourceLink = within(fontSection).getByRole("link", {
+      name: /Luật Sở hữu trí tuệ 2022/,
+    });
+    expect(sourceLink).toHaveAttribute("href", expect.stringContaining("vbpl.vn"));
+    // Section-level block has its own testid so other tools can target it.
+    expect(within(fontSection).getByTestId("font-ip-law-citation")).toBeInTheDocument();
+  });
+
+  it("does not render the IP law citation block when no font provides the citation", () => {
+    // If the corpus ever drops the vn-ip-law-2022 citation, the UI must not
+    // crash or invent text — the section is omitted entirely.
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::lora",
+            family: "Lora",
+            kind: "font",
+            host: "fonts.example",
+            hosts: ["fonts.example"],
+            variants: [
+              {
+                assetId: "asset::font::lora-1",
+                url: "https://fonts.example.com/lora.woff2",
+                format: "woff2",
+                postscriptName: "Lora-Regular",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "no_license_evidence",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: {
+              status: "requires_license_proof",
+              reasonCodes: ["commercial_catalog_name_hint"],
+              confidence: 0.4,
+              evidenceSources: [],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: null,
+            },
+            confidence: 0.4,
+            flagged: true,
+            citationCount: 0,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 1 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("font-ip-law-citation")).toBeNull();
+  });
+
   it("falls back to the text 'Source link unavailable' when a citation host is not approved", () => {
     const report: ReportPayload = {
       ...baseReport,
@@ -838,9 +952,13 @@ describe("font deduplication in findings tabs", () => {
     expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("1");
   });
 
-  it("renders the font inventory inside the Cần xem xét tab panel (not as a standalone section)", () => {
+  it("renders the font inventory inside the Cần xem xét tab panel (not as a standalone section)", async () => {
+    const user = userEvent.setup();
     const report: ReportPayload = {
       ...baseReport,
+      // Seed a high-severity finding so the high tab is rendered; the user
+      // clicks it to verify the font inventory does NOT leak into the high tab.
+      findings: [buildFinding({ id: "high-sev", severity: "high", applicability: "current" })],
       fontInventory: {
         groups: [
           {
@@ -880,11 +998,23 @@ describe("font deduplication in findings tabs", () => {
       },
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
-    // No standalone font-inventory-section as a sibling of other sections:
-    // it must only exist inside the review tab panel.
+    // The high tab is active by default; switch to the review tab so we can
+    // inspect its panel content.
+    await user.click(screen.getByTestId("findings-tab-review"));
+    // The font-inventory-section must ONLY exist inside the review tab panel.
+    // It must NOT render inside the (currently active) high tab panel — see
+    // https://safelaunch.runany.dev review feedback: "block cần nằm trong tab
+    // 'Cần xem xét' và chỉ hiển thị khi mở tab".
     const reviewPanel = screen.getByTestId("findings-tabpanel-review");
     expect(reviewPanel.querySelector('[data-testid="font-inventory-section"]')).not.toBeNull();
     expect(screen.getByText("Lora")).toBeInTheDocument();
+
+    // When the user clicks back to the high tab, the font inventory must NOT
+    // follow. This protects against the previous bug where FontInventoryPanel
+    // rendered inside every active tabpanel.
+    await user.click(screen.getByTestId("findings-tab-high"));
+    expect(screen.getByTestId("findings-tabpanel-high")).toBeInTheDocument();
+    expect(screen.queryByTestId("font-inventory-section")).toBeNull();
   });
 
   it("keeps the review tab visible when the only flagged items are fonts (font inventory still renders)", () => {
