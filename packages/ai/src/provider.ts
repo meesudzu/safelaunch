@@ -16,6 +16,26 @@ import { gatewayOptionsFor, type GatewayConfig } from "./gateway";
 
 export const EvaluationDraftProviderSchema = EvaluationDraftSchema;
 
+/**
+ * Default Workers AI model used for evidence/provision evaluation.
+ *
+ * History:
+ *  - 2025-Q4 → 2026-Q2: `@cf/meta/llama-3.1-8b-instruct` (deprecated
+ *    on 2026-05-30; see incident in
+ *    `docs/superpowers/specs/2026-08-10-evaluation-model-migration.md`).
+ *  - 2026-08-10 → present: `@cf/meta/llama-3.3-70b-instruct-fp8-fast`.
+ *    70B parameters are necessary to keep `highRiskPrecision >= 0.9`
+ *    and `citationValidity === 1.0` (see `docs/compliance/eval-baseline.md`).
+ *    The `fp8-fast` variant is Cloudflare's low-latency quantization.
+ *
+ * Consumers may override per-call via `createEvaluationProvider({ model })`.
+ * When you change this constant, update
+ * `packages/ai/src/provider.test.ts` and the documentation that
+ * references the model id (see `README.md`, `README.vi.md`,
+ * `docs/compliance/retrieval-pipeline.md`).
+ */
+export const DEFAULT_EVALUATION_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
 export const SYSTEM_RULES = [
   "You are a Vietnam-first compliance analyst. Evaluate the provided",
   "evidence + retrieved legal provisions and respond with a single JSON",
@@ -81,7 +101,7 @@ export const buildPrompt = (
 export const createEvaluationProvider = (
   deps: ProviderDeps,
 ): ((input: ProviderInput) => Promise<{ draft: EvaluationDraft; logId: string | null }>) => {
-  const model = deps.model ?? "@cf/meta/llama-3.1-8b-instruct";
+  const model = deps.model ?? DEFAULT_EVALUATION_MODEL;
   const systemRules = deps.systemRules ?? SYSTEM_RULES;
   return async (input) => {
     const prompt = buildPrompt(input, systemRules);
