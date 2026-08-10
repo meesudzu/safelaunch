@@ -10,12 +10,11 @@ coverage/
 # TypeScript incremental build cache
 *.tsbuildinfo
 .wrangler/
+playwright-report/
+test-results/
 
 # Wrangler generated bindings
 apps/workers/worker-configuration.d.ts
-
-# OpenNext build output (apps/web)
-apps/web/.open-next/
 
 # OpenNext build output (apps/web)
 apps/web/.open-next/
@@ -25,6 +24,9 @@ apps/web/.open-next/
 
 # Stray wrangler config from earlier dev iteration
 /wrangler.jsonc
+
+# Per-developer local Cloudflare account config (see wrangler.local.jsonc.example)
+apps/workers/wrangler.local.jsonc
 
 # Stray backup files
 *.orig

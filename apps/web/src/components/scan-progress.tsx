@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SCAN_PIPELINE, ScanStepper, type ScanStepperMessages } from "./scan-stepper";
+import { createApiClient } from "../lib/api-client";
 
 export type ScanTerminalState = "completed" | "partial" | "failed";
 
@@ -11,9 +12,9 @@ export interface ScanProgressState {
   readonly state: string;
   readonly status?: string;
   readonly coverage: {
-    fetched: readonly string[];
-    failed: readonly string[];
-    skipped: readonly string[];
+    fetched?: readonly string[];
+    failed?: readonly string[];
+    skipped?: readonly string[];
   };
   readonly expiresAt?: string;
   readonly reportUrl?: string;
@@ -39,8 +40,11 @@ export interface ScanProgressProps {
   readonly locale: "vi" | "en";
   readonly messages: ScanProgressMessages;
   readonly initialState: ScanProgressState;
-  readonly poll: (scanId: string) => Promise<ScanProgressState>;
+  readonly poll?: (scanId: string) => Promise<ScanProgressState>;
 }
+
+const defaultPoll = (scanId: string): Promise<ScanProgressState> =>
+  createApiClient({ NEXT_PUBLIC_API_ORIGIN: process.env.NEXT_PUBLIC_API_ORIGIN }).getScan(scanId);
 
 const TERMINAL_STATES = new Set<string>(["completed", "partial", "failed"]);
 
@@ -94,7 +98,12 @@ const stateLabel = (messages: ScanProgressMessages, state: string): string => {
   return typeof value === "string" ? value : state;
 };
 
-export const ScanProgress = ({ locale, messages, initialState, poll }: ScanProgressProps) => {
+export const ScanProgress = ({
+  locale,
+  messages,
+  initialState,
+  poll = defaultPoll,
+}: ScanProgressProps) => {
   const [state, setState] = useState<ScanProgressState>(initialState);
   const attempt = useRef(0);
   // Tracks the reportUrl we've already navigated to so duplicate terminal

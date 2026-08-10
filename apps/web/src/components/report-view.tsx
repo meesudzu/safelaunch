@@ -386,7 +386,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
             {messages["coverage.label"]}
           </h2>
           <ul className="mt-3 flex flex-col gap-2 text-sm">
-            {report.coverage.fetched.map((page) => (
+            {(report.coverage.fetched ?? []).map((page) => (
               <li key={`fetched-${page}`} className="flex gap-2">
                 <span aria-hidden="true" className="text-success">
                   ✓
@@ -408,7 +408,7 @@ export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
                 </span>
               </li>
             ))}
-            {report.coverage.skipped.map((page) => (
+            {(report.coverage.skipped ?? []).map((page) => (
               <li key={`skipped-${page}`} className="flex gap-2 text-ink-soft">
                 <span aria-hidden="true">·</span>
                 <span>

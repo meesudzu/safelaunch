@@ -53,7 +53,7 @@ export interface ScanProgress {
   scanId: string;
   state: string;
   status?: string;
-  coverage: { fetched: string[]; failed: string[]; skipped: string[] };
+  coverage: { fetched?: string[]; failed?: string[]; skipped?: string[] };
   expiresAt?: string;
   reportUrl?: string;
 }

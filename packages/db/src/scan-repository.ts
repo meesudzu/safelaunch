@@ -68,14 +68,14 @@ export class ScanRepository {
     };
   }
 
-  async updateTerminal(input: {
+  async updateState(update: {
     id: string;
     state: string;
     coverage: Record<string, unknown>;
   }): Promise<void> {
     await this.db
       .prepare("UPDATE scans SET state = ?, coverage_json = ? WHERE id = ?")
-      .bind(input.state, JSON.stringify(input.coverage), input.id)
+      .bind(update.state, JSON.stringify(update.coverage), update.id)
       .run();
   }
 }
@@ -89,6 +89,12 @@ export interface PersistReportInput {
 
 export interface StoredReport {
   readonly scanId: string;
+  /**
+   * Token hash, or `null` once the row has been burned (see
+   * {@link ReportRepository.burnToken}). The D1 column itself is NOT NULL,
+   * so burnToken writes a sentinel string instead and we convert it back
+   * to null at the read boundary.
+   */
   readonly tokenHash: string | null;
   readonly payloadJson: string;
   readonly expiresAt: string;
@@ -96,14 +102,22 @@ export interface StoredReport {
 
 interface ReportRow {
   scan_id: string;
-  token_hash: string | null;
+  token_hash: string;
   payload_json: string;
   expires_at: string;
 }
 
+/**
+ * `reports.token_hash` is `NOT NULL` in the schema (it's also the column a
+ * real token hash is looked up by), so "burned" can't be represented as SQL
+ * NULL — it's this sentinel instead. A real SHA-256 hex digest is always 64
+ * lowercase hex characters, so it can never collide with the empty string.
+ */
+export const BURNED_TOKEN_HASH = "";
+
 const toReport = (row: ReportRow): StoredReport => ({
   scanId: row.scan_id,
-  tokenHash: row.token_hash,
+  tokenHash: row.token_hash === BURNED_TOKEN_HASH ? null : row.token_hash,
   payloadJson: row.payload_json,
   expiresAt: row.expires_at,
 });
@@ -156,8 +170,8 @@ export class ReportRepository {
     // call from `apps/workers/src/routes/reports.ts` instead of doing
     // it ad-hoc at a new call site.
     await this.db
-      .prepare("UPDATE reports SET token_hash = NULL WHERE scan_id = ?")
-      .bind(scanId)
+      .prepare("UPDATE reports SET token_hash = ? WHERE scan_id = ?")
+      .bind(BURNED_TOKEN_HASH, scanId)
       .run();
   }
 }

@@ -5,7 +5,12 @@ import {
   ScanCoverage,
   ScanCachedResponse,
 } from "@safelaunch/contracts";
-import { ScanRepository, ReportRepository, RedeemRepository } from "@safelaunch/db";
+import {
+  ScanRepository,
+  ReportRepository,
+  RedeemRepository,
+  BURNED_TOKEN_HASH,
+} from "@safelaunch/db";
 import { domainKey } from "@safelaunch/compliance-core";
 import { enforceAbuseControls, AbuseError, type AbuseControlsDeps } from "../middleware/abuse";
 import {
@@ -328,9 +333,14 @@ scansRouter.get("/v1/scans/:id", async (context) => {
   if (isTerminal(stored.state)) {
     const status = ScanState.parse(stored.state);
     progress.status = status;
+    // Read the persisted report. tokenHash === BURNED_TOKEN_HASH means the
+    // token has already been burned by a prior GET of /v1/reports/:token.
+    // We never generate or rotate tokens here — the workflow issued exactly
+    // one at persistReport time, and we surface that plaintext token (stored
+    // inside payload_json) only while the hash is still valid.
     const reportRepo = new ReportRepository(context.env.DB);
     const storedReport = await reportRepo.get(scanId);
-    if (storedReport && storedReport.tokenHash !== null) {
+    if (storedReport && storedReport.tokenHash !== BURNED_TOKEN_HASH) {
       try {
         const payload = JSON.parse(storedReport.payloadJson) as Record<string, unknown>;
         const token = typeof payload._reportToken === "string" ? payload._reportToken : null;
