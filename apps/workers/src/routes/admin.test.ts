@@ -163,8 +163,8 @@ describe("admin router", () => {
       const text = await response.text();
       expect(text).not.toContain("secret.example");
       expect(text).not.toContain("never-return");
-    const body = JSON.parse(text) as { coverage: { fetched: number } };
-    expect(body.coverage.fetched).toBe(1);
+      const body = JSON.parse(text) as { coverage: { fetched: number } };
+      expect(body.coverage.fetched).toBe(1);
     });
   });
 

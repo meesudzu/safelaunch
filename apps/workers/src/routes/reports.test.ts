@@ -248,7 +248,9 @@ describe("reports router", () => {
     );
     expect(response.status).toBe(200);
     const write = db.preparedCalls.find((call) =>
-      call.sql.startsWith("UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?"),
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
     );
     expect(write).toBeDefined();
     expect(write?.bindings).toEqual([
@@ -481,7 +483,9 @@ describe("reports router — by-token lookup", () => {
     );
     expect(response.status).toBe(200);
     const write = db.preparedCalls.find((call) =>
-      call.sql.startsWith("UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?"),
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
     );
     expect(write).toBeDefined();
     expect(write?.bindings).toEqual([
@@ -509,7 +513,9 @@ describe("reports router — by-token lookup", () => {
       );
     }
     const writes = db.preparedCalls.filter((call) =>
-      call.sql.startsWith("UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?"),
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
     );
     // Both reads still issue the write. The COALESCE in the SQL itself
     // is what guarantees the timestamp is only recorded the FIRST time;

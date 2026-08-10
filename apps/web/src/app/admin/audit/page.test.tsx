@@ -52,7 +52,8 @@ describe("admin audit page", () => {
     );
     // The `decision` and `actor` filters from the form must survive the
     // cursor navigation so admins can paginate without losing scope.
-    const nextHref = screen.getByRole("link", { name: "Trang tiếp theo" }).getAttribute("href") ?? "";
+    const nextHref =
+      screen.getByRole("link", { name: "Trang tiếp theo" }).getAttribute("href") ?? "";
     expect(nextHref).toMatch(/[?&]decision=approved(?:&|$)/);
     expect(nextHref).toMatch(/actor=reviewer%40safelaunch\.test/);
     expect(fetchMock).toHaveBeenCalledWith(

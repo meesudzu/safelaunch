@@ -149,9 +149,7 @@ export class ReportRepository {
    */
   async markOpened(scanId: string, openedAt: string): Promise<void> {
     await this.db
-      .prepare(
-        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
-      )
+      .prepare("UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?")
       .bind(openedAt, scanId)
       .run();
   }
