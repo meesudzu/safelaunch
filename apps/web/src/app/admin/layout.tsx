@@ -20,7 +20,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <a href="/admin/legal" className="font-serif text-xl font-semibold text-ink">
               {messages["shell.title"]}
             </a>
-            <p className="mt-0.5 text-xs text-ink-soft">{messages["footer.disclosure"]}</p>
           </div>
           <div className="flex items-center gap-3 text-xs">
             <p className="text-ink-soft">
@@ -37,9 +36,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <AdminNav />
       </header>
       <div className="flex-1">{children}</div>
-      <footer className="border-t border-rule bg-surface px-6 py-4 text-center text-xs text-ink-soft">
-        {messages["footer.disclosure"]}
-      </footer>
     </div>
   );
 }

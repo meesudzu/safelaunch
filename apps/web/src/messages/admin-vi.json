@@ -60,6 +60,5 @@
   "scans.all": "Tất cả",
   "scans.filter": "Lọc",
   "scans.next": "Trang tiếp theo",
-  "scans.detail": "Chi tiết lượt quét",
-  "footer.disclosure": "Hoạt động quản trị được ghi log để phục vụ kiểm toán."
+  "scans.detail": "Chi tiết lượt quét"
 }
