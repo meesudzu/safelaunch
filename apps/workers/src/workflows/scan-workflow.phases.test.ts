@@ -5,7 +5,9 @@ import {
   evaluatePhase,
   fetchPhase,
   persistReportPhase,
+  persistProgressPhase,
   persistTerminalPhase,
+  extractEvidencePhase,
   type EvaluatePhaseDeps,
   type FetchPhaseDeps,
   type PersistDeps,
@@ -222,6 +224,34 @@ describe("persistReportPhase", () => {
     expect(db.calls[0]!.sql).toMatch(/INSERT INTO reports .* ON CONFLICT\(scan_id\) DO UPDATE/);
     expect(db.calls[0]!.args[0]).toBe("scan-empty");
   });
+  it("includes expiresAt in the persisted payload so the report page can show the expiry date", async () => {
+    // Regression: the public /vi/report/<token> page renders
+    // "{expiry.label} {formatDate(report.expiresAt, locale)}". The
+    // page reads `expiresAt` from the payload JSON, so the workflow
+    // must persist it alongside the rest of the report fields —
+    // otherwise the footer renders "Báo cáo hết hạn vào" with no
+    // date. The expiresAt we persist must equal the expires_at
+    // already stored in the reports row (single source of truth).
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-06T00:00:00.000Z",
+    };
+    await persistReportPhase(
+      {
+        scanId: "scan-expiry",
+        payload: { findings: [], status: "needs_review" as const },
+      },
+      deps,
+    );
+    const call = db.calls[0]!;
+    const persisted = JSON.parse(call.args[2] as string) as Record<string, unknown>;
+    expect(persisted.expiresAt).toBe("2026-08-13T00:00:00.000Z");
+    // Single source of truth: the persisted payload's expiresAt must
+    // match the expires_at column the row binds to (call.args[3]).
+    expect(persisted.expiresAt).toBe(call.args[3]);
+  });
 });
 
 describe("persistTerminalPhase", () => {
@@ -247,4 +277,129 @@ describe("persistTerminalPhase", () => {
     expect(call.args[0]).toBe("completed");
     expect(call.args[2]).toBe("scan-term");
   });
+});
+
+describe("persistProgressPhase", () => {
+  it("updates only the state column without touching coverage_json", async () => {
+    // G1/G4: the progress writes must NOT clobber the in-flight
+    // coverage_json (still owned by phase-10:persist-terminal). The
+    // SQL must therefore set state only, so the API's coverage contract
+    // is unchanged during the run.
+    const db = stubDb();
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: () => {},
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistProgressPhase({ scanId: "scan-extracting", state: "extracting" }, deps);
+    expect(db.calls.length).toBe(1);
+    const call = db.calls[0]!;
+    expect(call.sql).toMatch(/UPDATE scans SET state = \? WHERE id = \?/);
+    expect(call.sql).not.toMatch(/coverage_json/);
+    expect(call.args[0]).toBe("extracting");
+    expect(call.args[1]).toBe("scan-extracting");
+  });
+
+  it("logs scan.progress_persisted with the new state so operators can spot live progress", async () => {
+    // G7: the new event name carries only scanId + state (both already
+    // present in existing log lines). Make sure no other fields leak.
+    const db = stubDb();
+    const entries: Array<Record<string, unknown>> = [];
+    const deps: PersistDeps = {
+      db: db as unknown as D1Database,
+      log: (entry) => entries.push(entry),
+      now: () => "2026-08-04T00:00:00.000Z",
+    };
+    await persistProgressPhase({ scanId: "scan-eval", state: "evaluating" }, deps);
+    const matched = entries.find((e) => e["event"] === "scan.progress_persisted");
+    expect(matched).toBeDefined();
+    expect(matched).toMatchObject({
+      scanId: "scan-eval",
+      state: "evaluating",
+      level: "info",
+    });
+    // No PII or compliance claim fields.
+    expect(JSON.stringify(matched)).not.toMatch(/url|findings|token|coverage/);
+  });
+
+  it("accepts every intermediate ScanState value without rejecting", async () => {
+    // G1: every intermediate value in the public ScanState enum must
+    // be acceptable. Terminal values pass through too -- the route
+    // already gates which states surface a report URL.
+    const { ScanState } = await import("@safelaunch/contracts");
+    const states = ScanState.options;
+    for (const state of states) {
+      const db = stubDb();
+      const deps: PersistDeps = {
+        db: db as unknown as D1Database,
+        log: () => {},
+        now: () => "2026-08-04T00:00:00.000Z",
+      };
+      await persistProgressPhase({ scanId: "scan-iter", state }, deps);
+      expect(db.calls[0]?.args[0]).toBe(state);
+    }
+  });
+});
+
+describe("extractEvidencePhase per-page isolation", () => {
+  it("skips a page that throws and continues with the rest of the pages", async () => {
+    // F2: previously, an oversized page (sanitizePageText throws
+    // SanitizationError) would abort the entire phase, leaving the scan
+    // with zero evidence even though other pages were perfectly fine.
+    // Now each page is wrapped in try/catch: a failing page is logged
+    // and skipped, the rest still produce evidence. We exercise the
+    // isolation by spying on `extractEvidence` and forcing it to throw
+    // for the privacy page only.
+    const { vi } = await import("vitest");
+    const evidenceModule = await import("../services/evidence");
+    const spy = vi.spyOn(evidenceModule, "extractEvidence");
+    const okHtml = "<p>Công ty TNHH Example contact@example.com</p>";
+    spy.mockImplementation((input: { sourceUrl: string; html: string }) => {
+      if (input.sourceUrl.includes("/poison")) {
+        throw new Error("synthetic extract failure for isolation test");
+      }
+      // Fall through to the real implementation by re-importing the
+      // underlying pure function — but since spy wraps it, call the
+      // non-throwing logic manually via sanitize + simple regex pass.
+      // To keep this isolated from internals we return an empty list;
+      // the assertion below verifies only the THROWING page is skipped.
+      return [];
+    });
+
+    const result = extractEvidencePhase(
+      [
+        { type: "privacy", url: "https://example.com/poison", status: 200 },
+        { type: "terms", url: "https://example.com/terms", status: 200 },
+      ],
+      new Map<string, Uint8Array>([
+        ["https://example.com/poison", new TextEncoder().encode(okHtml)],
+        ["https://example.com/terms", new TextEncoder().encode(okHtml)],
+      ]),
+    );
+
+    // The throwing page is skipped; the surviving page still decodes.
+    expect(result.pages.find((p) => p.url === "https://example.com/poison")).toBeUndefined();
+    expect(result.pages.find((p) => p.url === "https://example.com/terms")).toBeDefined();
+    // The phase returned a normal shape (no throw).
+    expect(Array.isArray(result.evidence)).toBe(true);
+    spy.mockRestore();
+  });
+
+  it(
+    "survives a 810 KB HTML payload without throwing (chunked sanitization)",
+    { timeout: 30_000 },
+    () => {
+      // Regression test for the dantri.com.vn failure mode: previously the
+      // phase would terminate on the first oversized page. The chunked
+      // sanitization in `sanitizePageText` + the per-page try/catch in
+      // `extractEvidencePhase` together guarantee the phase completes.
+      const hugeHtml = "<div>" + "x".repeat(810_000) + "</div>";
+      const result = extractEvidencePhase(
+        [{ type: "homepage", url: "https://example.com/", status: 200 }],
+        new Map([["https://example.com/", new TextEncoder().encode(hugeHtml)]]),
+      );
+      expect(result.pages.length).toBe(1);
+      expect(result.evidence.length).toBe(0);
+    },
+  );
 });

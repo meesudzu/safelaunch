@@ -91,7 +91,7 @@ upsert`).
   `p95LatencyMs<60_000`).
 - **How:**
   1. Configure a Workers AI model binding on staging
-     (`@cf/meta/llama-3.1-8b-instruct` per `packages/ai/src/provider.ts`).
+     (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` per `packages/ai/src/provider.ts`).
   2. Replace `stubSystem` in `packages/ai/src/eval-runner.test.ts` with a
      real provider.
   3. Run `pnpm -C packages/ai test -- eval-runner`.

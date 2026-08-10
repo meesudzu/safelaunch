@@ -72,7 +72,7 @@ out-of-date provisions never reach Vectorize ranking.
   `apps/workers/wrangler.jsonc` under the `LEGAL_INDEX` binding.
 - Transport: `embedText` / `embedBatch` in
   `packages/ai/src/gateway.ts`, which calls Workers AI through the
-  Cloudflare AI Gateway (`safelaunch-mvp`).
+  Cloudflare AI Gateway (`default` by default; override with `AI_GATEWAY_ID`).
 - Inputs: the provision `text` field plus optional article/clause
   context (e.g. `Điều 13, Nghị định 13/2023/NĐ-CP`).
 - Outputs: 768-d float vectors persisted into Vectorize with the

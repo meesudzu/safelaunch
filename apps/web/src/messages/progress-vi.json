@@ -14,7 +14,6 @@
   "expiry.label": "Báo cáo hết hạn vào",
   "steps.title": "Các bước quét",
   "steps.subtitle": "Bước {current} / {total}",
-  "coverage.title": "Các trang đã quét",
   "step.queued.label": "Đang chờ",
   "step.queued.description": "Đang xếp hàng để bắt đầu quét",
   "step.fetching.label": "Đang tải trang",

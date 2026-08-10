@@ -9,10 +9,13 @@ import type { GatewayOptions } from "@cloudflare/workers-types";
  *   - request rate limits and retries are centralized;
  *   - prompts and metadata flow through AI Gateway logs.
  *
- * The `safelaunch-legal` gateway identifier is the same across every model
- * call so analytics aggregate by jurisdiction topic, not by model.
+ * The default gateway identifier is shared across every model call so
+ * analytics aggregate by jurisdiction topic, not by model. A named gateway
+ * can be supplied through the workflow environment when needed.
  */
-export const DEFAULT_GATEWAY_ID = "safelaunch-legal";
+// Cloudflare's reserved default gateway is auto-created on the first
+// authenticated request. Custom gateway ids still work via configuration.
+export const DEFAULT_GATEWAY_ID = "default";
 export const DEFAULT_EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5";
 
 export interface GatewayConfig {

@@ -17,6 +17,33 @@ export const APPROVED_CITATION_HOSTS = ["vbpl.vn"] as const;
 
 export type ApprovedCitationHost = (typeof APPROVED_CITATION_HOSTS)[number];
 
+/**
+ * Hosts that the font-evidence panel may link to. These are non-legal
+ * sources (font spec, open-source registries, Microsoft Learn) used to
+ * back the `registry_hash_match` / `fs_type_*` reason codes. They
+ * must NOT be added to `APPROVED_CITATION_HOSTS`, which is reserved
+ * for the official Vietnamese legal corpus.
+ */
+export const APPROVED_FONT_SOURCE_HOSTS = [
+  "raw.githubusercontent.com",
+  "openfontlicense.org",
+  "learn.microsoft.com",
+] as const;
+
+export type ApprovedFontSourceHost = (typeof APPROVED_FONT_SOURCE_HOSTS)[number];
+
+export const isApprovedFontSourceUrl = (url: string): boolean => {
+  if (typeof url !== "string" || url.length === 0) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return APPROVED_FONT_SOURCE_HOSTS.some(
+      (allowed) => host === allowed || host.endsWith("." + allowed),
+    );
+  } catch {
+    return false;
+  }
+};
+
 export const isApprovedCitationUrl = (url: string): boolean => {
   if (typeof url !== "string" || url.length === 0) return false;
   try {

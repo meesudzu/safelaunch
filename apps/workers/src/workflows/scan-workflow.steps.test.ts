@@ -104,6 +104,7 @@ describe("EMPTY_DIGITAL_ASSET_COLLECTION", () => {
       assets: [],
       findings: [],
       summary: { total: 0, byKind: {}, flagged: 0 },
+      fontInventory: { groups: [], totals: { families: 0, files: 0, flagged: 0 } },
     });
   });
 });

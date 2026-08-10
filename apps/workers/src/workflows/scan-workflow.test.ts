@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { type PageFetcher, type ScanParams, runScan } from "./scan-workflow";
+
+import {
+  type PageFetcher,
+  type ScanParams,
+  runScan,
+  userFacingMessageForError,
+} from "./scan-workflow";
+import { CitationVerificationError, SchemaViolationError } from "@safelaunch/compliance-core";
 
 const fakeHtml = (title: string) =>
   `<!DOCTYPE html><html lang="vi"><head><title>${title}</title></head><body><p>OK</p></body></html>`;
@@ -68,15 +75,7 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
   };
   const logger = captureLogger();
   const terminalStates: unknown[] = [];
-  const updateStateCalls: { scanId: string; state: string; coverage: unknown }[] = [];
-  const updateState = async (input: {
-    scanId: string;
-    state: string;
-    coverage: unknown;
-  }): Promise<void> => {
-    await Promise.resolve();
-    updateStateCalls.push(input);
-  };
+  const progressStates: Array<{ scanId: string; state: string }> = [];
   const deps = {
     fetch: overrides.fetch,
     evaluate:
@@ -85,16 +84,19 @@ const makeDeps = (overrides: { fetch: PageFetcher; evaluate?: ScanRunDeps["evalu
         await Promise.resolve();
         return { status: "no_significant_risk" as const, findings: [] };
       }),
+    persistReport,
     persistTerminalState: (input: unknown) => {
       terminalStates.push(input);
       return Promise.resolve();
     },
-    persistReport,
-    updateState,
+    persistProgressState: (input: { scanId: string; state: string }) => {
+      progressStates.push(input);
+      return Promise.resolve();
+    },
     now: () => "2026-07-29T00:00:00.000Z",
     log: logger.log,
   };
-  return { deps, logger, issued, updateStateCalls, terminalStates };
+  return { deps, logger, issued, terminalStates, progressStates };
 };
 
 type ScanRunDeps = Parameters<typeof runScan>[1];
@@ -110,18 +112,14 @@ const baseParams: ScanParams = {
 describe("runScan", () => {
   it("returns completed for a happy-path fixture and persists a single report token", async () => {
     const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
-    const { deps, updateStateCalls } = makeDeps({ fetch });
+    const { deps } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("completed");
     expect(result.coverage.failed).toEqual([]);
     expect(result.status).toBe("no_significant_risk");
     expect(result.reportUrl).toMatch(/^https:\/\/reports\.test\/tok-/);
     expect(result.scanId).toBe(baseParams.scanId);
-    expect(updateStateCalls).toContainEqual({
-      scanId: baseParams.scanId,
-      state: "completed",
-      coverage: result.coverage,
-    });
+    // Second invocation must NOT yield a fresh token because report is one-time.
     const second = await runScan(baseParams, deps);
     expect(second.reportUrl).toBeUndefined();
   });
@@ -141,7 +139,7 @@ describe("runScan", () => {
 
   it("returns failed when the homepage fetch fails", async () => {
     const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
-    const { deps, terminalStates, updateStateCalls } = makeDeps({ fetch });
+    const { deps, terminalStates } = makeDeps({ fetch });
     const result = await runScan(baseParams, deps);
     expect(result.state).toBe("failed");
     expect(result.status).toBe("needs_review");
@@ -155,11 +153,6 @@ describe("runScan", () => {
         coverage: { fetched: [], failed: ["homepage"], skipped: [], degradedPhases: [] },
       },
     ]);
-    expect(updateStateCalls).toContainEqual({
-      scanId: baseParams.scanId,
-      state: "failed",
-      coverage: result.coverage,
-    });
   });
 
   it("does not issue a report URL when a timeout page failed", async () => {
@@ -226,5 +219,162 @@ describe("runScan", () => {
     expect(first.coverage.fetched).toContain("homepage");
     // Same scan should not duplicate the homepage entry.
     expect(first.coverage.fetched.filter((entry) => entry === "homepage").length).toBe(1);
+  });
+});
+
+describe("runScan progress publishing", () => {
+  // G1/G2: runScan must emit at least two intermediate progress updates
+  // so the polling UI can render step-level progress while the scan is
+  // running. The entrypoint also publishes "reporting" before phase-9
+  // (covered separately in scan-workflow.entrypoint.test.ts).
+
+  it("publishes 'extracting' after the fetch phase completes", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const states = progressStates.map((p) => p.state);
+    expect(states).toContain("extracting");
+  });
+
+  it("publishes 'evaluating' after the evaluation phase completes", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const states = progressStates.map((p) => p.state);
+    expect(states).toContain("evaluating");
+  });
+
+  it("emits 'extracting' before 'evaluating' (phase order)", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    const extractingIndex = progressStates.findIndex((p) => p.state === "extracting");
+    const evaluatingIndex = progressStates.findIndex((p) => p.state === "evaluating");
+    expect(extractingIndex).toBeGreaterThanOrEqual(0);
+    expect(evaluatingIndex).toBeGreaterThanOrEqual(0);
+    expect(extractingIndex).toBeLessThan(evaluatingIndex);
+  });
+
+  it("scopes every progress publish to the same scanId", async () => {
+    const fetch = new FakeFetcher(HOMEPAGE_FIXTURE);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    expect(progressStates.length).toBeGreaterThan(0);
+    for (const entry of progressStates) {
+      expect(entry.scanId).toBe(baseParams.scanId);
+    }
+  });
+
+  it("does not publish intermediate progress when the homepage fetch fails", async () => {
+    // G3: the homepage-fail path short-circuits straight to a terminal
+    // "failed" state via persistTerminalState. No intermediate progress
+    // should be emitted so the API does not flip from queued to
+    // extracting to failed on a one-shot failure.
+    const fetch = new FakeFetcher({}, [{ url: HOME, minAttempts: 1 }]);
+    const { deps, progressStates } = makeDeps({ fetch });
+    await runScan(baseParams, deps);
+    expect(progressStates).toEqual([]);
+  });
+});
+
+describe("font-evidence report payload (regression)", () => {
+  it("places fontInventory at the top level of the persisted payload (so the report UI can render it)", async () => {
+    let captured: Record<string, unknown> | null = null;
+    const persistReport = async (input: {
+      scanId: string;
+      payload: Record<string, unknown>;
+    }): Promise<{ token: string; url: string }> => {
+      await Promise.resolve();
+      captured = input.payload;
+      return { token: `tok-${input.scanId}`, url: `https://reports.test/${input.scanId}` };
+    };
+    const evaluate = async (): Promise<{
+      status: "no_significant_risk";
+      findings: never[];
+      assetInventory: {
+        assets: never[];
+        findings: never[];
+        summary: { total: number; byKind: Record<string, number>; flagged: number };
+        fontInventory: {
+          groups: Array<{ id: string; family: string; kind: "font" }>;
+          totals: { families: number; files: number; flagged: number };
+        };
+      };
+    }> => {
+      await Promise.resolve();
+      return {
+        status: "no_significant_risk" as const,
+        findings: [],
+        assetInventory: {
+          assets: [],
+          findings: [],
+          summary: { total: 0, byKind: {}, flagged: 0 },
+          fontInventory: {
+            groups: [{ id: "font::roboto", family: "Roboto", kind: "font" }],
+            totals: { families: 1, files: 0, flagged: 0 },
+          },
+        },
+      };
+    };
+    const fetch = new FakeFetcher({ [HOME]: { status: 200, html: fakeHtml("Home") } });
+    const deps = {
+      fetch,
+      evaluate: evaluate as unknown as ScanRunDeps["evaluate"],
+      persistReport,
+      log: () => {},
+      persistTerminalState: async () => {
+        await Promise.resolve();
+      },
+      persistProgressState: async () => {
+        await Promise.resolve();
+      },
+      now: () => new Date("2026-08-06T00:00:00.000Z"),
+    } as unknown as Parameters<typeof runScan>[1];
+    await runScan(baseParams, deps);
+    expect(captured).not.toBeNull();
+    expect(captured).toHaveProperty("fontInventory");
+    // The bug we are guarding against: fontInventory was only nested under
+    // assetInventory. The report UI reads it from the top level.
+    expect(captured!.fontInventory).toEqual({
+      groups: [{ id: "font::roboto", family: "Roboto", kind: "font" }],
+      totals: { families: 1, files: 0, flagged: 0 },
+    });
+  });
+});
+
+// Regression tests for the 2026-08-10 catch-block sanitization fix:
+// the workflow catch must NOT leak technical error class names
+// ("Verifier schema violation", "Citation verification failed") to
+// the user-facing rationale. See
+// docs/superpowers/specs/2026-08-10-verify-schema-strictness.md.
+describe("userFacingMessageForError", () => {
+  it("maps SchemaViolationError to a clean Vietnamese message", () => {
+    const msg = userFacingMessageForError(
+      new SchemaViolationError("draft does not match EvaluationDraftSchema", []),
+    );
+    expect(msg).toBe("Không đủ bằng chứng để xác minh tự động.");
+    expect(msg).not.toContain("Verifier");
+    expect(msg).not.toContain("SchemaViolationError");
+    expect(msg).not.toContain("EvaluationDraftSchema");
+  });
+
+  it("maps CitationVerificationError to a clean Vietnamese message", () => {
+    const msg = userFacingMessageForError(
+      new CitationVerificationError("no legalQuote from draft matches provision prov-1 text"),
+    );
+    expect(msg).toBe("Trích dẫn pháp lý không khớp với văn bản được duyệt.");
+    expect(msg).not.toContain("Citation");
+    expect(msg).not.toContain("legalQuote");
+  });
+
+  it("maps an unknown error to a generic Vietnamese message", () => {
+    const msg = userFacingMessageForError(new Error("boom"));
+    expect(msg).toBe("Lỗi kỹ thuật khi xác minh tự động.");
+    expect(msg).not.toContain("boom");
+  });
+
+  it("maps a non-Error throw value to the generic message", () => {
+    expect(userFacingMessageForError("just a string")).toBe("Lỗi kỹ thuật khi xác minh tự động.");
+    expect(userFacingMessageForError(undefined)).toBe("Lỗi kỹ thuật khi xác minh tự động.");
   });
 });

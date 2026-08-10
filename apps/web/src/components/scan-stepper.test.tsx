@@ -38,13 +38,13 @@ describe("ScanStepper", () => {
       "queued",
       "fetching",
       "extracting",
-      "retrieving",
       "evaluating",
+      "retrieving",
       "reporting",
     ]);
   });
 
-  it.each(["queued", "fetching", "extracting", "retrieving", "evaluating", "reporting"] as const)(
+  it.each(["queued", "fetching", "extracting", "evaluating", "retrieving", "reporting"] as const)(
     "marks only the matching step as active for state=%s",
     (state) => {
       render(<ScanStepper locale="vi" messages={baseMessages} currentState={state} />);
