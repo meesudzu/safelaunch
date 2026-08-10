@@ -28,7 +28,8 @@ const queryRecordType = async (
   if (!response.ok) {
     throw new Error(`DoH query failed with status ${response.status}`);
   }
-  const body = (await response.json()) as unknown as DohResponse;
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  const body = (await response.json()) as DohResponse;
   return (body.Answer ?? []).filter((answer) => answer.type === type).map((answer) => answer.data);
 };
 

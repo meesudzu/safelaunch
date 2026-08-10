@@ -16,12 +16,29 @@ This document is the handoff to the team. Items are grouped by **Tier**
   Implementation at `docs/superpowers/plans/2026-08-03-daily-domain-quota-plan.md`.
   Gated by `ENABLE_DAILY_QUOTA` (default `false`). Enable on staging first,
   then production, after a manual smoke run.
+- **Vectorize `safelaunch-legal` population script + legal_provisions.vector_id
+  back-fill (PR #25, 2026-08-10).** Script at
+  `scripts/embed-legal-corpus.mjs` (pure logic in `scripts/lib/embed-corpus-lib.mjs`,
+  unit-tested in `scripts/lib/embed-corpus-lib.test.mjs`). Embeds all 12
+  seed provisions in a single batched Workers AI call routed through the
+  Cloudflare AI Gateway (`gateway.ai.cloudflare.com`), upserts to the
+  Vectorize index, then runs a single `UPDATE legal_provisions SET
+vector_id = id WHERE id IN (...)` so D1 has the back-reference the
+  production ingest pipeline relies on. Unit-tested with vitest at the
+  repo root. To populate staging / production:
+  ```bash
+  CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... \
+    node scripts/embed-legal-corpus.mjs --index safelaunch-legal
+  ```
+  Override the AI Gateway id with `CLOUDFLARE_AI_GATEWAY_ID=...` if not
+  using the Cloudflare-reserved `default` gateway. Pass
+  `--skip-vector-id-update` for a dry run that only touches Vectorize.
 
 ---
 
 ## Tier 1 — Must do before any release announcement
 
-### 1.2 Populate Vectorize `safelaunch-legal` with real embeddings
+### 1.2 Populate Vectorize `safelaunch-legal` with real embeddings ✅ (shipped 2026-08-10, see "Recently shipped")
 
 - **Why:** The seed in `scripts/seed-legal-corpus.sql` inserts 12
   provisions but `vector_id` is NULL on every row. The retrieval step

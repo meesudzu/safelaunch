@@ -89,7 +89,13 @@ export interface PersistReportInput {
 
 export interface StoredReport {
   readonly scanId: string;
-  readonly tokenHash: string;
+  /**
+   * Token hash, or `null` once the row has been burned (see
+   * {@link ReportRepository.burnToken}). The D1 column itself is NOT NULL,
+   * so burnToken writes a sentinel string instead and we convert it back
+   * to null at the read boundary.
+   */
+  readonly tokenHash: string | null;
   readonly payloadJson: string;
   readonly expiresAt: string;
 }
@@ -111,7 +117,7 @@ export const BURNED_TOKEN_HASH = "";
 
 const toReport = (row: ReportRow): StoredReport => ({
   scanId: row.scan_id,
-  tokenHash: row.token_hash,
+  tokenHash: row.token_hash === BURNED_TOKEN_HASH ? null : row.token_hash,
   payloadJson: row.payload_json,
   expiresAt: row.expires_at,
 });

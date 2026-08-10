@@ -277,8 +277,6 @@ export interface ReportViewProps {
 }
 
 export const ReportView = ({ locale, messages, report }: ReportViewProps) => {
-  const currentFindings = report.findings.filter((f) => f.applicability === "current");
-  const upcomingFindings = report.findings.filter((f) => f.applicability === "upcoming");
   const failedPages = report.coverage.failed;
   const isPartial = failedPages.length > 0;
 
