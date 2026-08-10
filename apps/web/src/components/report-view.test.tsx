@@ -692,9 +692,7 @@ describe("font inventory (V1)", () => {
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     const fontSection = screen.getByTestId("font-inventory-section");
     // The IP law excerpt must be rendered inside the font inventory panel.
-    expect(
-      within(fontSection).getByText(/sự đồng ý của chủ sở hữu/i),
-    ).toBeInTheDocument();
+    expect(within(fontSection).getByText(/sự đồng ý của chủ sở hữu/i)).toBeInTheDocument();
     // The source label (used as the link text) must point at vbpl.vn.
     const sourceLink = within(fontSection).getByRole("link", {
       name: /Luật Sở hữu trí tuệ 2022/,
@@ -1016,9 +1014,7 @@ describe("font deduplication in findings tabs", () => {
     // rendered inside every active tabpanel.
     await user.click(screen.getByTestId("findings-tab-high"));
     expect(screen.getByTestId("findings-tabpanel-high")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("font-inventory-section"),
-    ).toBeNull();
+    expect(screen.queryByTestId("font-inventory-section")).toBeNull();
   });
 
   it("keeps the review tab visible when the only flagged items are fonts (font inventory still renders)", () => {

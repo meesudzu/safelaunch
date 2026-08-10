@@ -808,10 +808,7 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
         {fontInventory.totals.flagged} {locale === "vi" ? "cần xem xét" : "need review"}
       </p>
       {ipLawCitation ? (
-        <div
-          data-testid="font-ip-law-citation"
-          className="mt-3 border-l-2 border-rule pl-3"
-        >
+        <div data-testid="font-ip-law-citation" className="mt-3 border-l-2 border-rule pl-3">
           <p className="text-xs uppercase tracking-wider text-ink-soft">
             {messages["finding.legal_excerpt"]}
           </p>
@@ -819,12 +816,7 @@ const FontInventoryPanel = ({ fontInventory, messages, locale }: FontInventoryPa
             &ldquo;{ipLawCitation.excerpt}&rdquo;
           </blockquote>
           <p className="mt-1 text-xs text-ink-soft">
-            <a
-              href={ipLawCitation.url}
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
+            <a href={ipLawCitation.url} target="_blank" rel="noreferrer" className="underline">
               {ipLawCitation.source}
             </a>
             {" · "}
