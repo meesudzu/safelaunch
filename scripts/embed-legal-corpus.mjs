@@ -139,7 +139,11 @@ const main = async () => {
     console.log("No provisions to UPDATE; skipping D1 round-trip.");
     return;
   }
-  const d1Args = ["exec", "wrangler", "d1", "execute", "DB", "--command", updateSql];
+  // --remote: this is a one-shot production-population script. The local D1
+  // (driven by `wrangler dev`) is typically empty — migrations have to be
+  // applied by hand — so we always hit the remote instance by default.
+  // Vectorize has no local mode, so the insert above already went remote.
+  const d1Args = ["exec", "wrangler", "d1", "execute", "DB", "--remote", "--command", updateSql];
   if (configPath) d1Args.push("--config", path.resolve(repoRoot, configPath));
   console.log(`Updating legal_provisions.vector_id for ${provisions.length} rows...`);
   execFileSync("pnpm", d1Args, {
