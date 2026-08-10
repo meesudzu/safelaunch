@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createEvaluationProvider,
   DEFAULT_EVALUATION_MODEL,
+  parseModelOutput,
   type ProviderDeps,
   type ProviderInput,
 } from "./provider";
@@ -136,5 +137,122 @@ describe("createEvaluationProvider", () => {
     const provider = createEvaluationProvider(deps);
     await provider(baseInput);
     expect(calls[0]!.gateway).toEqual({ id: "safelaunch-legal", cacheTtl: 300 });
+  });
+});
+
+// Regression tests for the 2026-08-10 defensive LLM output parser.
+// The 70B Workers AI model frequently:
+//   (a) wraps its JSON in a markdown code fence (```json ... ```),
+//   (b) uses field aliases ("reason" instead of "rationale"),
+//   (c) omits fields that have empty defaults for severity 'review'/'pass'.
+// parseModelOutput must recover gracefully from all three.
+// See docs/superpowers/specs/2026-08-10-defensive-llm-parser.md.
+describe("parseModelOutput", () => {
+  it("strips a ```json markdown fence and parses the inner JSON", () => {
+    const raw =
+      "```json\n" +
+      '{"severity":"review","rationale":"x","evidenceIds":[],"provisionIds":[],"legalQuotes":[],"confidence":0.5,"recommendedAction":"none"}\n' +
+      "```";
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    expect(out!.severity).toBe("review");
+    expect(out!.rationale).toBe("x");
+  });
+
+  it("strips a ``` fence without the 'json' language hint", () => {
+    const raw =
+      "```\n" +
+      '{"severity":"review","rationale":"x","evidenceIds":[],"provisionIds":[],"legalQuotes":[],"confidence":0.5,"recommendedAction":"none"}\n' +
+      "```";
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    expect(out!.severity).toBe("review");
+  });
+
+  it("parses plain JSON without fences", () => {
+    const raw =
+      '{"severity":"review","rationale":"x","evidenceIds":[],"provisionIds":[],"legalQuotes":[],"confidence":0.5,"recommendedAction":"none"}';
+    const out = parseModelOutput(raw);
+    expect(out!.severity).toBe("review");
+  });
+
+  it("returns null when the text contains no parseable JSON object", () => {
+    expect(parseModelOutput("not json at all")).toBeNull();
+    expect(parseModelOutput("")).toBeNull();
+  });
+
+  it("maps the 'reason' alias to 'rationale'", () => {
+    const raw = '{"severity":"review","reason":"insufficient evidence","confidence":0.5}';
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    expect(out!.rationale).toBe("insufficient evidence");
+  });
+
+  it("maps other common aliases (citations->legalQuotes, action->recommendedAction)", () => {
+    const raw =
+      '{"severity":"review","rationale":"x","evidenceIds":["ev1"],"citations":["q1"],"action":"do thing"}';
+    const out = parseModelOutput(raw);
+    expect(out!.legalQuotes).toEqual(["q1"]);
+    expect(out!.recommendedAction).toBe("do thing");
+  });
+
+  it("strips unknown keys (e.g. the model's stray 'category' field)", () => {
+    const raw = '{"category":"online_game","severity":"review","rationale":"x","confidence":0.5}';
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    // unknown key 'category' must not appear in the parsed draft
+    expect((out as unknown as Record<string, unknown>)["category"]).toBeUndefined();
+  });
+
+  it("recovers a review draft with the exact production shape (markdown fence + missing required keys)", () => {
+    // Verbatim from the production log the user pasted on 2026-08-10.
+    const raw =
+      "```json\n" +
+      '{"category":"electronic_press","severity":"review","confidence":0.5,"reason":"Insufficient evidence to evaluate compliance"}\n' +
+      "```";
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    expect(out!.severity).toBe("review");
+    expect(out!.rationale).toBe("Insufficient evidence to evaluate compliance");
+    expect(out!.confidence).toBe(0.5);
+    // Missing required arrays are filled with empty defaults (legal for
+    // severity 'review' under the relaxed schema).
+    expect(out!.evidenceIds).toEqual([]);
+    expect(out!.provisionIds).toEqual([]);
+    expect(out!.legalQuotes).toEqual([]);
+    expect(typeof out!.recommendedAction).toBe("string");
+    expect(out!.recommendedAction.length).toBeGreaterThan(0);
+  });
+
+  it("fills defaults for severity 'pass' the same way as 'review'", () => {
+    const raw = '{"severity":"pass","rationale":"all good","confidence":1}';
+    const out = parseModelOutput(raw);
+    expect(out).not.toBeNull();
+    expect(out!.severity).toBe("pass");
+    expect(out!.evidenceIds).toEqual([]);
+    expect(out!.legalQuotes).toEqual([]);
+  });
+
+  it("does NOT fill defaults for severity 'high' with missing legalQuotes (defensive-only for review/pass)", () => {
+    // 'high' without legalQuotes must NOT be recovered; the caller's
+    // fallback (or the schema's superRefine) handles it.
+    const raw =
+      '{"severity":"high","rationale":"...","evidenceIds":["ev1"],"provisionIds":["p1"],"confidence":0.95}';
+    const out = parseModelOutput(raw);
+    expect(out).toBeNull();
+  });
+
+  it("accepts an already-parsed object (idempotent)", () => {
+    const raw = {
+      severity: "review" as const,
+      rationale: "x",
+      evidenceIds: [],
+      provisionIds: [],
+      legalQuotes: [],
+      confidence: 0.5,
+      recommendedAction: "none",
+    };
+    const out = parseModelOutput(raw);
+    expect(out).toEqual(raw);
   });
 });

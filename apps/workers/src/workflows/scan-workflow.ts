@@ -44,6 +44,8 @@ import {
   RUBRIC_VERSION,
   evaluateLicenseRequirements,
   InMemoryLicenseRegistry,
+  SchemaViolationError,
+  CitationVerificationError,
 } from "@safelaunch/compliance-core";
 import {
   retrieveLegalContext,
@@ -57,6 +59,28 @@ import {
 export const SUPPORTED_PAGE_TYPES = ["homepage", "about", "terms", "privacy", "contact"] as const;
 
 export type SupportedPageType = (typeof SUPPORTED_PAGE_TYPES)[number];
+
+/**
+ * Map an error thrown during evidence/provision verification to a
+ * Vietnamese user-facing message. The raw cause.message is no longer
+ * leaked to the report payload — operators can still see it in the
+ * workflow logs (level=error) emitted elsewhere.
+ *
+ * History:
+ *  - 2026-08-10: extracted from the inline catch block in runScan so
+ *    it can be unit-tested independently and so we can swap messages
+ *    per error class instead of showing "Verifier schema violation:
+ *    draft does not match EvaluationDraftSchema" to end users.
+ */
+export const userFacingMessageForError = (cause: unknown): string => {
+  if (cause instanceof SchemaViolationError) {
+    return "Không đủ bằng chứng để xác minh tự động.";
+  }
+  if (cause instanceof CitationVerificationError) {
+    return "Trích dẫn pháp lý không khớp với văn bản được duyệt.";
+  }
+  return "Lỗi kỹ thuật khi xác minh tự động.";
+};
 
 export const ScanParamsSchema = z.object({
   scanId: z.string().min(1),
@@ -1316,10 +1340,13 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
             applicability: verified.applicability,
           });
         } catch (cause) {
+          // Map technical errors to user-friendly Vietnamese. The raw
+          // cause.message stays in the workflow log (level: error) below
+          // so operators can still debug.
           findings.push({
             id: `${rule.ruleId}::error`,
             severity: "review",
-            rationale: `Không thể xác minh tự động (${cause instanceof Error ? cause.message : String(cause)}). ${rule.rationale}`,
+            rationale: `${userFacingMessageForError(cause)} ${rule.rationale}`,
             confidence: 0,
             evidenceIds: [...rule.evidenceIds],
             citations: [],
