@@ -16,6 +16,7 @@ export type Env = {
   SCAN_WORKFLOW?: Workflow;
   ABUSE_RATE_LIMITER?: DurableObjectNamespace;
   ENABLE_DAILY_QUOTA?: string;
+  AI_GATEWAY_ID?: string;
 };
 
 const app = new Hono<{ Bindings: Env }>();

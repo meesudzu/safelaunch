@@ -12,7 +12,9 @@ import type { GatewayOptions } from "@cloudflare/workers-types";
  * The `safelaunch-legal` gateway identifier is the same across every model
  * call so analytics aggregate by jurisdiction topic, not by model.
  */
-export const DEFAULT_GATEWAY_ID = "safelaunch-legal";
+// Cloudflare's reserved default gateway is auto-created on the first
+// authenticated request. Custom gateway ids still work via configuration.
+export const DEFAULT_GATEWAY_ID = "default";
 export const DEFAULT_EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5";
 
 export interface GatewayConfig {

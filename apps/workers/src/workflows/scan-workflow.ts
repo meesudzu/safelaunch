@@ -49,6 +49,7 @@ import {
   retrieveLegalContext,
   evaluateEvidenceProvisionPair,
   createEvaluationProvider,
+  DEFAULT_GATEWAY_ID,
   embedText as embedTextAi,
   type RetrievalDeps,
 } from "@safelaunch/ai";
@@ -341,6 +342,7 @@ export interface ScanWorkflowEnv {
   FETCH_PAGES_TIMEOUT_MS?: string;
   EXTRACT_EVIDENCE_TIMEOUT_MS?: string;
   EVALUATE_TIMEOUT_MS?: string;
+  AI_GATEWAY_ID?: string;
 }
 
 export type ScanWorkflowPayload = ScanParams;
@@ -1014,6 +1016,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
   const legalRepo = new LegalRepository(env.DB);
   const aiBinding = env.AI;
   const vectorIndex = env.LEGAL_INDEX;
+  const gateway = { id: env.AI_GATEWAY_ID?.trim() || DEFAULT_GATEWAY_ID };
 
   return async (input): Promise<EvaluateOutcome> => {
     const { scanId, jurisdiction, category, pages, coverage } = input;
@@ -1165,7 +1168,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
             legal: legalRepo,
             vector: vectorIndex as unknown as RetrievalDeps["vector"],
             embed: (text: string) =>
-              embedTextAi(text, { ai: aiBinding, gateway: { id: "safelaunch-mvp" } }).then(
+                embedTextAi(text, { ai: aiBinding, gateway }).then(
                 (r) => r.vector,
               ),
           }
@@ -1250,7 +1253,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
 
           const provider = createEvaluationProvider({
             ai: aiBinding,
-            gateway: { id: "safelaunch-mvp" },
+            gateway,
           });
 
           const draft = await evaluateEvidenceProvisionPair({

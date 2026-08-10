@@ -46,6 +46,18 @@ The API Worker currently binds these production resources:
 | `SCAN_WORKFLOW`         | Workflow `scan-workflow` / class `ScanWorkflowEntrypoint`         |
 | `ABUSE_RATE_LIMITER`    | Durable Object class `AbuseRateLimiter`                           |
 
+The Worker uses Cloudflare's reserved `default` AI Gateway by default. It is
+auto-created on the first authenticated Workers AI request. To use a named
+gateway instead, set `AI_GATEWAY_ID` to an existing gateway id:
+
+```bash
+cd apps/workers
+pnpm exec wrangler secret put AI_GATEWAY_ID
+```
+
+Do not set a placeholder id: Cloudflare error `2001` means that the requested
+custom gateway is not configured. Leave the variable unset to use `default`.
+
 Treat `apps/workers/wrangler.jsonc` as the source of truth for resource IDs,
 names, compatibility settings, bindings, and Durable Object migrations.
 
