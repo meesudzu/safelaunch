@@ -221,58 +221,72 @@ describe("ReportView", () => {
 });
 
 describe("digital rights report sections", () => {
-  it("renders service signals, license checks, and the digital asset inventory", () => {
-    const report: ReportPayload = {
-      ...baseReport,
-      serviceSignals: [
-        {
-          id: "signal::ugc",
-          kind: "ugc",
-          observed: true,
-          confidence: 0.9,
-          sourceUrl: "https://example.com/community",
-          excerpt: "Đăng bài",
-          evidenceId: "signal::ugc",
-        },
-      ],
-      licenseChecks: [
-        {
-          id: "license::social_network",
-          licenseType: "social_network",
-          status: "required_unavailable",
-          severity: "high",
-          rationale: "Chưa xác minh giấy phép mạng xã hội.",
-          confidence: 0.55,
-          evidenceIds: ["signal::ugc"],
-          citations: [],
-          recommendedAction: "Kiểm tra hồ sơ giấy phép.",
-        },
-      ],
-      assetInventory: {
-        summary: { total: 1, byKind: { image: 1 }, flagged: 1 },
-        assets: [
-          {
-            id: "asset::image::1",
-            kind: "image",
-            url: "https://cdn.example.com/hero.jpg",
-            host: "cdn.example.com",
-            sourceUrl: "https://example.com/",
-            contentType: "image/jpeg",
-            sha256: "a".repeat(64),
-            status: "fetched",
-            licenseEvidence: "no_license_evidence",
-            licenseExcerpt: null,
-            confidence: 0.55,
-          },
-        ],
+  // Annotation per product: the service-signals, license-checks, and
+  // asset-inventory sections are intentionally hidden from the user-facing
+  // report view. The data is still in the payload and consumed by the API
+  // (and the corresponding findings live in the findings tabs). These tests
+  // lock in the "removed from UI, data unchanged" behavior.
+  const reportWithAllDigitalRights: ReportPayload = {
+    ...baseReport,
+    serviceSignals: [
+      {
+        id: "signal::ugc",
+        kind: "ugc",
+        observed: true,
+        confidence: 0.9,
+        sourceUrl: "https://example.com/community",
+        excerpt: "Đăng bài",
+        evidenceId: "signal::ugc",
       },
-    };
-    render(<ReportView report={report} locale="vi" messages={viMessages} />);
-    expect(screen.getByTestId("service-signals-section")).toBeInTheDocument();
-    expect(screen.getByText("Đăng bài")).toBeVisible();
-    expect(screen.getByTestId("license-checks-section")).toBeInTheDocument();
-    expect(screen.getByTestId("asset-inventory-section")).toBeInTheDocument();
-    expect(screen.getByText("https://cdn.example.com/hero.jpg")).toBeVisible();
+    ],
+    licenseChecks: [
+      {
+        id: "license::social_network",
+        licenseType: "social_network",
+        status: "required_unavailable",
+        severity: "high",
+        rationale: "Chưa xác minh giấy phép mạng xã hội.",
+        confidence: 0.55,
+        evidenceIds: ["signal::ugc"],
+        citations: [],
+        recommendedAction: "Kiểm tra hồ sơ giấy phép.",
+      },
+    ],
+    assetInventory: {
+      summary: { total: 1, byKind: { image: 1 }, flagged: 1 },
+      assets: [
+        {
+          id: "asset::image::1",
+          kind: "image",
+          url: "https://cdn.example.com/hero.jpg",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "image/jpeg",
+          sha256: "a".repeat(64),
+          status: "fetched",
+          licenseEvidence: "no_license_evidence",
+          licenseExcerpt: null,
+          confidence: 0.55,
+        },
+      ],
+    },
+  };
+
+  it("does not render the service-signals section even when serviceSignals data is present", () => {
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("service-signals-section")).toBeNull();
+    expect(screen.queryByText("Đăng bài")).toBeNull();
+  });
+
+  it("does not render the license-checks section even when licenseChecks data is present", () => {
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("license-checks-section")).toBeNull();
+  });
+
+  it("does not render the asset-inventory section even when assetInventory data is present", () => {
+    render(<ReportView report={reportWithAllDigitalRights} locale="vi" messages={viMessages} />);
+    expect(screen.queryByTestId("asset-inventory-section")).toBeNull();
+    expect(screen.queryByText("https://cdn.example.com/hero.jpg")).toBeNull();
   });
 });
 
@@ -608,11 +622,17 @@ describe("font inventory (V1)", () => {
       },
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
-    expect(screen.getByTestId("font-inventory-section")).toBeInTheDocument();
+    // Font inventory is now rendered inside the Cần xem xét tab panel.
+    const reviewPanel = screen.getByTestId("findings-tabpanel-review");
+    expect(reviewPanel.querySelector('[data-testid="font-inventory-section"]')).not.toBeNull();
     expect(screen.getByTestId("font-family-row")).toBeInTheDocument();
     expect(screen.getByTestId("font-license-badge")).toHaveTextContent(/verified|registry/i);
-    // Variants are listed in the <details> block (open by default).
-    expect(screen.getByText("https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2")).toBeVisible();
+    // Variants are listed in the <details> block (closed by default per product).
+    const details = screen
+      .getByText("https://cdn.24h.com.vn/css/fonts/Roboto-Regular.woff2")
+      .closest("details");
+    expect(details).not.toBeNull();
+    expect(details?.hasAttribute("open")).toBe(false);
   });
 
   it("falls back to the text 'Source link unavailable' when a citation host is not approved", () => {
@@ -666,5 +686,332 @@ describe("font inventory (V1)", () => {
     };
     render(<ReportView report={report} locale="vi" messages={viMessages} />);
     expect(screen.getByText(/Liên kết nguồn không khả dụng/i)).toBeInTheDocument();
+  });
+});
+
+describe("font deduplication in findings tabs", () => {
+  const fontAssetIdA = "asset::font::fraunces-a";
+  const fontAssetIdB = "asset::font::fraunces-b";
+  const imageAssetId = "asset::image::hero";
+  const baseFontFinding = (id: string) => ({
+    ...buildFinding({ id, severity: "review", applicability: "current" }),
+    evidenceIds: [id === "font-1" ? fontAssetIdA : fontAssetIdB],
+  });
+  const baseImageFinding = {
+    ...buildFinding({ id: "image-1", severity: "review", applicability: "current" }),
+    evidenceIds: [imageAssetId],
+  };
+
+  const buildReport = (): ReportPayload => ({
+    ...baseReport,
+    assetInventory: {
+      summary: { total: 3, byKind: { font: 2, image: 1 }, flagged: 3 },
+      assets: [
+        {
+          id: fontAssetIdA,
+          kind: "font",
+          url: "https://cdn.example.com/font-a.woff2",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "font/woff2",
+          sha256: "a".repeat(64),
+          status: "fetched",
+          licenseEvidence: "copyright_notice_only",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+        {
+          id: fontAssetIdB,
+          kind: "font",
+          url: "https://cdn.example.com/font-b.woff2",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "font/woff2",
+          sha256: "b".repeat(64),
+          status: "fetched",
+          licenseEvidence: "copyright_notice_only",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+        {
+          id: imageAssetId,
+          kind: "image",
+          url: "https://cdn.example.com/hero.jpg",
+          host: "cdn.example.com",
+          sourceUrl: "https://example.com/",
+          contentType: "image/jpeg",
+          sha256: "c".repeat(64),
+          status: "fetched",
+          licenseEvidence: "no_license_evidence",
+          licenseExcerpt: null,
+          confidence: 0.4,
+        },
+      ],
+    },
+    findings: [
+      baseFontFinding("font-1"),
+      baseFontFinding("font-2"),
+      baseImageFinding,
+      buildFinding({ id: "high-1", severity: "high", applicability: "current" }),
+    ],
+  });
+
+  it("hides font-only findings from the Cần xem xét tab and lowers counts", () => {
+    const report = buildReport();
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // 2 font findings hidden; 1 image + 1 high kept → review=1, high=1, total=2
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-tab-high")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("2");
+    // Legend reflects the filtered counts.
+    expect(screen.getByTestId("findings-summary-legend-review")).toHaveTextContent("1");
+  });
+
+  it("does not render font-only finding cards inside the review tab panel", async () => {
+    const user = userEvent.setup();
+    const report = buildReport();
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    await user.click(screen.getByTestId("findings-tab-review"));
+    const panel = screen.getByTestId("findings-tabpanel-review");
+    expect(panel.querySelector('[data-finding-id="font-1"]')).toBeNull();
+    expect(panel.querySelector('[data-finding-id="font-2"]')).toBeNull();
+    expect(panel.querySelector('[data-finding-id="image-1"]')).not.toBeNull();
+  });
+
+  it("still shows font findings when no assetInventory is provided (backwards compatible)", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      findings: [
+        buildFinding({ id: "r1", severity: "review", applicability: "current" }),
+        buildFinding({ id: "r2", severity: "review", applicability: "current" }),
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("2");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("2");
+  });
+
+  it("keeps findings that mix font and non-font evidence (all-evidenceIds-must-be-font rule)", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      assetInventory: {
+        summary: { total: 2, byKind: { font: 1, image: 1 }, flagged: 2 },
+        assets: [
+          {
+            id: fontAssetIdA,
+            kind: "font",
+            url: "https://cdn.example.com/font-a.woff2",
+            host: "cdn.example.com",
+            sourceUrl: "https://example.com/",
+            contentType: "font/woff2",
+            sha256: "a".repeat(64),
+            status: "fetched",
+            licenseEvidence: "copyright_notice_only",
+            licenseExcerpt: null,
+            confidence: 0.4,
+          },
+          {
+            id: imageAssetId,
+            kind: "image",
+            url: "https://cdn.example.com/hero.jpg",
+            host: "cdn.example.com",
+            sourceUrl: "https://example.com/",
+            contentType: "image/jpeg",
+            sha256: "c".repeat(64),
+            status: "fetched",
+            licenseEvidence: "no_license_evidence",
+            licenseExcerpt: null,
+            confidence: 0.4,
+          },
+        ],
+      },
+      findings: [
+        {
+          ...buildFinding({ id: "mixed-1", severity: "review", applicability: "current" }),
+          evidenceIds: [fontAssetIdA, imageAssetId],
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // The mixed-evidence finding is kept (it carries non-font information).
+    expect(screen.getByTestId("findings-tab-review")).toHaveTextContent("1");
+    expect(screen.getByTestId("findings-summary-total")).toHaveTextContent("1");
+  });
+
+  it("renders the font inventory inside the Cần xem xét tab panel (not as a standalone section)", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::lora",
+            family: "Lora",
+            kind: "font",
+            host: "fonts.example",
+            hosts: ["fonts.example"],
+            variants: [
+              {
+                assetId: "asset::font::lora-1",
+                url: "https://fonts.example.com/lora.woff2",
+                format: "woff2",
+                postscriptName: "Lora-Regular",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "no_license_evidence",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: {
+              status: "requires_license_proof",
+              reasonCodes: ["commercial_catalog_name_hint"],
+              confidence: 0.4,
+              evidenceSources: [],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: null,
+            },
+            confidence: 0.4,
+            flagged: true,
+            citationCount: 0,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 1 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // No standalone font-inventory-section as a sibling of other sections:
+    // it must only exist inside the review tab panel.
+    const reviewPanel = screen.getByTestId("findings-tabpanel-review");
+    expect(reviewPanel.querySelector('[data-testid="font-inventory-section"]')).not.toBeNull();
+    expect(screen.getByText("Lora")).toBeInTheDocument();
+  });
+
+  it("keeps the review tab visible when the only flagged items are fonts (font inventory still renders)", () => {
+    // Even if all review findings are font findings (filtered out), the review
+    // tab should remain visible because the font inventory panel needs a tab
+    // to live in.
+    const report: ReportPayload = {
+      ...baseReport,
+      assetInventory: {
+        summary: { total: 1, byKind: { font: 1 }, flagged: 1 },
+        assets: [
+          {
+            id: fontAssetIdA,
+            kind: "font",
+            url: "https://cdn.example.com/font-a.woff2",
+            host: "cdn.example.com",
+            sourceUrl: "https://example.com/",
+            contentType: "font/woff2",
+            sha256: "a".repeat(64),
+            status: "fetched",
+            licenseEvidence: "copyright_notice_only",
+            licenseExcerpt: null,
+            confidence: 0.4,
+          },
+        ],
+      },
+      fontInventory: {
+        groups: [
+          {
+            id: "font::fraunces",
+            family: "Fraunces",
+            kind: "font",
+            host: "cdn.example.com",
+            hosts: ["cdn.example.com"],
+            variants: [
+              {
+                assetId: fontAssetIdA,
+                url: "https://cdn.example.com/font-a.woff2",
+                format: "woff2",
+                postscriptName: "Fraunces-Regular",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "copyright_notice_only",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: null,
+            confidence: 0.4,
+            flagged: true,
+            citationCount: 0,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 1 },
+      },
+      findings: [
+        {
+          ...buildFinding({ id: "font-only-1", severity: "review", applicability: "current" }),
+          evidenceIds: [fontAssetIdA],
+        },
+      ],
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // The review tab is visible because there's a font inventory panel to show.
+    expect(screen.getByTestId("findings-tab-review")).toBeInTheDocument();
+    expect(screen.getByTestId("findings-tabpanel-review")).toBeInTheDocument();
+    // The font inventory renders inside the panel even though the only
+    // review finding was filtered out as a font-only finding.
+    const reviewPanel = screen.getByTestId("findings-tabpanel-review");
+    expect(reviewPanel.querySelector('[data-testid="font-inventory-section"]')).not.toBeNull();
+    // The empty-state message must NOT appear (font inventory is content).
+    expect(reviewPanel.querySelector("p")?.textContent ?? "").not.toMatch(/không có phát hiện/i);
+  });
+
+  it("renders font variants details closed by default", () => {
+    const report: ReportPayload = {
+      ...baseReport,
+      fontInventory: {
+        groups: [
+          {
+            id: "font::inter",
+            family: "Inter",
+            kind: "font",
+            host: "fonts.example",
+            hosts: ["fonts.example"],
+            variants: [
+              {
+                assetId: "asset::font::inter-1",
+                url: "https://fonts.example.com/inter.woff2",
+                format: "woff2",
+                postscriptName: "Inter-Regular",
+                subfamilyName: "Regular",
+                version: null,
+                fileSha256: "a".repeat(64),
+                status: "fetched",
+                licenseEvidence: "open_license_marker",
+              },
+            ],
+            fontInfo: null,
+            fontLicense: {
+              status: "verified_open",
+              reasonCodes: ["registry_hash_match"],
+              confidence: 0.95,
+              evidenceSources: [],
+              retrievedAt: "2026-08-06T00:00:00.000Z",
+              registryVersion: "google-fonts-manual-snapshot-2026-08-06",
+            },
+            confidence: 0.95,
+            flagged: false,
+            citationCount: 0,
+          },
+        ],
+        totals: { families: 1, files: 1, flagged: 0 },
+      },
+    };
+    render(<ReportView report={report} locale="vi" messages={viMessages} />);
+    // We need a review-tab finding to make the panel render, but with the
+    // current data the font itself is "verified_open" so no finding is
+    // produced. To exercise the details, build a minimal case with one
+    // review finding so the panel renders.
+    // Actually: when fontInventory has groups but no findings, the review
+    // tab should still render (font inventory panel). So we can just check
+    // the details is present.
+    const reviewPanel = screen.getByTestId("findings-tabpanel-review");
+    const details = reviewPanel.querySelector("details");
+    expect(details).not.toBeNull();
+    expect(details?.hasAttribute("open")).toBe(false);
   });
 });
