@@ -39,6 +39,7 @@ import { execFileSync } from "node:child_process";
 import {
   buildBatchRequest,
   buildEmbeddingUrl,
+  buildGatewayHeaders,
   buildVectorIdUpdateSql,
   buildVectorizeRecords,
   parseBatchResponse,
