@@ -228,6 +228,36 @@ describe("reports router", () => {
     expect(blob).not.toContain("secret-token");
     expect(blob).not.toContain(stored);
   });
+
+  it("records opened_at on the first successful read", async () => {
+    // The admin usage-metrics endpoint (`/v1/admin/metrics/usage`) counts
+    // rows from `reports` where `opened_at` falls inside the window.
+    // Migration 0004 added the column, but if no handler ever writes it,
+    // the count is permanently zero in production. We verify the route
+    // emits the UPDATE before returning 200.
+    const stored = await sha256("correct-token");
+    const db = new FakeD1Database();
+    const response = await runWithDb(
+      db,
+      new Request("http://local/v1/reports/rpt_abc?token=correct-token"),
+      {
+        tokenHash: stored,
+        payloadJson: JSON.stringify({ scanId: "scan-1", status: "high_risk" }),
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
+    );
+    expect(response.status).toBe(200);
+    const write = db.preparedCalls.find((call) =>
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
+    );
+    expect(write).toBeDefined();
+    expect(write?.bindings).toEqual([
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+      "rpt_abc",
+    ]);
+  });
 });
 
 const runWithDbByToken = async (
@@ -433,6 +463,67 @@ describe("reports router — by-token lookup", () => {
     const blob = errSpy.join("\n");
     expect(blob).not.toContain(token);
     expect(blob).not.toContain(stored);
+  });
+
+  it("records opened_at on the first successful by-token read", async () => {
+    // The /vi/report/<token> page hits this endpoint, and the admin
+    // dashboard counts each successful open. Without the UPDATE below,
+    // the "Báo cáo đã mở" metric is permanently zero.
+    const token = "rpt_opened_at";
+    const stored = await sha256(token);
+    const db = new FakeD1Database();
+    const response = await runWithDbByToken(
+      db,
+      new Request(`http://local/v1/reports/by-token/${encodeURIComponent(token)}`),
+      {
+        tokenHash: stored,
+        payloadJson: JSON.stringify({ scanId: "scan-1", status: "high_risk" }),
+        expiresAt: "2099-01-01T00:00:00.000Z",
+      },
+    );
+    expect(response.status).toBe(200);
+    const write = db.preparedCalls.find((call) =>
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
+    );
+    expect(write).toBeDefined();
+    expect(write?.bindings).toEqual([
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/),
+      "scan_f46f0cfd3c85cc9c5951a22b9b804840d3e8",
+    ]);
+  });
+
+  it("does NOT re-write opened_at on repeat reads (COALESCE)", async () => {
+    // Regression coverage: `opened_at` records the FIRST successful open,
+    // not the most recent. Subsequent reads must not push the timestamp
+    // forward (so the 24h-window metric reflects first-open behaviour).
+    const token = "rpt_repeat_open";
+    const stored = await sha256(token);
+    const db = new FakeD1Database();
+    for (let i = 0; i < 2; i += 1) {
+      await runWithDbByToken(
+        db,
+        new Request(`http://local/v1/reports/by-token/${encodeURIComponent(token)}`),
+        {
+          tokenHash: stored,
+          payloadJson: JSON.stringify({ scanId: "scan-1" }),
+          expiresAt: "2099-01-01T00:00:00.000Z",
+        },
+      );
+    }
+    const writes = db.preparedCalls.filter((call) =>
+      call.sql.startsWith(
+        "UPDATE reports SET opened_at = COALESCE(opened_at, ?) WHERE scan_id = ?",
+      ),
+    );
+    // Both reads still issue the write. The COALESCE in the SQL itself
+    // is what guarantees the timestamp is only recorded the FIRST time;
+    // we assert both reads route through the same write SQL so the
+    // behaviour cannot regress to a plain `SET opened_at = ?` overwrite.
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.sql).toBe(writes[1]?.sql);
+    expect(writes[0]?.sql).toMatch(/COALESCE\(opened_at/);
   });
 });
 

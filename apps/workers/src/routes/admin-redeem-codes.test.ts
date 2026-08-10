@@ -67,7 +67,7 @@ class FakeD1 {
 
 const buildApp = () => {
   const app = new Hono<{ Bindings: { DB: D1Database } }>();
-  app.route("/", adminRedeemCodesRouter);
+  app.route("/v1/admin", adminRedeemCodesRouter);
   return app;
 };
 
