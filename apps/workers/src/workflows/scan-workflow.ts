@@ -1169,9 +1169,7 @@ const makeWorkflowEvaluator = (env: ScanWorkflowEnv): ScanRunDeps["evaluate"] =>
             legal: legalRepo,
             vector: vectorIndex as unknown as RetrievalDeps["vector"],
             embed: (text: string) =>
-                embedTextAi(text, { ai: aiBinding, gateway }).then(
-                (r) => r.vector,
-              ),
+              embedTextAi(text, { ai: aiBinding, gateway }).then((r) => r.vector),
           }
         : null;
 
