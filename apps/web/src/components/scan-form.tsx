@@ -412,9 +412,20 @@ export const ScanForm = ({ locale, messages, createScan, onScanCreated }: ScanFo
         </div>
       </div>
 
-      <footer className="mx-auto flex max-w-7xl flex-col gap-2 px-5 py-10 text-xs text-ink-soft md:flex-row md:items-center md:justify-between md:px-16 lg:py-4">
-        <span>{messages["footer.disclosure"]}</span>
-        <span>{messages["footer.version"]}</span>
+      <footer className="mx-auto grid w-full max-w-7xl gap-5 px-5 py-8 text-xs text-ink-soft md:grid-cols-[1fr_auto] md:items-center md:px-16 lg:grid-cols-[1fr_auto_auto]">
+        <span className="max-w-md leading-5">{messages["footer.disclosure"]}</span>
+        <nav className="flex flex-wrap gap-x-6 gap-y-3 font-mono uppercase tracking-wider md:justify-end">
+          <a href={`/${locale}/policy`} className="hover:text-accent">
+            {isVi ? "Bảo mật" : "Privacy"}
+          </a>
+          <a href={`/${locale}/term`} className="hover:text-accent">
+            {isVi ? "Điều khoản" : "Terms"}
+          </a>
+          <a href={`/${locale}/contact`} className="hover:text-accent">
+            {isVi ? "Liên hệ" : "Contact"}
+          </a>
+        </nav>
+        <span className="font-mono md:text-right">{messages["footer.version"]}</span>
       </footer>
     </section>
   );
